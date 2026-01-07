@@ -1308,6 +1308,8 @@ function openFloatingPreview(path, fileName) {
     const fileType = getFileType({ name: path });
     const fileConfig = FILE_TYPES[fileType] || FILE_TYPES.unknown;
     const isImage = FILE_TYPES.image.exts.includes(ext);
+    const isVideo = FILE_TYPES.video.exts.includes(ext);
+    const isAudio = FILE_TYPES.audio.exts.includes(ext);
 
     // 创建浮动预览窗口
     const previewWindow = document.createElement("div");
@@ -1353,8 +1355,8 @@ function openFloatingPreview(path, fileName) {
     const actions = document.createElement("div");
     actions.style.cssText = "display: flex; gap: 8px;";
 
-    // 全屏按钮（仅图像显示）
-    if (isImage) {
+    // 全屏按钮（图像、视频、音频显示）
+    if (isImage || isVideo || isAudio) {
         const fullscreenBtn = document.createElement("button");
         fullscreenBtn.className = "comfy-btn";
         fullscreenBtn.innerHTML = '<i class="pi pi-window-maximize"></i>';
@@ -1538,6 +1540,54 @@ function openFloatingPreview(path, fileName) {
     separator2.style.cssText = "width: 1px; height: 16px; background: #3a3a3a; margin: 0 4px;";
     toolbarRight.appendChild(separator2);
 
+    // 视频/音频播放控制
+    if (isVideo || isAudio) {
+        const mediaElement = content.querySelector('video, audio');
+        if (mediaElement) {
+            // 播放/暂停按钮
+            const playPauseBtn = createToolbarButton("pi-play", "播放", () => {
+                if (mediaElement.paused) {
+                    mediaElement.play().then(() => {
+                        playPauseBtn.innerHTML = '<i class="pi pi-pause"></i>';
+                        playPauseBtn.title = "暂停";
+                    }).catch(err => {
+                        console.error('[DataManager] 播放失败:', err);
+                    });
+                } else {
+                    mediaElement.pause();
+                    playPauseBtn.innerHTML = '<i class="pi pi-play"></i>';
+                    playPauseBtn.title = "播放";
+                }
+            });
+            toolbarRight.appendChild(playPauseBtn);
+
+            // 监听媒体事件更新按钮状态
+            mediaElement.addEventListener('play', () => {
+                playPauseBtn.innerHTML = '<i class="pi pi-pause"></i>';
+                playPauseBtn.title = "暂停";
+            });
+
+            mediaElement.addEventListener('pause', () => {
+                playPauseBtn.innerHTML = '<i class="pi pi-play"></i>';
+                playPauseBtn.title = "播放";
+            });
+
+            // 视频全屏按钮（使用原生的全屏 API）
+            if (isVideo) {
+                const videoFullscreenBtn = createToolbarButton("pi-arrows-alt", "视频全屏", () => {
+                    if (mediaElement.requestFullscreen) {
+                        mediaElement.requestFullscreen().catch(err => {
+                            console.error('[DataManager] 全屏失败:', err);
+                        });
+                    } else if (mediaElement.webkitRequestFullscreen) {
+                        mediaElement.webkitRequestFullscreen();
+                    }
+                });
+                toolbarRight.appendChild(videoFullscreenBtn);
+            }
+        }
+    }
+
     // 打开按钮
     const openBtn = createToolbarButton("pi-external-link", "打开", () => {
         openFileExternally(path);
@@ -1691,11 +1741,11 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
         else if (FILE_TYPES.audio.exts.includes(ext)) {
             const audioUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             previewHTML = `
-                <div style="text-align: center; width: 100%; padding: 20px;">
+                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
                     <i class="pi pi-volume-up" style="font-size: 64px; color: #3498db; margin-bottom: 15px;"></i>
-                    <div style="color: #fff; margin-bottom: 15px;">${path.split(/[/\\]/).pop()}</div>
-                    <audio controls style="width: 100%; max-width: 400px;">
-                        <source src="${audioUrl}" type="audio/mpeg">
+                    <div style="color: #fff; margin-bottom: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                    <audio id="dm-preview-audio-${Date.now()}" controls preload="metadata" style="width: 100%; max-width: 400px;">
+                        <source src="${audioUrl}">
                         您的浏览器不支持音频播放
                     </audio>
                 </div>
@@ -1705,9 +1755,12 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
         else if (FILE_TYPES.video.exts.includes(ext)) {
             const videoUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             previewHTML = `
-                <div style="text-align: center; width: 100%;">
-                    <video controls style="max-width: 100%; max-height: 400px; border-radius: 8px;">
-                        <source src="${videoUrl}" type="video/mp4">
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000;">
+                    <video id="dm-preview-video-${Date.now()}"
+                           controls
+                           preload="metadata"
+                           style="width: 100%; height: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">
+                        <source src="${videoUrl}">
                         您的浏览器不支持视频播放
                     </video>
                 </div>
