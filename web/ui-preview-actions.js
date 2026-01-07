@@ -233,36 +233,17 @@ function formatTime(seconds) {
  * 创建代码预览 HTML
  */
 function createCodePreviewHTML(text, ext = '') {
-    // JSON 特殊处理：语法高亮
-    if (ext === '.json') {
-        try {
-            const jsonObj = JSON.parse(text);
-            const highlighted = syntaxHighlight(jsonObj);
-            return `
-                <div style="background: #1e1e1e; padding: 15px;
-                            font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
-                            overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
-                    <pre style="margin: 0; white-space: pre-wrap;">${highlighted}</pre>
-                </div>
-            `;
-        } catch (e) {
-            // JSON 解析失败，使用普通文本显示
-            return `
-                <div style="background: #1e1e1e; padding: 15px;
-                            font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
-                            overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
-                    <pre style="margin: 0; color: #d4d4d4;">${escapeHtml(text.substring(0, 5000))}${text.length > 5000 ? '\n\n... (文件过大，仅显示前 5000 字符)' : ''}</pre>
-                </div>
-            `;
-        }
-    }
+    const maxLength = 50000;
+    const displayText = text.length > maxLength ? text.substring(0, maxLength) + '\n\n... (文件过大，已截断)' : text;
 
-    // 其他代码文件：普通文本显示
+    // 使用通用语法高亮函数
+    const highlighted = highlightCode(displayText, ext);
+
     return `
         <div style="background: #1e1e1e; padding: 15px;
-                    font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
+                    font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.5;
                     overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
-            <pre style="margin: 0; color: #d4d4d4;">${escapeHtml(text.substring(0, 5000))}${text.length > 5000 ? '\n\n... (文件过大，仅显示前 5000 字符)' : ''}</pre>
+            <pre style="margin: 0; white-space: pre-wrap; color: #d4d4d4;">${highlighted}</pre>
         </div>
     `;
 }
@@ -399,43 +380,210 @@ function loadScript(src) {
     });
 }
 
+// 语法高亮颜色主题（VS Code Dark 风格）
+const CODE_COLORS = {
+    keyword: '#569cd6',      // 关键字 (blue)
+    string: '#ce9178',       // 字符串 (orange)
+    number: '#b5cea8',       // 数字 (light green)
+    boolean: '#569cd6',      // 布尔值 (blue)
+    null: '#569cd6',         // null (blue)
+    comment: '#6a9955',      // 注释 (green)
+    function: '#dcdcaa',     // 函数 (yellow)
+    class: '#4ec9b0',        // 类 (cyan)
+    operator: '#d4d4d4',     // 操作符
+    tag: '#569cd6',          // HTML 标签
+    attrName: '#9cdcfe',     // 属性名
+    attrValue: '#ce9178',    // 属性值
+    punctuation: '#d4d4d4',  // 标点
+    plain: '#d4d4d4',        // 普通文本
+};
+
+/**
+ * 通用语法高亮函数
+ * @param {string} code - 源代码
+ * @param {string} ext - 文件扩展名
+ * @returns {string} 高亮后的 HTML
+ */
+function highlightCode(code, ext) {
+    // HTML 转义
+    let result = code
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    // 根据扩展名选择高亮规则
+    switch (ext) {
+        case '.json':
+            result = highlightJSON(result);
+            break;
+        case '.py':
+            result = highlightPython(result);
+            break;
+        case '.js':
+        case '.ts':
+        case '.jsx':
+        case '.tsx':
+            result = highlightJavaScript(result);
+            break;
+        case '.html':
+        case '.htm':
+            result = highlightHTML(result);
+            break;
+        case '.css':
+            result = highlightCSS(result);
+            break;
+        case '.yaml':
+        case '.yml':
+            result = highlightYAML(result);
+            break;
+        case '.xml':
+            result = highlightXML(result);
+            break;
+        default:
+            // 默认：只高亮字符串和数字
+            result = highlightGeneric(result);
+    }
+
+    return result;
+}
+
 /**
  * JSON 语法高亮
- * @param {any} json - JSON 对象
- * @returns {string} 高亮后的 HTML
+ */
+function highlightJSON(code) {
+    return code.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let color = CODE_COLORS.number;
+        if (/^"/.test(match)) {
+            color = /:$/.test(match) ? CODE_COLORS.key : CODE_COLORS.string;
+        } else if (/true|false/.test(match)) {
+            color = CODE_COLORS.boolean;
+        } else if (/null/.test(match)) {
+            color = CODE_COLORS.null;
+        }
+        return `<span style="color: ${color};">${match}</span>`;
+    });
+}
+
+/**
+ * Python 语法高亮
+ */
+function highlightPython(code) {
+    const keywords = /\b(def|class|import|from|if|elif|else|while|for|in|try|except|finally|with|as|return|yield|raise|pass|break|continue|and|or|not|is|lambda|True|False|None|async|await)\b/g;
+    const decorators = /@[\w.]+/g;
+    const strings = /("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g;
+    const comments = /#.*$/gm;
+    const numbers = /\b(\d+\.?\d*)\b/g;
+    const functions = /\b([a-zA-Z_]\w*)\s*(?=\()/g;
+
+    // 顺序很重要：注释 -> 字符串 -> 关键字 -> 函数 -> 数字
+    return code
+        .replace(comments, `<span style="color: ${CODE_COLORS.comment};">$&</span>`)
+        .replace(strings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
+        .replace(keywords, `<span style="color: ${CODE_COLORS.keyword};">$&</span>`)
+        .replace(decorators, `<span style="color: ${CODE_COLORS.function};">$&</span>`)
+        .replace(functions, `<span style="color: ${CODE_COLORS.function};">$1</span>(`)
+        .replace(numbers, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
+}
+
+/**
+ * JavaScript/TypeScript 语法高亮
+ */
+function highlightJavaScript(code) {
+    const keywords = /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|class|extends|import|export|from|async|await|try|catch|finally|throw|null|undefined|true|false|in|instanceof|typeof|void)\b/g;
+    const templateStrings = /`(?:[^`\\]|\\.)*`/g;
+    const strings = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g;
+    const comments = /(\/\/.*$|\/\*[\s\S]*?\*\/)/gm;
+    const numbers = /\b(\d+\.?\d*)\b/g;
+    const functions = /\b([a-zA-Z_]\w*)\s*(?=\()/g;
+    const arrowFunc = /(&gt;|=>)/g;
+
+    return code
+        .replace(comments, `<span style="color: ${CODE_COLORS.comment};">$&</span>`)
+        .replace(templateStrings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
+        .replace(strings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
+        .replace(keywords, `<span style="color: ${CODE_COLORS.keyword};">$&</span>`)
+        .replace(functions, `<span style="color: ${CODE_COLORS.function};">$1</span>(`)
+        .replace(arrowFunc, `<span style="color: ${CODE_COLORS.keyword};">$&</span>`)
+        .replace(numbers, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
+}
+
+/**
+ * HTML 语法高亮
+ */
+function highlightHTML(code) {
+    // HTML 标签
+    code = code.replace(/(&lt;\/?)([\w-]+)/g, `$1<span style="color: ${CODE_COLORS.tag};">$2</span>`);
+    // 属性名
+    code = code.replace(/([\w-]+)(=)/g, `<span style="color: ${CODE_COLORS.attrName};">$1</span>$2`);
+    // 属性值
+    code = code.replace(/(=)("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, `$1<span style="color: ${CODE_COLORS.attrValue};">$2</span>`);
+    return code;
+}
+
+/**
+ * CSS 语法高亮
+ */
+function highlightCSS(code) {
+    // 注释
+    code = code.replace(/(\/\*[\s\S]*?\*\/)/g, `<span style="color: ${CODE_COLORS.comment};">$1</span>`);
+    // 选择器
+    code = code.replace(/^([\s]*)([.#@][\w-]+|[\w]+|::?[\w-]+)/gm, `$1<span style="color: ${CODE_COLORS.class};">$2</span>`);
+    // 属性名
+    code = code.replace(/([\w-]+)(?=\s*:)/g, `<span style="color: ${CODE_COLORS.attrName};">$1</span>`);
+    // 属性值
+    code = code.replace(/:\s*([^;{]+)/g, `: <span style="color: ${CODE_COLORS.attrValue};">$1</span>`);
+    return code;
+}
+
+/**
+ * YAML 语法高亮
+ */
+function highlightYAML(code) {
+    // 键
+    code = code.replace(/^(\s*)([\w-]+)(?=\s*:)/gm, `$1<span style="color: ${CODE_COLORS.key};">$2</span>:`);
+    // 字符串值
+    code = code.replace(/: ['"]([^'"]+)['"]/g, `: <span style="color: ${CODE_COLORS.string};">'$1'</span>`);
+    // 布尔值和数字
+    code = code.replace(/\b(true|false|yes|no|on|off)\b/gi, `<span style="color: ${CODE_COLORS.boolean};">$&</span>`);
+    code = code.replace(/\b(\d+\.?\d*)\b/g, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
+    return code;
+}
+
+/**
+ * XML 语法高亮
+ */
+function highlightXML(code) {
+    // 标签名
+    code = code.replace(/(&lt;\/?)([\w-:]+)/g, `$1<span style="color: ${CODE_COLORS.tag};">$2</span>`);
+    // 属性名
+    code = code.replace(/([\w-:]+)(=)/g, `<span style="color: ${CODE_COLORS.attrName};">$1</span>$2`);
+    // 属性值
+    code = code.replace(/(=)("(?:[^"\\]|\\.)*")/g, `$1<span style="color: ${CODE_COLORS.attrValue};">$2</span>`);
+    return code;
+}
+
+/**
+ * 通用语法高亮（只高亮字符串和数字）
+ */
+function highlightGeneric(code) {
+    const strings = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g;
+    const numbers = /\b(\d+\.?\d*)\b/g;
+    const comments = /(#|\/\/).*$/gm;
+
+    return code
+        .replace(comments, `<span style="color: ${CODE_COLORS.comment};">$&</span>`)
+        .replace(strings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
+        .replace(numbers, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
+}
+
+/**
+ * JSON 语法高亮（保留兼容性）
  */
 function syntaxHighlight(json) {
     if (typeof json !== 'string') {
         json = JSON.stringify(json, null, 2);
     }
-
-    const jsonString = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    return jsonString.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        let cls = 'dm-json-number';
-        if (/^"/.test(match)) {
-            if (/:$/.test(match)) {
-                cls = 'dm-json-key';
-            } else {
-                cls = 'dm-json-string';
-            }
-        } else if (/true|false/.test(match)) {
-            cls = 'dm-json-boolean';
-        } else if (/null/.test(match)) {
-            cls = 'dm-json-null';
-        }
-
-        // 返回带样式的 span
-        const styleMap = {
-            'dm-json-key': 'color: #9cdcfe;',
-            'dm-json-string': 'color: #ce9178;',
-            'dm-json-number': 'color: #b5cea8;',
-            'dm-json-boolean': 'color: #569cd6;',
-            'dm-json-null': 'color: #569cd6;'
-        };
-
-        return '<span style="' + styleMap[cls] + '">' + match + '</span>';
-    });
+    return highlightJSON(json);
 }
 
 /**
