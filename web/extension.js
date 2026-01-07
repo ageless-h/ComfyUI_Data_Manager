@@ -915,14 +915,32 @@ async function previewFile(path) {
             `;
             canOpenExternally = true;
         }
-        // 视频预览 - 使用后端 API
+        // 视频预览 - 使用后端 API（自定义控件）
         else if (FILE_TYPES.video.exts.includes(ext)) {
             const videoUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+            const videoId = `dm-panel-video-${Date.now()}`;
             previewHTML = `
-                <div style="text-align: center;">
-                    <video controls style="width: 100%; max-height: 300px; border-radius: 8px;">
-                        <source src="${videoUrl}" type="video/mp4">
-                    </video>
+                <div style="display: flex; flex-direction: column; gap: 0;">
+                    <div style="position: relative; background: #000; border-radius: 8px; overflow: hidden;">
+                        <video id="${videoId}"
+                               preload="metadata"
+                               style="width: 100%; max-height: 300px; display: block; object-fit: contain;">
+                            <source src="${videoUrl}" type="video/mp4">
+                        </video>
+                    </div>
+                    <!-- 自定义视频控件 -->
+                    <div id="${videoId}-controls" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #252525; border-radius: 0 0 8px 8px; margin-top: -2px;">
+                        <button class="comfy-btn dm-video-play-btn" data-video-id="${videoId}" style="padding: 6px 12px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                            <i class="pi pi-play"></i> 播放
+                        </button>
+                        <span id="${videoId}-time" style="color: #aaa; font-size: 11px; font-family: monospace; min-width: 80px; text-align: center;">0:00 / 0:00</span>
+                        <button class="comfy-btn dm-video-volume-btn" data-video-id="${videoId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="音量">
+                            <i class="pi pi-volume-up"></i>
+                        </button>
+                        <button class="comfy-btn dm-video-fullscreen-btn" data-video-id="${videoId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="视频全屏">
+                            <i class="pi pi-arrows-alt"></i>
+                        </button>
+                    </div>
                 </div>
             `;
             canOpenExternally = true;
@@ -967,6 +985,95 @@ async function previewFile(path) {
         }
 
         content.innerHTML = previewHTML;
+
+        // 为视频添加自定义控件事件监听器
+        if (FILE_TYPES.video.exts.includes(ext)) {
+            const video = content.querySelector('video');
+            const playBtn = content.querySelector('.dm-video-play-btn');
+            const volumeBtn = content.querySelector('.dm-video-volume-btn');
+            const fullscreenBtn = content.querySelector('.dm-video-fullscreen-btn');
+            const timeDisplay = content.querySelector(`[id$="-time"]`);
+
+            if (video && playBtn && volumeBtn && fullscreenBtn && timeDisplay) {
+                // 播放/暂停按钮
+                playBtn.addEventListener('click', () => {
+                    if (video.paused) {
+                        video.play().then(() => {
+                            playBtn.innerHTML = '<i class="pi pi-pause"></i> 暂停';
+                        }).catch(err => {
+                            console.error('[DataManager] 播放失败:', err);
+                        });
+                    } else {
+                        video.pause();
+                        playBtn.innerHTML = '<i class="pi pi-play"></i> 播放';
+                    }
+                });
+
+                // 监听视频播放状态
+                video.addEventListener('play', () => {
+                    playBtn.innerHTML = '<i class="pi pi-pause"></i> 暂停';
+                });
+
+                video.addEventListener('pause', () => {
+                    playBtn.innerHTML = '<i class="pi pi-play"></i> 播放';
+                });
+
+                // 音量按钮
+                volumeBtn.addEventListener('click', () => {
+                    if (video.muted) {
+                        video.muted = false;
+                        volumeBtn.innerHTML = '<i class="pi pi-volume-up"></i>';
+                        volumeBtn.title = "音量";
+                    } else {
+                        video.muted = true;
+                        volumeBtn.innerHTML = '<i class="pi pi-volume-off"></i>';
+                        volumeBtn.title = "静音";
+                    }
+                });
+
+                // 监听音量变化
+                video.addEventListener('volumechange', () => {
+                    if (video.muted || video.volume === 0) {
+                        volumeBtn.innerHTML = '<i class="pi pi-volume-off"></i>';
+                    } else if (video.volume < 0.5) {
+                        volumeBtn.innerHTML = '<i class="pi pi-volume-down"></i>';
+                    } else {
+                        volumeBtn.innerHTML = '<i class="pi pi-volume-up"></i>';
+                    }
+                });
+
+                // 全屏按钮
+                fullscreenBtn.addEventListener('click', () => {
+                    if (video.requestFullscreen) {
+                        video.requestFullscreen().catch(err => {
+                            console.error('[DataManager] 全屏失败:', err);
+                        });
+                    } else if (video.webkitRequestFullscreen) {
+                        video.webkitRequestFullscreen();
+                    }
+                });
+
+                // 时间格式化函数
+                const formatTime = (seconds) => {
+                    if (isNaN(seconds)) return "0:00";
+                    const mins = Math.floor(seconds / 60);
+                    const secs = Math.floor(seconds % 60);
+                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                };
+
+                // 更新时间显示
+                video.addEventListener('loadedmetadata', () => {
+                    const duration = formatTime(video.duration);
+                    timeDisplay.textContent = `0:00 / ${duration}`;
+                });
+
+                video.addEventListener('timeupdate', () => {
+                    const current = formatTime(video.currentTime);
+                    const duration = formatTime(video.duration || 0);
+                    timeDisplay.textContent = `${current} / ${duration}`;
+                });
+            }
+        }
 
         // 更新浮动预览按钮
         if (floatingBtn) {
