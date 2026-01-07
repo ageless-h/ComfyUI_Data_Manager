@@ -176,7 +176,33 @@ function openFileManager() {
         onViewToggle: () => {
             FileManagerState.viewMode = FileManagerState.viewMode === "list" ? "grid" : "list";
             const container = document.getElementById("dm-file-list");
+            const browserPanel = document.getElementById("dm-browser-panel");
+
             if (container) {
+                // 更新容器样式
+                if (FileManagerState.viewMode === 'grid') {
+                    container.style.cssText = `
+                        flex: 1;
+                        overflow-y: auto;
+                        padding: 10px;
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-content: flex-start;
+                        gap: 10px;
+                    `;
+                    // 隐藏列表表头
+                    const header = browserPanel?.querySelector('.dm-list-header');
+                    if (header) header.style.display = 'none';
+                } else {
+                    container.style.cssText = `
+                        flex: 1;
+                        overflow-y: auto;
+                        padding: 5px 0;
+                    `;
+                    // 显示列表表头
+                    const header = browserPanel?.querySelector('.dm-list-header');
+                    if (header) header.style.display = 'flex';
+                }
                 // 重新渲染文件列表
                 loadDirectory(FileManagerState.currentPath);
             }

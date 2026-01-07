@@ -28,11 +28,24 @@ export function createBrowserPanel(viewMode = 'list') {
 
     const content = document.createElement("div");
     content.id = "dm-file-list";
-    content.style.cssText = `
-        flex: 1;
-        overflow-y: auto;
-        padding: 5px 0;
-    `;
+    // 根据视图模式设置不同的容器样式
+    if (viewMode === 'grid') {
+        content.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 10px;
+        `;
+    } else {
+        content.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px 0;
+        `;
+    }
     content.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #666;">
             <i class="pi pi-spin pi-spinner" style="font-size: 24px;"></i>
@@ -49,6 +62,7 @@ export function createBrowserPanel(viewMode = 'list') {
  */
 function createListHeader() {
     const header = document.createElement("div");
+    header.className = "dm-list-header";
     header.style.cssText = `
         display: flex;
         padding: 10px 15px;
