@@ -60,6 +60,8 @@ export function openFloatingPreview(path, fileName) {
     const isMarkdown = ext === '.md';
     // 修复：包含所有文档类型
     const isDocument = isPDF || isMarkdown || FILE_TYPES.document.exts.includes(ext);
+    // 代码文件类型
+    const isCode = FILE_TYPES.code.exts.includes(ext);
 
     // 创建浮动预览窗口
     const previewWindow = document.createElement("div");
@@ -82,7 +84,7 @@ export function openFloatingPreview(path, fileName) {
     `;
 
     // 创建标题栏
-    const header = createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, previewWindow, path);
+    const header = createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, isCode, previewWindow, path);
     previewWindow.appendChild(header);
 
     // 创建内容区域
@@ -90,7 +92,7 @@ export function openFloatingPreview(path, fileName) {
     previewWindow.appendChild(content);
 
     // 创建工具栏
-    const toolbar = createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMarkdown, content, previewWindow);
+    const toolbar = createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMarkdown, isCode, content, previewWindow);
     previewWindow.appendChild(toolbar);
 
     document.body.appendChild(previewWindow);
@@ -114,7 +116,7 @@ export function openFloatingPreview(path, fileName) {
 /**
  * 创建预览窗口标题栏
  */
-function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, previewWindow, path) {
+function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, isCode, previewWindow, path) {
     const header = document.createElement("div");
     header.className = "dm-preview-header";
     header.style.cssText = `
@@ -141,8 +143,8 @@ function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, is
     const minimizeBtn = createTrafficLightButton("pi-minus", "#ffbd2e", "最小化", () => minimizeFloatingPreview(previewWindow, path, fileName, fileConfig));
     trafficLights.appendChild(minimizeBtn);
 
-    // 全屏按钮（绿色）
-    if (isImage || isVideo || isAudio || isDocument) {
+    // 全屏按钮（绿色）- 图像、视频、音频、文档、代码文件
+    if (isImage || isVideo || isAudio || isDocument || isCode) {
         const fullscreenBtn = createTrafficLightButton("pi-window-maximize", "#28c940", "全屏", () => toggleFullscreen(previewWindow));
         trafficLights.appendChild(fullscreenBtn);
     }
@@ -233,7 +235,7 @@ function createPreviewContent(path, ext, isImage) {
 /**
  * 创建预览工具栏
  */
-function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMarkdown, content, previewWindow) {
+function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMarkdown, isCode, content, previewWindow) {
     const toolbar = document.createElement("div");
     toolbar.className = "dm-preview-toolbar";
     toolbar.style.cssText = `
@@ -263,6 +265,11 @@ function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMar
     // 文档字号控制 (txt, rtf, docx 等文本文档)
     if (ext === '.txt' || ext === '.rtf' || ext === '.md' || ext === '.docx') {
         addDocumentFontSizeControls(toolbarLeft, content, ext);
+    }
+
+    // 代码文件字号控制
+    if (isCode) {
+        addCodeFontSizeControls(toolbarLeft, content, ext);
     }
 
     // 文件路径
@@ -300,6 +307,13 @@ function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMar
         toolbarRight.appendChild(createToolbarSeparator());
         const docFullscreenBtn = createToolbarButton("pi-arrows-alt", "全屏预览", () => toggleFullscreen(previewWindow));
         toolbarRight.appendChild(docFullscreenBtn);
+    }
+
+    // 代码文件全屏按钮
+    if (isCode) {
+        toolbarRight.appendChild(createToolbarSeparator());
+        const codeFullscreenBtn = createToolbarButton("pi-arrows-alt", "全屏预览", () => toggleFullscreen(previewWindow));
+        toolbarRight.appendChild(codeFullscreenBtn);
     }
 
     // 打开按钮
@@ -650,6 +664,57 @@ function addDocumentFontSizeControls(toolbarLeft, content, ext) {
         const docContent = findDocumentContent();
         if (docContent) {
             docContent.style.fontSize = fontSize + 'px';
+            fontSizeDisplay.textContent = fontSize + 'px';
+        }
+    }
+}
+
+/**
+ * 添加代码文件字号控制
+ */
+function addCodeFontSizeControls(toolbarLeft, content, ext) {
+    let fontSize = 12;
+
+    // 查找代码内容元素（在 pre 标签中）
+    const findCodeContent = () => {
+        const pre = content.querySelector('pre');
+        if (pre) {
+            return pre;
+        }
+        // 如果没有 pre，查找包含代码的 div
+        return content.querySelector('div[style*="font-family"]');
+    };
+
+    toolbarLeft.appendChild(createToolbarSeparator());
+
+    const fontSizeDown = createToolbarButton("pi-minus", "减小字号", () => {
+        fontSize = Math.max(8, fontSize - 1);
+        updateFontSize();
+    });
+    toolbarLeft.appendChild(fontSizeDown);
+
+    const fontSizeDisplay = document.createElement("span");
+    fontSizeDisplay.className = "dm-font-size-display";
+    fontSizeDisplay.style.cssText = "min-width: 40px; text-align: center; color: #aaa; font-weight: 500;";
+    fontSizeDisplay.textContent = fontSize + "px";
+    toolbarLeft.appendChild(fontSizeDisplay);
+
+    const fontSizeUp = createToolbarButton("pi-plus", "增大字号", () => {
+        fontSize = Math.min(32, fontSize + 1);
+        updateFontSize();
+    });
+    toolbarLeft.appendChild(fontSizeUp);
+
+    const resetFont = createToolbarButton("pi-refresh", "重置字号", () => {
+        fontSize = 12;
+        updateFontSize();
+    });
+    toolbarLeft.appendChild(resetFont);
+
+    function updateFontSize() {
+        const codeContent = findCodeContent();
+        if (codeContent) {
+            codeContent.style.fontSize = fontSize + 'px';
             fontSizeDisplay.textContent = fontSize + 'px';
         }
     }

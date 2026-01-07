@@ -271,6 +271,26 @@ async def preview_file_handler(request):
                     "error": f"Cannot read file: {str(e)}"
                 }, status=400)
 
+        # 代码文件：返回文本内容
+        elif ext in ['.json', '.py', '.js', '.html', '.css', '.xml', '.yaml', '.yml', '.cpp', '.c', '.h']:
+            try:
+                with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+
+                # 限制大小（代码文件可以稍大）
+                max_size = 500 * 1024  # 500KB
+                if len(content) > max_size:
+                    content = content[:max_size] + "\n\n... (文件过大，已截断)"
+
+                return web.Response(
+                    text=content,
+                    content_type='text/plain'
+                )
+            except Exception as e:
+                return web.json_response({
+                    "error": f"Cannot read file: {str(e)}"
+                }, status=400)
+
         # Word 文档：返回二进制内容供前端 mammoth.js 处理
         elif ext in ['.doc', '.docx']:
             with open(path, 'rb') as f:

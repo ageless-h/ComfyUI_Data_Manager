@@ -75,7 +75,8 @@ export async function previewFile(path) {
                 const response = await fetch(getPreviewUrl(path));
                 if (response.ok) {
                     const text = await response.text();
-                    previewHTML = createCodePreviewHTML(text);
+                    previewHTML = createCodePreviewHTML(text, ext);
+                    canOpenExternally = true;
                 } else {
                     throw new Error('Failed to load file');
                 }
@@ -231,7 +232,32 @@ function formatTime(seconds) {
 /**
  * 创建代码预览 HTML
  */
-function createCodePreviewHTML(text) {
+function createCodePreviewHTML(text, ext = '') {
+    // JSON 特殊处理：语法高亮
+    if (ext === '.json') {
+        try {
+            const jsonObj = JSON.parse(text);
+            const highlighted = syntaxHighlight(jsonObj);
+            return `
+                <div style="background: #1e1e1e; padding: 15px; border-radius: 8px;
+                            font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
+                            overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                    <pre style="margin: 0; white-space: pre-wrap;">${highlighted}</pre>
+                </div>
+            `;
+        } catch (e) {
+            // JSON 解析失败，使用普通文本显示
+            return `
+                <div style="background: #1e1e1e; padding: 15px; border-radius: 8px;
+                            font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
+                            overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                    <pre style="margin: 0; color: #d4d4d4;">${escapeHtml(text.substring(0, 5000))}${text.length > 5000 ? '\n\n... (文件过大，仅显示前 5000 字符)' : ''}</pre>
+                </div>
+            `;
+        }
+    }
+
+    // 其他代码文件：普通文本显示
     return `
         <div style="background: #1e1e1e; padding: 15px; border-radius: 8px;
                     font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
@@ -370,6 +396,45 @@ function loadScript(src) {
         script.onload = resolve;
         script.onerror = reject;
         document.head.appendChild(script);
+    });
+}
+
+/**
+ * JSON 语法高亮
+ * @param {any} json - JSON 对象
+ * @returns {string} 高亮后的 HTML
+ */
+function syntaxHighlight(json) {
+    if (typeof json !== 'string') {
+        json = JSON.stringify(json, null, 2);
+    }
+
+    const jsonString = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    return jsonString.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let cls = 'dm-json-number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'dm-json-key';
+            } else {
+                cls = 'dm-json-string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'dm-json-boolean';
+        } else if (/null/.test(match)) {
+            cls = 'dm-json-null';
+        }
+
+        // 返回带样式的 span
+        const styleMap = {
+            'dm-json-key': 'color: #9cdcfe;',
+            'dm-json-string': 'color: #ce9178;',
+            'dm-json-number': 'color: #b5cea8;',
+            'dm-json-boolean': 'color: #569cd6;',
+            'dm-json-null': 'color: #569cd6;'
+        };
+
+        return '<span style="' + styleMap[cls] + '">' + match + '</span>';
     });
 }
 
