@@ -1430,6 +1430,17 @@ function updateStatus(text) {
  * 每次拖动时动态添加监听器，松开后立即移除
  */
 function setupWindowDrag(window, header) {
+    // 禁用原生拖拽，防止重影
+    window.draggable = false;
+    header.draggable = false;
+
+    // 防止原生拖拽事件（防止重影）
+    window.addEventListener("dragstart", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    });
+
     header.addEventListener("mousedown", (e) => {
         // 排除按钮和图标
         if (e.target.tagName === "BUTTON" || e.target.tagName === "I") return;
@@ -1437,7 +1448,7 @@ function setupWindowDrag(window, header) {
         // 全屏状态下不允许拖动
         if (window.dataset.fullscreen === "true") return;
 
-        // 只阻止默认行为，不阻止冒泡
+        // 阻止默认行为（包括原生拖拽）
         e.preventDefault();
 
         const rect = window.getBoundingClientRect();
@@ -1472,23 +1483,9 @@ function setupWindowDrag(window, header) {
             document.removeEventListener("mouseup", mouseUpHandler);
         };
 
-        // 添加监听器到 document（使用 capture 确保优先处理）
-        document.addEventListener("mousemove", mouseMoveHandler, { capture: false, passive: false });
-        document.addEventListener("mouseup", mouseUpHandler, { capture: false });
-
-        // 添加一个保险：监听 window 失去焦点或隐藏时也停止拖动
-        const stopDrag = () => {
-            if (window._isDragging) {
-                window.style.transition = "";
-                window._isDragging = false;
-                document.removeEventListener("mousemove", mouseMoveHandler);
-                document.removeEventListener("mouseup", mouseUpHandler);
-            }
-        };
-
-        // 监听 visibilitychange（页面切换）和 blur（窗口失焦）
-        document.addEventListener("visibilitychange", stopDrag, { once: true });
-        window.addEventListener("blur", stopDrag, { once: true });
+        // 添加监听器到 document（确保鼠标移出窗口也能响应）
+        document.addEventListener("mousemove", mouseMoveHandler);
+        document.addEventListener("mouseup", mouseUpHandler);
     });
 }
 
