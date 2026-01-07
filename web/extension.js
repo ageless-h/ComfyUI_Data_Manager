@@ -13,6 +13,7 @@ import { app } from "../../scripts/app.js";
 // 全局状态
 let fileManagerWindow = null;
 let previewModal = null;
+let previewFloatingWindows = [];  // 存储所有浮动预览窗口
 let dragOffset = { x: 0, y: 0 };
 let isDragging = false;
 
@@ -478,14 +479,20 @@ function createPreviewPanel() {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 10px;
     `;
     header.innerHTML = `
         <h3 style="margin: 0; color: #fff; font-size: 14px;">
             <i class="pi pi-eye"></i> 预览
         </h3>
-        <button id="dm-open-preview-btn" class="comfy-btn" style="display: none; padding: 6px 12px; font-size: 12px;">
-            <i class="pi pi-external-link"></i> 打开
-        </button>
+        <div style="display: flex; gap: 5px;">
+            <button id="dm-open-floating-preview-btn" class="comfy-btn" style="display: none; padding: 6px 12px; font-size: 12px;">
+                <i class="pi pi-window-maximize"></i> 浮窗
+            </button>
+            <button id="dm-open-preview-btn" class="comfy-btn" style="display: none; padding: 6px 12px; font-size: 12px;">
+                <i class="pi pi-external-link"></i> 打开
+            </button>
+        </div>
     `;
     panel.appendChild(header);
 
@@ -813,6 +820,7 @@ async function previewFile(path) {
     const content = document.getElementById("dm-preview-content");
     const infoSection = document.getElementById("dm-file-info");
     const openBtn = document.getElementById("dm-open-preview-btn");
+    const floatingBtn = document.getElementById("dm-open-floating-preview-btn");
 
     if (!content) return;
 
@@ -829,11 +837,12 @@ async function previewFile(path) {
         let previewHTML = "";
         let canOpenExternally = false;
 
-        // 图像预览
+        // 图像预览 - 使用后端 API
         if (FILE_TYPES.image.exts.includes(ext)) {
+            const imageUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             previewHTML = `
                 <div style="text-align: center;">
-                    <img src="file://${path.replace(/\\/g, '/')}"
+                    <img src="${imageUrl}"
                          style="max-width: 100%; max-height: 300px;
                                 border-radius: 8px; border: 1px solid #3a3a3a;"
                          onerror="this.parentElement.innerHTML='<div style=\\'color:#e74c3c\\'>无法加载图像</div>'">
@@ -841,25 +850,27 @@ async function previewFile(path) {
             `;
             canOpenExternally = true;
         }
-        // 音频预览
+        // 音频预览 - 使用后端 API
         else if (FILE_TYPES.audio.exts.includes(ext)) {
+            const audioUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             previewHTML = `
                 <div style="text-align: center; padding: 20px;">
                     <i class="pi pi-volume-up" style="font-size: 64px; color: #3498db;"></i>
                     <div style="margin-top: 15px; color: #fff;">${fileName}</div>
                     <audio controls style="width: 100%; margin-top: 15px;">
-                        <source src="file://${path.replace(/\\/g, '/')}" type="audio/mpeg">
+                        <source src="${audioUrl}" type="audio/mpeg">
                     </audio>
                 </div>
             `;
             canOpenExternally = true;
         }
-        // 视频预览
+        // 视频预览 - 使用后端 API
         else if (FILE_TYPES.video.exts.includes(ext)) {
+            const videoUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             previewHTML = `
                 <div style="text-align: center;">
                     <video controls style="width: 100%; max-height: 300px; border-radius: 8px;">
-                        <source src="file://${path.replace(/\\/g, '/')}" type="video/mp4">
+                        <source src="${videoUrl}" type="video/mp4">
                     </video>
                 </div>
             `;
@@ -905,6 +916,12 @@ async function previewFile(path) {
         }
 
         content.innerHTML = previewHTML;
+
+        // 更新浮动预览按钮
+        if (floatingBtn) {
+            floatingBtn.style.display = "block";
+            floatingBtn.onclick = () => openFloatingPreview(path, fileName);
+        }
 
         // 更新打开按钮
         if (openBtn) {
@@ -1259,9 +1276,295 @@ function showToast(severity, summary, detail) {
 }
 
 
-// 导出全局接口
-window.DataManager = {
-    open: openFileManager,
-    state: FileManagerState,
-    IS_NODE_V3: IS_NODE_V3
-};
+// ============================================
+// 二级浮动预览窗口
+// ============================================
+
+/**
+ * 打开浮动预览窗口
+ * @param {string} path - 文件路径
+ * @param {string} fileName - 文件名
+ */
+function openFloatingPreview(path, fileName) {
+    // 检查是否已经打开了该文件的预览窗口
+    const existingWindow = previewFloatingWindows.find(w => w.path === path);
+    if (existingWindow) {
+        existingWindow.window.focus();
+        return;
+    }
+
+    const ext = '.' + path.split('.').pop().toLowerCase();
+    const fileType = getFileType({ name: path });
+    const fileConfig = FILE_TYPES[fileType] || FILE_TYPES.unknown;
+
+    // 创建浮动预览窗口
+    const previewWindow = document.createElement("div");
+    previewWindow.id = `dm-preview-${Date.now()}`;
+    previewWindow.className = "dm-floating-preview";
+    previewWindow.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 50px;
+        width: 500px;
+        max-height: 600px;
+        background: #1a1a1a;
+        border: 1px solid #3a3a3a;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        z-index: 10001;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    `;
+
+    // 创建标题栏
+    const header = document.createElement("div");
+    header.className = "dm-preview-header";
+    header.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 15px;
+        background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+        border-bottom: 1px solid #3a3a3a;
+        cursor: move;
+        user-select: none;
+    `;
+
+    const title = document.createElement("div");
+    title.style.cssText = "display: flex; align-items: center; gap: 8px; color: #fff; font-size: 14px; font-weight: 600;";
+    title.innerHTML = `
+        <i class="pi ${fileConfig.icon}" style="color: ${fileConfig.color};"></i>
+        <span style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fileName}</span>
+    `;
+
+    const actions = document.createElement("div");
+    actions.style.cssText = "display: flex; gap: 8px;";
+
+    // 关闭按钮
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "comfy-btn";
+    closeBtn.innerHTML = '<i class="pi pi-times"></i>';
+    closeBtn.style.cssText = "padding: 6px 10px; background: transparent; border: none; color: #aaa; cursor: pointer; border-radius: 4px;";
+    closeBtn.title = "关闭";
+    closeBtn.onmouseover = () => closeBtn.style.background = "#3a3a3a";
+    closeBtn.onmouseout = () => closeBtn.style.background = "transparent";
+    closeBtn.onclick = () => closeFloatingPreview(previewWindow);
+
+    actions.appendChild(closeBtn);
+    header.appendChild(title);
+    header.appendChild(actions);
+
+    // 创建内容区域
+    const content = document.createElement("div");
+    content.className = "dm-preview-content";
+    content.style.cssText = `
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0f0f0f;
+    `;
+
+    // 根据文件类型显示预览
+    loadPreviewContent(content, path, ext);
+
+    // 创建工具栏（可选操作）
+    const toolbar = document.createElement("div");
+    toolbar.style.cssText = `
+        padding: 10px 15px;
+        background: #222;
+        border-top: 1px solid #2a2a2a;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #888;
+    `;
+
+    const filePath = document.createElement("div");
+    filePath.style.cssText = "flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 10px;";
+    filePath.textContent = path;
+    filePath.title = path;
+
+    const toolbarActions = document.createElement("div");
+    toolbarActions.style.cssText = "display: flex; gap: 8px;";
+
+    // 打开按钮
+    const openBtn = createToolbarButton("pi-external-link", "打开", () => {
+        openFileExternally(path);
+    });
+
+    toolbarActions.appendChild(openBtn);
+    toolbar.appendChild(filePath);
+    toolbar.appendChild(toolbarActions);
+
+    // 组装窗口
+    previewWindow.appendChild(header);
+    previewWindow.appendChild(content);
+    previewWindow.appendChild(toolbar);
+
+    document.body.appendChild(previewWindow);
+
+    // 设置拖动
+    setupWindowDrag(previewWindow, header);
+
+    // 存储窗口引用
+    previewFloatingWindows.push({
+        path: path,
+        window: previewWindow
+    });
+
+    updateStatus(`已打开预览: ${fileName}`);
+}
+
+/**
+ * 加载预览内容
+ * @param {HTMLElement} content - 内容容器
+ * @param {string} path - 文件路径
+ * @param {string} ext - 文件扩展名
+ */
+async function loadPreviewContent(content, path, ext) {
+    content.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: #888;">
+            <i class="pi pi-spin pi-spinner" style="font-size: 24px;"></i>
+            <div style="margin-top: 10px;">正在加载...</div>
+        </div>
+    `;
+
+    try {
+        let previewHTML = "";
+
+        // 图像预览
+        if (FILE_TYPES.image.exts.includes(ext)) {
+            // 使用后端 API 获取图像
+            const imageUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+            previewHTML = `
+                <div style="text-align: center; width: 100%;">
+                    <img src="${imageUrl}"
+                         style="max-width: 100%; max-height: 400px;
+                                border-radius: 8px; border: 1px solid #3a3a3a;"
+                         onerror="this.parentElement.innerHTML='<div style=\\'color:#e74c3c; padding: 20px;\\'>无法加载图像</div>'"
+                         onload="this.style.opacity=1">
+                </div>
+            `;
+        }
+        // 音频预览
+        else if (FILE_TYPES.audio.exts.includes(ext)) {
+            const audioUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+            previewHTML = `
+                <div style="text-align: center; width: 100%; padding: 20px;">
+                    <i class="pi pi-volume-up" style="font-size: 64px; color: #3498db; margin-bottom: 15px;"></i>
+                    <div style="color: #fff; margin-bottom: 15px;">${path.split(/[/\\]/).pop()}</div>
+                    <audio controls style="width: 100%; max-width: 400px;">
+                        <source src="${audioUrl}" type="audio/mpeg">
+                        您的浏览器不支持音频播放
+                    </audio>
+                </div>
+            `;
+        }
+        // 视频预览
+        else if (FILE_TYPES.video.exts.includes(ext)) {
+            const videoUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+            previewHTML = `
+                <div style="text-align: center; width: 100%;">
+                    <video controls style="max-width: 100%; max-height: 400px; border-radius: 8px;">
+                        <source src="${videoUrl}" type="video/mp4">
+                        您的浏览器不支持视频播放
+                    </video>
+                </div>
+            `;
+        }
+        // 代码预览
+        else if (FILE_TYPES.code.exts.includes(ext)) {
+            const response = await fetch(`/dm/preview?path=${encodeURIComponent(path)}`);
+            if (response.ok) {
+                const text = await response.text();
+                previewHTML = `
+                    <div style="width: 100%; background: #1e1e1e; padding: 15px; border-radius: 8px;
+                                font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
+                                overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                        <pre style="margin: 0; color: #d4d4d4; white-space: pre-wrap;">${escapeHtml(text)}</pre>
+                    </div>
+                `;
+            } else {
+                throw new Error('Failed to load file');
+            }
+        }
+        // 文档预览
+        else if (FILE_TYPES.document.exts.includes(ext)) {
+            previewHTML = `
+                <div style="text-align: center; padding: 30px;">
+                    <i class="pi pi-file-pdf" style="font-size: 64px; color: #e74c3c;"></i>
+                    <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
+                    <div style="margin-top: 8px; color: #888; font-size: 12px;">此文件类型不支持预览</div>
+                    <button class="comfy-btn" style="margin-top: 15px; padding: 8px 16px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;"
+                            onclick="openFileExternally('${path.replace(/\\/g, '\\\\')}')">
+                        <i class="pi pi-external-link"></i> 打开文件
+                    </button>
+                </div>
+            `;
+        }
+        // 其他文件
+        else {
+            const icon = FILE_TYPES[getFileType({ name: path })]?.icon || FILE_TYPES.unknown.icon;
+            const color = FILE_TYPES[getFileType({ name: path })]?.color || FILE_TYPES.unknown.color;
+            previewHTML = `
+                <div style="text-align: center; padding: 30px;">
+                    <i class="pi ${icon}" style="font-size: 64px; color: ${color};"></i>
+                    <div style="margin-top: 15px; color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                    <div style="margin-top: 8px; color: #888; font-size: 12px;">此文件类型不支持预览</div>
+                </div>
+            `;
+        }
+
+        content.innerHTML = previewHTML;
+
+    } catch (error) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #e74c3c;">
+                <i class="pi pi-exclamation-triangle" style="font-size: 32px;"></i>
+                <div style="margin-top: 10px;">加载预览失败</div>
+                <div style="margin-top: 5px; color: #888; font-size: 12px;">${error.message}</div>
+            </div>
+        `;
+    }
+}
+
+/**
+ * 关闭浮动预览窗口
+ * @param {HTMLElement} window - 预览窗口元素
+ */
+function closeFloatingPreview(previewWindow) {
+    // 从数组中移除
+    const index = previewFloatingWindows.findIndex(w => w.window === previewWindow);
+    if (index > -1) {
+        previewFloatingWindows.splice(index, 1);
+    }
+
+    // 移除 DOM
+    if (previewWindow && previewWindow.parentNode) {
+        previewWindow.remove();
+    }
+}
+
+/**
+ * 创建工具栏按钮
+ */
+function createToolbarButton(icon, title, onClick) {
+    const button = document.createElement("button");
+    button.className = "comfy-btn";
+    button.innerHTML = `<i class="pi ${icon}"></i>`;
+    button.style.cssText = "padding: 6px 10px; background: transparent; border: none; color: #888; cursor: pointer; border-radius: 4px;";
+    button.title = title;
+    button.onmouseover = () => button.style.background = "#3a3a3a";
+    button.onmouseout = () => button.style.background = "transparent";
+    button.onclick = onClick;
+    return button;
+}
+
+// ============================================
+// 工具函数
+// ============================================
