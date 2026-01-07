@@ -7,6 +7,13 @@
 from aiohttp import web
 import os
 import logging
+import io
+
+try:
+    from PIL import Image
+    PILLOW_AVAILABLE = True
+except ImportError:
+    PILLOW_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -81,29 +88,72 @@ async def preview_file_handler(request):
 
         # 图像文件：返回二进制内容
         if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico', '.tiff', '.tif', '.avif', '.heic', '.heif']:
-            with open(path, 'rb') as f:
-                content = f.read()
+            # 检查是否需要转换为 PNG（浏览器不支持的格式）
+            needs_conversion = ext in ['.tiff', '.tif', '.avif', '.heic', '.heif']
 
-            # 根据扩展名设置 content type
-            content_type_map = {
-                '.jpg': 'image/jpeg',
-                '.jpeg': 'image/jpeg',
-                '.png': 'image/png',
-                '.gif': 'image/gif',
-                '.bmp': 'image/bmp',
-                '.webp': 'image/webp',
-                '.svg': 'image/svg+xml',
-                '.ico': 'image/x-icon',
-                '.tiff': 'image/tiff',
-                '.tif': 'image/tiff',
-                '.avif': 'image/avif',
-                '.heic': 'image/heic',
-                '.heif': 'image/heif',
-            }
+            if needs_conversion and PILLOW_AVAILABLE:
+                try:
+                    # 使用 Pillow 转换为 PNG
+                    with Image.open(path) as img:
+                        # 处理多帧图像（如多页 TIFF）
+                        if getattr(img, 'n_frames', 1) > 1:
+                            # 使用第一帧
+                            img.seek(0)
+
+                        # 转换为 RGB（处理 RGBA、CMYK 等模式）
+                        if img.mode in ('RGBA', 'LA', 'P'):
+                            # 保持透明度
+                            img = img.convert('RGBA')
+                        elif img.mode not in ('RGB', 'L'):
+                            img = img.convert('RGB')
+
+                        # 保存为 PNG 到内存
+                        output = io.BytesIO()
+                        img.save(output, format='PNG')
+                        content = output.getvalue()
+                        content_type = 'image/png'
+
+                        logger.info(f"[DataManager] Converted {ext} to PNG for preview")
+                except Exception as e:
+                    logger.warning(f"[DataManager] Failed to convert {ext} to PNG: {e}")
+                    # 转换失败，回退到原始文件
+                    with open(path, 'rb') as f:
+                        content = f.read()
+
+                    content_type_map = {
+                        '.tiff': 'image/tiff',
+                        '.tif': 'image/tiff',
+                        '.avif': 'image/avif',
+                        '.heic': 'image/heic',
+                        '.heif': 'image/heif',
+                    }
+                    content_type = content_type_map.get(ext, 'application/octet-stream')
+            else:
+                # 直接读取支持的格式
+                with open(path, 'rb') as f:
+                    content = f.read()
+
+                # 根据扩展名设置 content type
+                content_type_map = {
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.png': 'image/png',
+                    '.gif': 'image/gif',
+                    '.bmp': 'image/bmp',
+                    '.webp': 'image/webp',
+                    '.svg': 'image/svg+xml',
+                    '.ico': 'image/x-icon',
+                    '.tiff': 'image/tiff',
+                    '.tif': 'image/tiff',
+                    '.avif': 'image/avif',
+                    '.heic': 'image/heic',
+                    '.heif': 'image/heif',
+                }
+                content_type = content_type_map.get(ext, 'application/octet-stream')
 
             return web.Response(
                 body=content,
-                content_type=content_type_map.get(ext, 'application/octet-stream')
+                content_type=content_type
             )
 
         # 音频文件：返回二进制内容
