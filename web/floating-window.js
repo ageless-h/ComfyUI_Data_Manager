@@ -520,6 +520,7 @@ export function toggleFullscreen(window) {
     const isFullscreen = window.dataset.fullscreen === "true";
     const header = window.querySelector(".dm-preview-header");
     const fullscreenBtn = header?.querySelector('[title="全屏"], [title="退出全屏"]');
+    const content = window.querySelector(".dm-preview-content");
 
     if (!isFullscreen) {
         // 进入全屏
@@ -547,6 +548,20 @@ export function toggleFullscreen(window) {
             flex-direction: column;
             overflow: hidden;
         `;
+
+        // 修复：全屏时调整代码/文档预览容器高度
+        if (content) {
+            const codeContainer = content.querySelector('div[style*="Consolas"], div[style*="Monaco"]');
+            const preElem = content.querySelector('pre');
+            if (codeContainer) {
+                codeContainer.style.maxHeight = "none";
+                codeContainer.style.height = "100%";
+            }
+            if (preElem) {
+                preElem.style.maxHeight = "none";
+            }
+        }
+
         window.dataset.fullscreen = "true";
 
         if (fullscreenBtn) {
@@ -569,6 +584,19 @@ export function toggleFullscreen(window) {
         window.style.top = window.dataset.originalTop || "100px";
         window.style.left = window.dataset.originalLeft || "50px";
         window.dataset.fullscreen = "false";
+
+        // 恢复代码/文档预览容器高度
+        if (content) {
+            const codeContainer = content.querySelector('div[style*="Consolas"], div[style*="Monaco"]');
+            const preElem = content.querySelector('pre');
+            if (codeContainer) {
+                codeContainer.style.maxHeight = "";
+                codeContainer.style.height = "";
+            }
+            if (preElem) {
+                preElem.style.maxHeight = "";
+            }
+        }
 
         if (fullscreenBtn) {
             fullscreenBtn.innerHTML = '<i class="pi pi-window-maximize"></i>';
