@@ -1554,33 +1554,41 @@ function updateImageScale(container, scale, translateX, translateY) {
 }
 
 /**
- * 切换全屏模式
+ * 切换全屏模式（浮动窗口全屏，保留标题栏和工具栏）
  */
 function toggleFullscreen(window) {
     const isFullscreen = window.dataset.fullscreen === "true";
     const header = window.querySelector(".dm-preview-header");
     const toolbar = window.querySelector(".dm-preview-toolbar");
+    const fullscreenBtn = header?.querySelector('[title="全屏"], [title="退出全屏"]');
 
     if (!isFullscreen) {
-        // 进入全屏
+        // 进入全屏 - 浮动窗口占据整个屏幕
         window.dataset.originalStyle = window.style.cssText;
+        window.dataset.originalTop = window.style.top;
+        window.dataset.originalLeft = window.style.left;
+        window.dataset.originalWidth = window.style.width;
+        window.dataset.originalHeight = window.style.height;
+
         window.style.cssText = `
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100vw;
-            height: 100vh;
-            max-height: none;
-            background: #000;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            background: #1a1a1a;
             border: none;
             border-radius: 0;
             z-index: 10002;
         `;
-        if (header) header.style.display = "none";
-        if (toolbar) toolbar.style.display = "none";
         window.dataset.fullscreen = "true";
+
+        // 更新按钮状态
+        if (fullscreenBtn) {
+            fullscreenBtn.innerHTML = '<i class="pi pi-window-minimize"></i>';
+            fullscreenBtn.title = "退出全屏";
+        }
 
         // 按 ESC 退出全屏
         const escHandler = (e) => {
@@ -1589,14 +1597,27 @@ function toggleFullscreen(window) {
                 document.removeEventListener("keydown", escHandler);
             }
         };
+        window._escHandler = escHandler;
         document.addEventListener("keydown", escHandler);
 
     } else {
-        // 退出全屏
+        // 退出全屏 - 恢复原始大小和位置
         window.style.cssText = window.dataset.originalStyle || "";
-        if (header) header.style.display = "";
-        if (toolbar) toolbar.style.display = "";
+        window.style.top = window.dataset.originalTop || "100px";
+        window.style.left = window.dataset.originalLeft || "50px";
         window.dataset.fullscreen = "false";
+
+        // 恢复按钮状态
+        if (fullscreenBtn) {
+            fullscreenBtn.innerHTML = '<i class="pi pi-window-maximize"></i>';
+            fullscreenBtn.title = "全屏";
+        }
+
+        // 移除 ESC 监听器
+        if (window._escHandler) {
+            document.removeEventListener("keydown", window._escHandler);
+            window._escHandler = null;
+        }
     }
 }
 
