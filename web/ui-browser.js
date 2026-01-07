@@ -4,7 +4,7 @@
 
 import { FILE_TYPES } from './core-constants.js';
 import { getFileType } from './utils-file-type.js';
-import { formatDate } from './utils-format.js';
+import { formatDate, formatSize } from './utils-format.js';
 
 /**
  * 创建文件浏览器面板
@@ -86,7 +86,7 @@ export function createFileListItem(file, isParent) {
     const icon = FILE_TYPES[fileType]?.icon || FILE_TYPES.unknown.icon;
     const color = FILE_TYPES[fileType]?.color || FILE_TYPES.unknown.color;
 
-    const size = file.is_dir ? "" : file.size || "";
+    const size = file.is_dir ? "" : formatSize(file.size) || "";
     const modified = file.modified ? formatDate(file.modified) : "";
 
     return `

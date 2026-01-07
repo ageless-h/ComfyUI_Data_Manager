@@ -28,3 +28,22 @@ export async function listDirectory(path) {
 export function getPreviewUrl(path) {
     return `/dm/preview?path=${encodeURIComponent(path)}`;
 }
+
+/**
+ * 获取文件信息
+ * @param {string} path - 文件路径
+ * @returns {Promise<object>} 文件信息对象
+ */
+export async function getFileInfo(path) {
+    const response = await fetch("/dm/info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: path })
+    });
+
+    if (response && response.ok) {
+        const data = await response.json();
+        return data.info;
+    }
+    throw new Error('Failed to get file info');
+}

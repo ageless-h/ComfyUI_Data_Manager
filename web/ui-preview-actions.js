@@ -4,7 +4,7 @@
 
 import { FILE_TYPES } from './core-constants.js';
 import { getTypeByExt } from './utils-file-type.js';
-import { getPreviewUrl } from './api-index.js';
+import { getPreviewUrl, getFileInfo } from './api-index.js';
 import { escapeHtml } from './utils-format.js';
 import { updateStatus, getFileName, getExt } from './utils-helpers.js';
 import { openFloatingPreview } from './floating-window.js';
@@ -129,6 +129,9 @@ export async function previewFile(path) {
         }
 
         updateStatus(`预览: ${fileName}`);
+
+        // 更新文件信息区域
+        updateFileInfo(path);
 
     } catch (error) {
         content.innerHTML = `
@@ -598,4 +601,68 @@ function createUnavailablePreview(fileName, type) {
             <div style="margin-top: 8px; color: #888; font-size: 12px;">双击"打开"按钮查看文件</div>
         </div>
     `;
+}
+
+/**
+ * 更新文件信息区域
+ * @param {string} path - 文件路径
+ */
+async function updateFileInfo(path) {
+    const infoSection = document.getElementById("dm-file-info");
+    if (!infoSection) return;
+
+    try {
+        const info = await getFileInfo(path);
+        const fileName = path.split(/[/\\]/).pop();
+        const size = formatFileSize(info.size || 0);
+        const date = formatDate(info.mtime || info.ctime || Date.now());
+
+        infoSection.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #fff; font-weight: 500; word-break: break-all;">${fileName}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #888;">
+                    <span><i class="pi pi-database" style="margin-right: 4px;"></i>${size}</span>
+                    <span><i class="pi pi-clock" style="margin-right: 4px;"></i>${date}</span>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('[DataManager] updateFileInfo error:', error);
+        const fileName = path.split(/[/\\]/).pop();
+        infoSection.innerHTML = `
+            <div style="text-align: center; color: #888; font-size: 12px;">
+                ${fileName}
+            </div>
+        `;
+    }
+}
+
+/**
+ * 格式化文件大小
+ * @param {number} bytes - 字节大小
+ * @returns {string} 格式化后的大小字符串
+ */
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * 格式化日期
+ * @param {number} timestamp - 时间戳
+ * @returns {string} 格式化后的日期字符串
+ */
+function formatDate(timestamp) {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
