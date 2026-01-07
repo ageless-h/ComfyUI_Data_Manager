@@ -1598,6 +1598,11 @@ function openFloatingPreview(path, fileName) {
         overflow: hidden;
     `;
 
+    // 预先计算文档类型
+    const isPDF = ext === '.pdf';
+    const isMarkdown = ext === '.md';
+    const isDocument = isPDF || isMarkdown;
+
     // 创建标题栏
     const header = document.createElement("div");
     header.className = "dm-preview-header";
@@ -1665,8 +1670,8 @@ function openFloatingPreview(path, fileName) {
     minimizeBtn.onclick = () => minimizeFloatingPreview(previewWindow, path, fileName, fileConfig);
     trafficLights.appendChild(minimizeBtn);
 
-    // 全屏按钮（绿色）- 仅图像、视频、音频显示
-    if (isImage || isVideo || isAudio) {
+    // 全屏按钮（绿色）- 图像、视频、音频、文档都显示
+    if (isImage || isVideo || isAudio || isDocument) {
         const fullscreenBtn = document.createElement("button");
         fullscreenBtn.className = "comfy-btn dm-traffic-light-fullscreen";
         fullscreenBtn.innerHTML = '<i class="pi pi-window-maximize" style="font-size: 8px;"></i>';
@@ -2204,8 +2209,6 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
         // 文档预览
         else if (FILE_TYPES.document.exts.includes(ext)) {
             const docUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
-            const isPDF = ext === '.pdf';
-            const isMarkdown = ext === '.md';
 
             if (isPDF) {
                 // PDF 使用 embed 嵌入浏览器原生阅读器
