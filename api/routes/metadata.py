@@ -243,7 +243,7 @@ async def preview_file_handler(request):
 {html_content}
 </body>
 </html>''',
-                    content_type='text/html; charset=utf-8'
+                    content_type='text/html'
                 )
             except Exception as e:
                 logger.warning(f"[DataManager] Failed to render markdown: {e}")
@@ -264,7 +264,7 @@ async def preview_file_handler(request):
 
                 return web.Response(
                     text=content,
-                    content_type='text/plain; charset=utf-8'
+                    content_type='text/plain'
                 )
             except Exception as e:
                 return web.json_response({
