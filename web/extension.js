@@ -2173,17 +2173,54 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
         }
         // 文档预览
         else if (FILE_TYPES.document.exts.includes(ext)) {
-            previewHTML = `
-                <div style="text-align: center; padding: 30px;">
-                    <i class="pi pi-file-pdf" style="font-size: 64px; color: #e74c3c;"></i>
-                    <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
-                    <div style="margin-top: 8px; color: #888; font-size: 12px;">此文件类型不支持预览</div>
-                    <button class="comfy-btn" style="margin-top: 15px; padding: 8px 16px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;"
-                            onclick="openFileExternally('${path.replace(/\\/g, '\\\\')}')">
-                        <i class="pi pi-external-link"></i> 打开文件
-                    </button>
-                </div>
-            `;
+            const docUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+
+            if (ext === '.pdf') {
+                // PDF 使用 embed 嵌入浏览器原生阅读器
+                previewHTML = `
+                    <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+                        <div style="flex: 1; border-radius: 8px; overflow: hidden;">
+                            <embed src="${docUrl}" type="application/pdf" width="100%" height="100%" />
+                        </div>
+                    </div>
+                `;
+            } else if (ext === '.md') {
+                // Markdown 使用 iframe 显示渲染后的 HTML
+                previewHTML = `
+                    <div style="width: 100%; height: 100%; border-radius: 8px; overflow: hidden; border: 1px solid #3a3a3a;">
+                        <iframe src="${docUrl}" style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                `;
+            } else {
+                // txt, rtf: 显示为纯文本
+                try {
+                    const response = await fetch(docUrl);
+                    if (response.ok) {
+                        const text = await response.text();
+                        previewHTML = `
+                            <div style="width: 100%; height: 100%; background: #1e1e1e; padding: 15px; border-radius: 8px;
+                                        font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
+                                        overflow: auto;">
+                                <pre style="margin: 0; color: #d4d4d4; white-space: pre-wrap;">${escapeHtml(text)}</pre>
+                            </div>
+                        `;
+                    } else {
+                        throw new Error('Failed to load file');
+                    }
+                } catch {
+                    previewHTML = `
+                        <div style="text-align: center; padding: 30px;">
+                            <i class="pi pi-file" style="font-size: 64px; color: #e74c3c;"></i>
+                            <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
+                            <div style="margin-top: 8px; color: #888; font-size: 12px;">无法加载文件</div>
+                            <button class="comfy-btn" style="margin-top: 15px; padding: 8px 16px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;"
+                                    onclick="openFileExternally('${path.replace(/\\/g, '\\\\')}')">
+                                <i class="pi pi-external-link"></i> 打开文件
+                            </button>
+                        </div>
+                    `;
+                }
+            }
         }
         // 其他文件
         else {
