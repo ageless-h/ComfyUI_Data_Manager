@@ -1426,23 +1426,48 @@ function setupWindowDrag(window, header) {
     let isDraggingWindow = false;
     let offset = { x: 0, y: 0 };
 
-    // 移除旧的监听器（如果存在）
+    // 使用 requestAnimationFrame 优化性能
+    let rafId = null;
+    let targetX = 0;
+    let targetY = 0;
+
     const mouseMoveHandler = (e) => {
         if (!isDraggingWindow || !window) return;
+
+        // 全屏状态下不允许拖动
+        if (window.dataset.fullscreen === "true") return;
+
         const x = e.clientX - offset.x;
         const y = e.clientY - offset.y;
-        window.style.left = Math.max(0, x) + "px";
-        window.style.top = Math.max(0, y) + "px";
+        targetX = Math.max(0, x);
+        targetY = Math.max(0, y);
+
+        // 使用 requestAnimationFrame 优化性能
+        if (rafId === null) {
+            rafId = requestAnimationFrame(() => {
+                window.style.left = targetX + "px";
+                window.style.top = targetY + "px";
+                rafId = null;
+            });
+        }
     };
 
     const mouseUpHandler = () => {
         isDraggingWindow = false;
+        if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
         if (window) window.style.transition = "";
     };
 
     // mousedown 事件添加到 header，并阻止冒泡
     header.addEventListener("mousedown", (e) => {
         if (e.target.tagName === "BUTTON" || e.target.tagName === "I") return;
+
+        // 全屏状态下不允许拖动
+        if (window.dataset.fullscreen === "true") return;
+
         e.stopPropagation();  // 阻止事件冒泡到其他窗口
         isDraggingWindow = true;
         const rect = window.getBoundingClientRect();
@@ -1451,9 +1476,26 @@ function setupWindowDrag(window, header) {
         window.style.transition = "none";
     });
 
-    // mousemove 和 mouseup 添加到 document，但使用独立的状态
-    document.addEventListener("mousemove", mouseMoveHandler);
+    // 存储事件处理器引用，用于清理
+    window._dragHandlers = {
+        mouseMove: mouseMoveHandler,
+        mouseUp: mouseUpHandler
+    };
+
+    // mousemove 和 mouseup 添加到 document
+    document.addEventListener("mousemove", mouseMoveHandler, { passive: true });
     document.addEventListener("mouseup", mouseUpHandler);
+}
+
+/**
+ * 清理窗口拖动事件监听器
+ */
+function cleanupWindowDrag(window) {
+    if (window._dragHandlers) {
+        document.removeEventListener("mousemove", window._dragHandlers.mouseMove);
+        document.removeEventListener("mouseup", window._dragHandlers.mouseUp);
+        delete window._dragHandlers;
+    }
 }
 
 
@@ -2133,6 +2175,15 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
  * @param {HTMLElement} window - 预览窗口元素
  */
 function closeFloatingPreview(previewWindow) {
+    // 清理拖动事件监听器
+    cleanupWindowDrag(previewWindow);
+
+    // 清理 ESC 键监听器
+    if (previewWindow._escHandler) {
+        document.removeEventListener("keydown", previewWindow._escHandler);
+        delete previewWindow._escHandler;
+    }
+
     // 从数组中移除
     const index = previewFloatingWindows.findIndex(w => w.window === previewWindow);
     if (index > -1) {
