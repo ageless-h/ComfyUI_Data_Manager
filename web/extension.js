@@ -1419,45 +1419,55 @@ function openFloatingPreview(path, fileName) {
     // 组装内容区域
     content.appendChild(imageContainer);
 
-    // 创建工具栏（可选操作）
+    // 创建工具栏（可选操作）- macOS 风格三栏布局
     const toolbar = document.createElement("div");
     toolbar.className = "dm-preview-toolbar";
     toolbar.style.cssText = `
-        padding: 10px 15px;
-        background: #222;
-        border-top: 1px solid #2a2a2a;
+        padding: 12px 16px;
+        background: linear-gradient(to bottom, #2a2a2a, #222);
+        border-top: 1px solid #3a3a3a;
         display: flex;
-        justify-content: space-between;
         align-items: center;
         font-size: 12px;
         color: #888;
     `;
 
-    const filePath = document.createElement("div");
-    filePath.style.cssText = "flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 10px;";
-    filePath.textContent = path;
-    filePath.title = path;
+    // 左侧：缩放控制（仅图像显示）
+    const toolbarLeft = document.createElement("div");
+    toolbarLeft.className = "dm-toolbar-left";
+    toolbarLeft.style.cssText = "display: flex; gap: 8px; align-items: center; flex-shrink: 0;";
 
-    const toolbarActions = document.createElement("div");
-    toolbarActions.className = "dm-toolbar-actions";
-    toolbarActions.style.cssText = "display: flex; gap: 8px; align-items: center;";
+    // 中间：文件路径
+    const toolbarCenter = document.createElement("div");
+    toolbarCenter.className = "dm-toolbar-center";
+    toolbarCenter.style.cssText = "flex: 1; text-align: center; overflow: hidden; padding: 0 20px;";
 
-    // 图像缩放控制（仅对图像显示）
+    // 右侧：操作按钮
+    const toolbarRight = document.createElement("div");
+    toolbarRight.className = "dm-toolbar-right";
+    toolbarRight.style.cssText = "display: flex; gap: 8px; align-items: center; flex-shrink: 0;";
+
+    // 图像缩放控制（仅对图像显示）- 放在左侧
     if (isImage) {
+        // 分隔符
+        const separator1 = document.createElement("div");
+        separator1.style.cssText = "width: 1px; height: 16px; background: #3a3a3a; margin: 0 4px;";
+        toolbarLeft.appendChild(separator1);
+
         // 缩小按钮
         const zoomOutBtn = createToolbarButton("pi-search-minus", "缩小", () => {
             imageScale = Math.max(0.1, imageScale - 0.1);
             updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
             updateZoomDisplay();
         });
-        toolbarActions.appendChild(zoomOutBtn);
+        toolbarLeft.appendChild(zoomOutBtn);
 
         // 缩放比例显示
         const zoomDisplay = document.createElement("span");
         zoomDisplay.className = "dm-zoom-display";
-        zoomDisplay.style.cssText = "min-width: 45px; text-align: center; color: #aaa;";
+        zoomDisplay.style.cssText = "min-width: 50px; text-align: center; color: #aaa; font-weight: 500;";
         zoomDisplay.textContent = "100%";
-        toolbarActions.appendChild(zoomDisplay);
+        toolbarLeft.appendChild(zoomDisplay);
 
         // 放大按钮
         const zoomInBtn = createToolbarButton("pi-search-plus", "放大", () => {
@@ -1465,7 +1475,7 @@ function openFloatingPreview(path, fileName) {
             updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
             updateZoomDisplay();
         });
-        toolbarActions.appendChild(zoomInBtn);
+        toolbarLeft.appendChild(zoomInBtn);
 
         // 重置按钮
         const resetBtn = createToolbarButton("pi-refresh", "重置", () => {
@@ -1475,7 +1485,7 @@ function openFloatingPreview(path, fileName) {
             updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
             updateZoomDisplay();
         });
-        toolbarActions.appendChild(resetBtn);
+        toolbarLeft.appendChild(resetBtn);
 
         function updateZoomDisplay() {
             zoomDisplay.textContent = Math.round(imageScale * 100) + "%";
@@ -1514,14 +1524,30 @@ function openFloatingPreview(path, fileName) {
         });
     }
 
+    // 中间：文件路径
+    const filePath = document.createElement("div");
+    filePath.className = "dm-file-path";
+    filePath.style.cssText = "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #999;";
+    filePath.textContent = path;
+    filePath.title = path;
+    toolbarCenter.appendChild(filePath);
+
+    // 右侧：操作按钮
+    // 分隔符
+    const separator2 = document.createElement("div");
+    separator2.style.cssText = "width: 1px; height: 16px; background: #3a3a3a; margin: 0 4px;";
+    toolbarRight.appendChild(separator2);
+
     // 打开按钮
     const openBtn = createToolbarButton("pi-external-link", "打开", () => {
         openFileExternally(path);
     });
-    toolbarActions.appendChild(openBtn);
+    toolbarRight.appendChild(openBtn);
 
-    toolbar.appendChild(filePath);
-    toolbar.appendChild(toolbarActions);
+    // 组装工具栏（左中右三栏）
+    toolbar.appendChild(toolbarLeft);
+    toolbar.appendChild(toolbarCenter);
+    toolbar.appendChild(toolbarRight);
 
     // 组装窗口
     previewWindow.appendChild(header);
@@ -1554,7 +1580,7 @@ function updateImageScale(container, scale, translateX, translateY) {
 }
 
 /**
- * 切换全屏模式（浮动窗口全屏，保留标题栏和工具栏）
+ * 切换全屏模式（macOS 风格：保留圆角、边缘留白、布局美观）
  */
 function toggleFullscreen(window) {
     const isFullscreen = window.dataset.fullscreen === "true";
@@ -1563,23 +1589,27 @@ function toggleFullscreen(window) {
     const fullscreenBtn = header?.querySelector('[title="全屏"], [title="退出全屏"]');
 
     if (!isFullscreen) {
-        // 进入全屏 - 浮动窗口占据整个屏幕
+        // 进入全屏 - macOS 风格
         window.dataset.originalStyle = window.style.cssText;
         window.dataset.originalTop = window.style.top;
         window.dataset.originalLeft = window.style.left;
         window.dataset.originalWidth = window.style.width;
         window.dataset.originalHeight = window.style.height;
 
+        // macOS 风格：保留圆角，边缘留白
         window.style.cssText = `
             position: fixed;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-height: 100vh !important;
+            top: 20px !important;
+            left: 20px !important;
+            right: 20px !important;
+            bottom: 20px !important;
+            width: auto !important;
+            height: auto !important;
+            max-height: none !important;
             background: #1a1a1a;
-            border: none;
-            border-radius: 0;
+            border: 1px solid #3a3a3a;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
             z-index: 10002;
         `;
         window.dataset.fullscreen = "true";
