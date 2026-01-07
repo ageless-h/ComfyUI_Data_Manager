@@ -1544,6 +1544,48 @@ function openFloatingPreview(path, fileName) {
     if (isVideo || isAudio) {
         const mediaElement = content.querySelector('video, audio');
         if (mediaElement) {
+            // 时间显示
+            const timeDisplay = document.createElement("span");
+            timeDisplay.className = "dm-media-time";
+            timeDisplay.style.cssText = "min-width: 80px; text-align: center; color: #aaa; font-size: 11px; font-family: monospace;";
+            timeDisplay.textContent = "0:00 / 0:00";
+            toolbarRight.appendChild(timeDisplay);
+
+            // 分隔符
+            const sep3 = document.createElement("div");
+            sep3.style.cssText = "width: 1px; height: 16px; background: #3a3a3a; margin: 0 4px;";
+            toolbarRight.appendChild(sep3);
+
+            // 音量控制
+            const volumeBtn = createToolbarButton("pi-volume-up", "音量", () => {
+                if (mediaElement.muted) {
+                    mediaElement.muted = false;
+                    volumeBtn.innerHTML = '<i class="pi pi-volume-up"></i>';
+                    volumeBtn.title = "音量";
+                } else {
+                    mediaElement.muted = true;
+                    volumeBtn.innerHTML = '<i class="pi pi-volume-off"></i>';
+                    volumeBtn.title = "静音";
+                }
+            });
+            toolbarRight.appendChild(volumeBtn);
+
+            // 监听音量变化
+            mediaElement.addEventListener('volumechange', () => {
+                if (mediaElement.muted || mediaElement.volume === 0) {
+                    volumeBtn.innerHTML = '<i class="pi pi-volume-off"></i>';
+                } else if (mediaElement.volume < 0.5) {
+                    volumeBtn.innerHTML = '<i class="pi pi-volume-down"></i>';
+                } else {
+                    volumeBtn.innerHTML = '<i class="pi pi-volume-up"></i>';
+                }
+            });
+
+            // 分隔符
+            const sep4 = document.createElement("div");
+            sep4.style.cssText = "width: 1px; height: 16px; background: #3a3a3a; margin: 0 4px;";
+            toolbarRight.appendChild(sep4);
+
             // 播放/暂停按钮
             const playPauseBtn = createToolbarButton("pi-play", "播放", () => {
                 if (mediaElement.paused) {
@@ -1572,8 +1614,31 @@ function openFloatingPreview(path, fileName) {
                 playPauseBtn.title = "播放";
             });
 
+            // 更新时间显示
+            const formatTime = (seconds) => {
+                if (isNaN(seconds)) return "0:00";
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            mediaElement.addEventListener('loadedmetadata', () => {
+                const duration = formatTime(mediaElement.duration);
+                timeDisplay.textContent = `0:00 / ${duration}`;
+            });
+
+            mediaElement.addEventListener('timeupdate', () => {
+                const current = formatTime(mediaElement.currentTime);
+                const duration = formatTime(mediaElement.duration || 0);
+                timeDisplay.textContent = `${current} / ${duration}`;
+            });
+
             // 视频全屏按钮（使用原生的全屏 API）
             if (isVideo) {
+                const sep5 = document.createElement("div");
+                sep5.style.cssText = "width: 1px; height: 16px; background: #3a3a3a; margin: 0 4px;";
+                toolbarRight.appendChild(sep5);
+
                 const videoFullscreenBtn = createToolbarButton("pi-arrows-alt", "视频全屏", () => {
                     if (mediaElement.requestFullscreen) {
                         mediaElement.requestFullscreen().catch(err => {
@@ -1740,11 +1805,12 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
         // 音频预览
         else if (FILE_TYPES.audio.exts.includes(ext)) {
             const audioUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+            const audioId = `dm-preview-audio-${Date.now()}`;
             previewHTML = `
                 <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
                     <i class="pi pi-volume-up" style="font-size: 64px; color: #3498db; margin-bottom: 15px;"></i>
                     <div style="color: #fff; margin-bottom: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                    <audio id="dm-preview-audio-${Date.now()}" controls preload="metadata" style="width: 100%; max-width: 400px;">
+                    <audio id="${audioId}" preload="metadata" style="width: 100%; max-width: 400px;">
                         <source src="${audioUrl}">
                         您的浏览器不支持音频播放
                     </audio>
@@ -1754,10 +1820,10 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
         // 视频预览
         else if (FILE_TYPES.video.exts.includes(ext)) {
             const videoUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+            const videoId = `dm-preview-video-${Date.now()}`;
             previewHTML = `
                 <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000;">
-                    <video id="dm-preview-video-${Date.now()}"
-                           controls
+                    <video id="${videoId}"
                            preload="metadata"
                            style="width: 100%; height: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">
                         <source src="${videoUrl}">
