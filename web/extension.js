@@ -1307,6 +1307,7 @@ function openFloatingPreview(path, fileName) {
     const ext = '.' + path.split('.').pop().toLowerCase();
     const fileType = getFileType({ name: path });
     const fileConfig = FILE_TYPES[fileType] || FILE_TYPES.unknown;
+    const isImage = FILE_TYPES.image.exts.includes(ext);
 
     // 创建浮动预览窗口
     const previewWindow = document.createElement("div");
@@ -1352,6 +1353,19 @@ function openFloatingPreview(path, fileName) {
     const actions = document.createElement("div");
     actions.style.cssText = "display: flex; gap: 8px;";
 
+    // 全屏按钮（仅图像显示）
+    if (isImage) {
+        const fullscreenBtn = document.createElement("button");
+        fullscreenBtn.className = "comfy-btn";
+        fullscreenBtn.innerHTML = '<i class="pi pi-window-maximize"></i>';
+        fullscreenBtn.style.cssText = "padding: 6px 10px; background: transparent; border: none; color: #aaa; cursor: pointer; border-radius: 4px;";
+        fullscreenBtn.title = "全屏";
+        fullscreenBtn.onmouseover = () => fullscreenBtn.style.background = "#3a3a3a";
+        fullscreenBtn.onmouseout = () => fullscreenBtn.style.background = "transparent";
+        fullscreenBtn.onclick = () => toggleFullscreen(previewWindow);
+        actions.appendChild(fullscreenBtn);
+    }
+
     // 关闭按钮
     const closeBtn = document.createElement("button");
     closeBtn.className = "comfy-btn";
@@ -1371,19 +1385,43 @@ function openFloatingPreview(path, fileName) {
     content.className = "dm-preview-content";
     content.style.cssText = `
         flex: 1;
-        overflow-y: auto;
+        overflow: hidden;
         padding: 15px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: #0f0f0f;
+        position: relative;
+    `;
+
+    // 创建可缩放的图像容器
+    let imageScale = 1;
+    let imageTranslateX = 0;
+    let imageTranslateY = 0;
+    let isDraggingImage = false;
+    let dragStart = { x: 0, y: 0 };
+
+    const imageContainer = document.createElement("div");
+    imageContainer.className = "dm-image-container";
+    imageContainer.style.cssText = `
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        cursor: ${isImage ? 'grab' : 'default'};
     `;
 
     // 根据文件类型显示预览
-    loadPreviewContent(content, path, ext);
+    loadPreviewContent(imageContainer, path, ext, imageScale);
+
+    // 组装内容区域
+    content.appendChild(imageContainer);
 
     // 创建工具栏（可选操作）
     const toolbar = document.createElement("div");
+    toolbar.className = "dm-preview-toolbar";
     toolbar.style.cssText = `
         padding: 10px 15px;
         background: #222;
@@ -1401,14 +1439,87 @@ function openFloatingPreview(path, fileName) {
     filePath.title = path;
 
     const toolbarActions = document.createElement("div");
-    toolbarActions.style.cssText = "display: flex; gap: 8px;";
+    toolbarActions.className = "dm-toolbar-actions";
+    toolbarActions.style.cssText = "display: flex; gap: 8px; align-items: center;";
+
+    // 图像缩放控制（仅对图像显示）
+    if (isImage) {
+        // 缩小按钮
+        const zoomOutBtn = createToolbarButton("pi-search-minus", "缩小", () => {
+            imageScale = Math.max(0.1, imageScale - 0.1);
+            updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
+            updateZoomDisplay();
+        });
+        toolbarActions.appendChild(zoomOutBtn);
+
+        // 缩放比例显示
+        const zoomDisplay = document.createElement("span");
+        zoomDisplay.className = "dm-zoom-display";
+        zoomDisplay.style.cssText = "min-width: 45px; text-align: center; color: #aaa;";
+        zoomDisplay.textContent = "100%";
+        toolbarActions.appendChild(zoomDisplay);
+
+        // 放大按钮
+        const zoomInBtn = createToolbarButton("pi-search-plus", "放大", () => {
+            imageScale = Math.min(5, imageScale + 0.1);
+            updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
+            updateZoomDisplay();
+        });
+        toolbarActions.appendChild(zoomInBtn);
+
+        // 重置按钮
+        const resetBtn = createToolbarButton("pi-refresh", "重置", () => {
+            imageScale = 1;
+            imageTranslateX = 0;
+            imageTranslateY = 0;
+            updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
+            updateZoomDisplay();
+        });
+        toolbarActions.appendChild(resetBtn);
+
+        function updateZoomDisplay() {
+            zoomDisplay.textContent = Math.round(imageScale * 100) + "%";
+        }
+
+        // 鼠标滚轮缩放
+        content.addEventListener("wheel", (e) => {
+            if (!isImage) return;
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            imageScale = Math.max(0.1, Math.min(5, imageScale + delta));
+            updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
+            updateZoomDisplay();
+        }, { passive: false });
+
+        // 图像拖动（当缩放比例大于1时）
+        imageContainer.addEventListener("mousedown", (e) => {
+            if (!isImage || imageScale <= 1) return;
+            isDraggingImage = true;
+            dragStart = { x: e.clientX - imageTranslateX, y: e.clientY - imageTranslateY };
+            imageContainer.style.cursor = "grabbing";
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            if (!isDraggingImage) return;
+            imageTranslateX = e.clientX - dragStart.x;
+            imageTranslateY = e.clientY - dragStart.y;
+            updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
+        });
+
+        document.addEventListener("mouseup", () => {
+            if (isDraggingImage) {
+                isDraggingImage = false;
+                imageContainer.style.cursor = "grab";
+            }
+        });
+    }
 
     // 打开按钮
     const openBtn = createToolbarButton("pi-external-link", "打开", () => {
         openFileExternally(path);
     });
-
     toolbarActions.appendChild(openBtn);
+
     toolbar.appendChild(filePath);
     toolbar.appendChild(toolbarActions);
 
@@ -1432,12 +1543,71 @@ function openFloatingPreview(path, fileName) {
 }
 
 /**
+ * 更新图像缩放
+ */
+function updateImageScale(container, scale, translateX, translateY) {
+    const img = container.querySelector("img");
+    if (img) {
+        img.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+        img.style.transition = "transform 0.1s ease-out";
+    }
+}
+
+/**
+ * 切换全屏模式
+ */
+function toggleFullscreen(window) {
+    const isFullscreen = window.dataset.fullscreen === "true";
+    const header = window.querySelector(".dm-preview-header");
+    const toolbar = window.querySelector(".dm-preview-toolbar");
+
+    if (!isFullscreen) {
+        // 进入全屏
+        window.dataset.originalStyle = window.style.cssText;
+        window.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            max-height: none;
+            background: #000;
+            border: none;
+            border-radius: 0;
+            z-index: 10002;
+        `;
+        if (header) header.style.display = "none";
+        if (toolbar) toolbar.style.display = "none";
+        window.dataset.fullscreen = "true";
+
+        // 按 ESC 退出全屏
+        const escHandler = (e) => {
+            if (e.key === "Escape") {
+                toggleFullscreen(window);
+                document.removeEventListener("keydown", escHandler);
+            }
+        };
+        document.addEventListener("keydown", escHandler);
+
+    } else {
+        // 退出全屏
+        window.style.cssText = window.dataset.originalStyle || "";
+        if (header) header.style.display = "";
+        if (toolbar) toolbar.style.display = "";
+        window.dataset.fullscreen = "false";
+    }
+}
+
+/**
  * 加载预览内容
  * @param {HTMLElement} content - 内容容器
  * @param {string} path - 文件路径
  * @param {string} ext - 文件扩展名
+ * @param {number} scale - 初始缩放比例（仅用于图像）
  */
-async function loadPreviewContent(content, path, ext) {
+async function loadPreviewContent(content, path, ext, scale = 1) {
     content.innerHTML = `
         <div style="text-align: center; padding: 20px; color: #888;">
             <i class="pi pi-spin pi-spinner" style="font-size: 24px;"></i>
@@ -1453,13 +1623,14 @@ async function loadPreviewContent(content, path, ext) {
             // 使用后端 API 获取图像
             const imageUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             previewHTML = `
-                <div style="text-align: center; width: 100%;">
-                    <img src="${imageUrl}"
-                         style="max-width: 100%; max-height: 400px;
-                                border-radius: 8px; border: 1px solid #3a3a3a;"
-                         onerror="this.parentElement.innerHTML='<div style=\\'color:#e74c3c; padding: 20px;\\'>无法加载图像</div>'"
-                         onload="this.style.opacity=1">
-                </div>
+                <img src="${imageUrl}"
+                     class="dm-zoomable-image"
+                     style="max-width: 100%; max-height: 400px;
+                            border-radius: 8px; border: 1px solid #3a3a3a;
+                            transform-origin: center center;
+                            will-change: transform;"
+                     onerror="this.parentElement.innerHTML='<div style=\\'color:#e74c3c; padding: 20px;\\'>无法加载图像</div>'"
+                     onload="this.style.opacity=1; this.style.display='block';">
             `;
         }
         // 音频预览
