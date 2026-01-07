@@ -1973,6 +1973,25 @@ function openFloatingPreview(path, fileName) {
         }
     }
 
+    // PDF 全屏按钮
+    if (ext === '.pdf') {
+        const sepPdf = document.createElement("div");
+        sepPdf.style.cssText = "width: 1px; height: 16px; background: #3a3a3a; margin: 0 4px;";
+        toolbarRight.appendChild(sepPdf);
+
+        const pdfFullscreenBtn = createToolbarButton("pi-arrows-alt", "PDF 全屏", () => {
+            const embed = document.getElementById('dm-pdf-embed');
+            if (embed && embed.requestFullscreen) {
+                embed.requestFullscreen().catch(err => {
+                    console.error('[DataManager] PDF 全屏失败:', err);
+                });
+            } else if (embed && embed.webkitRequestFullscreen) {
+                embed.webkitRequestFullscreen();
+            }
+        });
+        toolbarRight.appendChild(pdfFullscreenBtn);
+    }
+
     // 打开按钮
     const openBtn = createToolbarButton("pi-external-link", "打开", () => {
         openFileExternally(path);
@@ -2174,17 +2193,19 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
         // 文档预览
         else if (FILE_TYPES.document.exts.includes(ext)) {
             const docUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+            const isPDF = ext === '.pdf';
+            const isMarkdown = ext === '.md';
 
-            if (ext === '.pdf') {
+            if (isPDF) {
                 // PDF 使用 embed 嵌入浏览器原生阅读器
                 previewHTML = `
                     <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
                         <div style="flex: 1; border-radius: 8px; overflow: hidden;">
-                            <embed src="${docUrl}" type="application/pdf" width="100%" height="100%" />
+                            <embed id="dm-pdf-embed" src="${docUrl}" type="application/pdf" width="100%" height="100%" />
                         </div>
                     </div>
                 `;
-            } else if (ext === '.md') {
+            } else if (isMarkdown) {
                 // Markdown 使用 iframe 显示渲染后的 HTML
                 previewHTML = `
                     <div style="width: 100%; height: 100%; border-radius: 8px; overflow: hidden; border: 1px solid #3a3a3a;">
@@ -2198,10 +2219,10 @@ async function loadPreviewContent(content, path, ext, scale = 1) {
                     if (response.ok) {
                         const text = await response.text();
                         previewHTML = `
-                            <div style="width: 100%; height: 100%; background: #1e1e1e; padding: 15px; border-radius: 8px;
+                            <div style="width: 100%; height: 100%; background: #1e1e1e; border-radius: 8px;
                                         font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
-                                        overflow: auto;">
-                                <pre style="margin: 0; color: #d4d4d4; white-space: pre-wrap;">${escapeHtml(text)}</pre>
+                                        overflow: hidden;">
+                                <pre style="margin: 0; color: #d4d4d4; white-space: pre-wrap; padding: 15px; height: 100%; box-sizing: border-box; overflow: auto;">${escapeHtml(text)}</pre>
                             </div>
                         `;
                     } else {
