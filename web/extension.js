@@ -209,10 +209,13 @@ function createFileManagerWindow() {
     window.id = "dm-file-manager";
     window.style.cssText = `
         position: fixed;
-        top: 50px;
-        left: 50px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         width: 1200px;
         height: 700px;
+        max-width: calc(100vw - 40px);
+        max-height: calc(100vh - 40px);
         background: #1a1a1a;
         border: 1px solid #3a3a3a;
         border-radius: 12px;
