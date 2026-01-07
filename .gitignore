@@ -1,0 +1,30 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 测试产物（不提交截图）
+tests/screenshots/
+tests/*.png
+*.png
+
+# 开发工具
+.vscode/
+.idea/
+*.swp
+*.swo
+.claude/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+nul
+
+# 日志
+*.log
+
+# 临时文件
+*.tmp
+temp/
+tmp/
