@@ -436,12 +436,32 @@ function createBrowserPanel() {
             font-weight: 600;
             color: #888;
         `;
-        header.innerHTML = `
-            <div style="flex: 0 0 40px; text-align: center;"><input type="checkbox" id="dm-select-all" onclick="event.stopPropagation(); toggleSelectAll(this)"></div>
-            <div style="flex: 1;">名称</div>
-            <div style="flex: 0 0 100px;">大小</div>
-            <div style="flex: 0 0 150px;">修改日期</div>
-        `;
+
+        // 创建可点击的表头
+        const nameHeader = document.createElement("div");
+        nameHeader.className = "dm-header-cell";
+        nameHeader.dataset.sort = "name";
+        nameHeader.style.cssText = "flex: 1; cursor: pointer; display: flex; align-items: center; gap: 5px; user-select: none;";
+        nameHeader.innerHTML = `<span>名称</span><i class="pi pi-sort" style="font-size: 10px; opacity: 0.5;"></i>`;
+        nameHeader.onclick = () => toggleSort("name");
+
+        const sizeHeader = document.createElement("div");
+        sizeHeader.className = "dm-header-cell";
+        sizeHeader.dataset.sort = "size";
+        sizeHeader.style.cssText = "flex: 0 0 100px; cursor: pointer; display: flex; align-items: center; gap: 5px; user-select: none;";
+        sizeHeader.innerHTML = `<span>大小</span><i class="pi pi-sort" style="font-size: 10px; opacity: 0.5;"></i>`;
+        sizeHeader.onclick = () => toggleSort("size");
+
+        const modifiedHeader = document.createElement("div");
+        modifiedHeader.className = "dm-header-cell";
+        modifiedHeader.dataset.sort = "modified";
+        modifiedHeader.style.cssText = "flex: 0 0 150px; cursor: pointer; display: flex; align-items: center; gap: 5px; user-select: none;";
+        modifiedHeader.innerHTML = `<span>修改日期</span><i class="pi pi-sort" style="font-size: 10px; opacity: 0.5;"></i>`;
+        modifiedHeader.onclick = () => toggleSort("modified");
+
+        header.appendChild(nameHeader);
+        header.appendChild(sizeHeader);
+        header.appendChild(modifiedHeader);
         panel.appendChild(header);
     }
 
@@ -663,6 +683,9 @@ function renderFileList() {
     } else {
         renderGridView(container, sortedFiles);
     }
+
+    // 更新表头排序指示器
+    updateHeaderSortIndicators();
 }
 
 
@@ -748,9 +771,6 @@ function createFileListItem(file, isParent) {
              style="display: flex; align-items: center; padding: 10px 15px;
                     border-bottom: 1px solid #2a2a2a; cursor: pointer;
                     transition: background 0.2s;">
-            <div style="flex: 0 0 40px; text-align: center;">
-                <input type="checkbox" class="dm-file-checkbox" onclick="event.stopPropagation();">
-            </div>
             <div style="flex: 1; display: flex; align-items: center; gap: 10px; overflow: hidden;">
                 <i class="pi ${icon}" style="color: ${color}; font-size: 16px;"></i>
                 <span style="color: #fff; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
@@ -785,13 +805,9 @@ function selectFile(item) {
     // 清除其他选择
     document.querySelectorAll(".dm-file-item").forEach(i => {
         i.style.background = "transparent";
-        const cb = i.querySelector('.dm-file-checkbox');
-        if (cb) cb.checked = false;
     });
 
     item.style.background = "#3a3a3a";
-    const cb = item.querySelector('.dm-file-checkbox');
-    if (cb) cb.checked = true;
 
     const path = item.dataset.path;
     const isDir = item.dataset.is_dir === "true";
@@ -1046,23 +1062,47 @@ function openFileExternally(path) {
 // 文件操作功能
 // ============================================
 
-function toggleSelectAll(checkbox) {
-    const isChecked = checkbox.checked;
-    document.querySelectorAll(".dm-file-checkbox").forEach(cb => {
-        cb.checked = isChecked;
-    });
-
-    FileManagerState.selectedFiles = [];
-    if (isChecked) {
-        document.querySelectorAll(".dm-file-item").forEach(item => {
-            FileManagerState.selectedFiles.push(item.dataset.path);
-            item.style.background = "#3a3a3a";
-        });
+/**
+ * 切换排序方式
+ * @param {string} column - 排序列: 'name', 'size', 'modified'
+ */
+function toggleSort(column) {
+    if (FileManagerState.sortBy === column) {
+        // 点击相同列，切换升序/降序
+        FileManagerState.sortOrder = FileManagerState.sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
-        document.querySelectorAll(".dm-file-item").forEach(item => {
-            item.style.background = "transparent";
-        });
+        // 点击不同列，设为该列并默认升序
+        FileManagerState.sortBy = column;
+        FileManagerState.sortOrder = 'asc';
     }
+
+    // 更新排序下拉框
+    const sortSelect = document.getElementById("dm-sort-select");
+    if (sortSelect) {
+        sortSelect.value = FileManagerState.sortBy;
+    }
+
+    renderFileList();
+}
+
+/**
+ * 更新表头排序指示器
+ */
+function updateHeaderSortIndicators() {
+    const headers = document.querySelectorAll('.dm-header-cell');
+    headers.forEach(header => {
+        const icon = header.querySelector('i');
+        if (icon) {
+            const column = header.dataset.sort;
+            if (column === FileManagerState.sortBy) {
+                icon.className = FileManagerState.sortOrder === 'asc' ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down';
+                icon.style.opacity = "1";
+            } else {
+                icon.className = 'pi pi-sort';
+                icon.style.opacity = "0.5";
+            }
+        }
+    });
 }
 
 
