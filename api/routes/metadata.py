@@ -26,7 +26,7 @@ async def get_categories_handler(request):
     try:
         categories = {
             "image": {
-                "extensions": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff", ".tif", ".avif", ".heic", ".heif"],
+                "extensions": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff", ".tif", ".avif", ".heic", ".heif", ".tga"],
                 "icon": "pi-image",
                 "color": "#e74c3c"
             },
@@ -87,9 +87,9 @@ async def preview_file_handler(request):
         ext = ext.lower()
 
         # 图像文件：返回二进制内容
-        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico', '.tiff', '.tif', '.avif', '.heic', '.heif']:
+        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico', '.tiff', '.tif', '.avif', '.heic', '.heif', '.tga']:
             # 检查是否需要转换为 PNG（浏览器不支持的格式）
-            needs_conversion = ext in ['.tiff', '.tif', '.avif', '.heic', '.heif']
+            needs_conversion = ext in ['.tiff', '.tif', '.avif', '.heic', '.heif', '.tga']
 
             if needs_conversion and PILLOW_AVAILABLE:
                 try:
@@ -126,6 +126,7 @@ async def preview_file_handler(request):
                         '.avif': 'image/avif',
                         '.heic': 'image/heic',
                         '.heif': 'image/heif',
+                        '.tga': 'image/x-targa',
                     }
                     content_type = content_type_map.get(ext, 'application/octet-stream')
             else:
@@ -148,6 +149,7 @@ async def preview_file_handler(request):
                     '.avif': 'image/avif',
                     '.heic': 'image/heic',
                     '.heif': 'image/heif',
+                    '.tga': 'image/x-targa',
                 }
                 content_type = content_type_map.get(ext, 'application/octet-stream')
 

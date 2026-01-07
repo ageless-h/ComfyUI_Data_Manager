@@ -93,7 +93,7 @@ def get_file_category(file_path: str) -> str:
     ext = Path(file_path).suffix.lower()
 
     categories = {
-        "image": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff", ".tif", ".avif", ".heic", ".heif"],
+        "image": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff", ".tif", ".avif", ".heic", ".heif", ".tga"],
         "video": [".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv"],
         "audio": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a"],
         "document": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".md"],
