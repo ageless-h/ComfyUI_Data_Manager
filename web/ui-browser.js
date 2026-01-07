@@ -34,10 +34,10 @@ export function createBrowserPanel(viewMode = 'list') {
             flex: 1;
             overflow-y: auto;
             padding: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            align-content: flex-start;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 10px;
+            align-content: start;
         `;
     } else {
         content.style.cssText = `

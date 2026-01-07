@@ -185,10 +185,10 @@ function openFileManager() {
                         flex: 1;
                         overflow-y: auto;
                         padding: 10px;
-                        display: flex;
-                        flex-wrap: wrap;
-                        align-content: flex-start;
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
                         gap: 10px;
+                        align-content: start;
                     `;
                     // 隐藏列表表头
                     const header = browserPanel?.querySelector('.dm-list-header');
