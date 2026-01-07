@@ -65,6 +65,9 @@ function createListHeader() {
         cell.dataset.sort = sortKey;
         cell.style.cssText = `${width}; cursor: pointer; display: flex; align-items: center; gap: 5px; user-select: none;`;
         cell.innerHTML = `<span>${label}</span><i class="pi pi-sort" style="font-size: 10px; opacity: 0.5;"></i>`;
+        cell.onclick = () => {
+            import('./ui-actions.js').then(({ toggleSort }) => toggleSort(sortKey));
+        };
         return cell;
     };
 

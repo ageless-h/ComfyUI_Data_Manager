@@ -209,7 +209,7 @@ export function toggleSort(column) {
 /**
  * 更新表头排序指示器
  */
-function updateHeaderSortIndicators() {
+export function updateHeaderSortIndicators() {
     const headers = document.querySelectorAll('.dm-header-cell');
     headers.forEach(header => {
         const icon = header.querySelector('i');
