@@ -1422,102 +1422,60 @@ function updateStatus(text) {
 
 
 // ============================================
-// 全局拖动管理器（单一监听器模式）
+// 窗口拖动功能（动态监听器模式）
 // ============================================
 
-const DragManager = {
-    draggingWindow: null,
-    offset: { x: 0, y: 0 },
-    rafId: null,
-    targetX: 0,
-    targetY: 0,
-
-    init() {
-        // 只添加一次全局监听器
-        if (!this._initialized) {
-            document.addEventListener("mousemove", this._handleMouseMove.bind(this), { passive: true });
-            document.addEventListener("mouseup", this._handleMouseUp.bind(this));
-            this._initialized = true;
-        }
-    },
-
-    startDrag(window, offsetX, offsetY) {
-        this.draggingWindow = window;
-        this.offset = { x: offsetX, y: offsetY };
-        window.style.transition = "none";
-    },
-
-    stopDrag() {
-        if (this.draggingWindow) {
-            this.draggingWindow.style.transition = "";
-            this.draggingWindow = null;
-        }
-        if (this.rafId !== null) {
-            cancelAnimationFrame(this.rafId);
-            this.rafId = null;
-        }
-    },
-
-    _handleMouseMove(e) {
-        if (!this.draggingWindow) return;
-
-        // 全屏状态下不允许拖动
-        if (this.draggingWindow.dataset.fullscreen === "true") {
-            this.stopDrag();
-            return;
-        }
-
-        const x = e.clientX - this.offset.x;
-        const y = e.clientY - this.offset.y;
-        this.targetX = Math.max(0, x);
-        this.targetY = Math.max(0, y);
-
-        // 使用 requestAnimationFrame 优化性能
-        if (this.rafId === null) {
-            this.rafId = requestAnimationFrame(() => {
-                if (this.draggingWindow) {
-                    this.draggingWindow.style.left = this.targetX + "px";
-                    this.draggingWindow.style.top = this.targetY + "px";
-                }
-                this.rafId = null;
-            });
-        }
-    },
-
-    _handleMouseUp() {
-        this.stopDrag();
-    }
-};
-
 /**
- * 设置窗口拖动（使用全局拖动管理器）
+ * 设置窗口拖动
+ * 每次拖动时动态添加监听器，松开后立即移除
  */
 function setupWindowDrag(window, header) {
-    // 初始化全局拖动管理器（只执行一次）
-    DragManager.init();
-
-    // mousedown 事件添加到 header
     header.addEventListener("mousedown", (e) => {
+        // 排除按钮和图标
         if (e.target.tagName === "BUTTON" || e.target.tagName === "I") return;
 
         // 全屏状态下不允许拖动
         if (window.dataset.fullscreen === "true") return;
 
+        e.preventDefault();
         e.stopPropagation();
+
         const rect = window.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const offsetY = e.clientY - rect.top;
-        DragManager.startDrag(window, offsetX, offsetY);
+
+        // 移除过渡效果以提高性能
+        window.style.transition = "none";
+
+        // 定义 mousemove 处理函数
+        const mouseMoveHandler = (e) => {
+            const x = e.clientX - offsetX;
+            const y = e.clientY - offsetY;
+            window.style.left = Math.max(0, x) + "px";
+            window.style.top = Math.max(0, y) + "px";
+        };
+
+        // 定义 mouseup 处理函数
+        const mouseUpHandler = () => {
+            // 恢复过渡效果
+            window.style.transition = "";
+
+            // 立即移除监听器
+            document.removeEventListener("mousemove", mouseMoveHandler);
+            document.removeEventListener("mouseup", mouseUpHandler);
+        };
+
+        // 添加监听器到 document（确保鼠标移出窗口也能响应）
+        document.addEventListener("mousemove", mouseMoveHandler, { passive: true });
+        document.addEventListener("mouseup", mouseUpHandler);
     });
 }
 
 /**
- * 清理窗口拖动（如果窗口正在拖动则停止）
+ * 清理窗口拖动（此模式下不需要额外清理）
  */
 function cleanupWindowDrag(window) {
-    if (DragManager.draggingWindow === window) {
-        DragManager.stopDrag();
-    }
+    // 动态监听器模式不需要清理，监听器会在 mouseup 时自动移除
 }
 
 
