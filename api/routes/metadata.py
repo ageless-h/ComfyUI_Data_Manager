@@ -19,7 +19,7 @@ async def get_categories_handler(request):
     try:
         categories = {
             "image": {
-                "extensions": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg"],
+                "extensions": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff", ".tif", ".avif", ".heic", ".heif"],
                 "icon": "pi-image",
                 "color": "#e74c3c"
             },
@@ -80,7 +80,7 @@ async def preview_file_handler(request):
         ext = ext.lower()
 
         # 图像文件：返回二进制内容
-        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico']:
+        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico', '.tiff', '.tif', '.avif', '.heic', '.heif']:
             with open(path, 'rb') as f:
                 content = f.read()
 
@@ -94,6 +94,11 @@ async def preview_file_handler(request):
                 '.webp': 'image/webp',
                 '.svg': 'image/svg+xml',
                 '.ico': 'image/x-icon',
+                '.tiff': 'image/tiff',
+                '.tif': 'image/tiff',
+                '.avif': 'image/avif',
+                '.heic': 'image/heic',
+                '.heif': 'image/heif',
             }
 
             return web.Response(

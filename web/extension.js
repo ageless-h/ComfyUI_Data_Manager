@@ -24,7 +24,7 @@ console.log(`[DataManager] Extension loading, Node V${IS_NODE_V3 ? '3' : '1'} de
 
 // 文件类型配置
 const FILE_TYPES = {
-    image: { exts: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'], icon: 'pi-image', color: '#e74c3c' },
+    image: { exts: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico', '.tiff', '.tif', '.avif', '.heic', '.heif'], icon: 'pi-image', color: '#e74c3c' },
     video: { exts: ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv'], icon: 'pi-video', color: '#9b59b6' },
     audio: { exts: ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.wma', '.m4a'], icon: 'pi-volume-up', color: '#3498db' },
     document: { exts: ['.pdf', '.doc', '.docx', '.txt', '.rtf', '.md'], icon: 'pi-file', color: '#95a5a6' },
