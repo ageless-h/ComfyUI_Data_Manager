@@ -968,6 +968,8 @@ async function previewFile(path) {
             }
         }
 
+        // 更新文件信息区域
+        updateFileInfo(path, false);
         updateStatus(`预览: ${fileName}`);
 
     } catch (error) {
