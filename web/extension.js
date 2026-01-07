@@ -186,8 +186,8 @@ function openFileManager() {
                         overflow-y: auto;
                         padding: 10px;
                         display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                        gap: 10px;
+                        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                        gap: 8px;
                         align-content: start;
                     `;
                     // 隐藏列表表头

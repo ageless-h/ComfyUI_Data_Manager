@@ -35,8 +35,8 @@ export function createBrowserPanel(viewMode = 'list') {
             overflow-y: auto;
             padding: 10px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
             align-content: start;
         `;
     } else {
@@ -135,12 +135,14 @@ export function createFileGridItem(file, isParent) {
     return `
         <div class="dm-grid-item" data-path="${file.path || file.name}" data-is-dir="${file.is_dir || false}"
              data-name="${file.name}"
-             style="display: flex; flex-direction: column; align-items: center; padding: 15px;
+             style="display: flex; flex-direction: column; align-items: center; justify-content: center;
+                    padding: 12px 8px; height: 90px;
                     background: #252525; border-radius: 8px; cursor: pointer;
-                    transition: all 0.2s; border: 2px solid transparent;">
-            <i class="pi ${icon}" style="color: ${color}; font-size: 48px; margin-bottom: 10px;"></i>
-            <span style="color: #fff; font-size: 12px; text-align: center;
-                          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">${file.name}</span>
+                    transition: all 0.2s; border: 2px solid transparent; box-sizing: border-box;">
+            <i class="pi ${icon}" style="color: ${color}; font-size: 40px;"></i>
+            <span style="color: #ccc; font-size: 11px; text-align: center;
+                          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                          width: 100%; margin-top: 8px;">${file.name}</span>
         </div>
     `;
 }
