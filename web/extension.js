@@ -967,7 +967,47 @@ async function previewFile(path) {
         }
         // 文档预览
         else if (FILE_TYPES.document.exts.includes(ext)) {
-            previewHTML = createUnavailablePreview(fileName, 'document');
+            const docUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+
+            if (ext === '.pdf') {
+                // PDF 使用 embed 嵌入浏览器原生阅读器
+                previewHTML = `
+                    <div style="width: 100%; height: 400px; border-radius: 8px; overflow: hidden;">
+                        <embed src="${docUrl}" type="application/pdf" width="100%" height="100%" />
+                    </div>
+                `;
+            } else if (ext === '.md') {
+                // Markdown 使用 iframe 显示渲染后的 HTML
+                previewHTML = `
+                    <div style="width: 100%; height: 400px; border-radius: 8px; overflow: hidden; border: 1px solid #3a3a3a;">
+                        <iframe src="${docUrl}" style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                `;
+            } else {
+                // txt, rtf: 显示为纯文本
+                try {
+                    const response = await fetch(docUrl);
+                    if (response.ok) {
+                        const text = await response.text();
+                        previewHTML = `
+                            <div style="background: #1e1e1e; padding: 15px; border-radius: 8px;
+                                        font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
+                                        overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                                <pre style="margin: 0; color: #d4d4d4; white-space: pre-wrap;">${escapeHtml(text)}</pre>
+                            </div>
+                        `;
+                    } else {
+                        throw new Error('Failed to load file');
+                    }
+                } catch {
+                    previewHTML = createUnavailablePreview(fileName, 'document');
+                }
+            }
+            canOpenExternally = true;
+        }
+        // 表格文件预览（暂时不支持）
+        else if (FILE_TYPES.spreadsheet.exts.includes(ext)) {
+            previewHTML = createUnavailablePreview(fileName, 'spreadsheet');
             canOpenExternally = true;
         }
         // 其他文件

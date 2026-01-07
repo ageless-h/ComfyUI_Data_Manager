@@ -198,10 +198,63 @@ async def preview_file_handler(request):
                 content_type=content_type_map.get(ext, 'video/mp4')
             )
 
-        # 文本文件：返回文本内容
-        else:
+        # PDF 文件：返回二进制内容（浏览器原生支持）
+        elif ext == '.pdf':
+            with open(path, 'rb') as f:
+                content = f.read()
+
+            return web.Response(
+                body=content,
+                content_type='application/pdf'
+            )
+
+        # Markdown 文件：返回渲染后的 HTML
+        elif ext == '.md':
             try:
+                import markdown as md_lib
                 with open(path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+
+                # 限制大小
+                max_size = 200 * 1024  # 200KB
+                if len(text) > max_size:
+                    text = text[:max_size] + "\n\n... (文件过大，已截断)"
+
+                # 渲染为 HTML
+                html_content = md_lib.markdown(text, extensions=['tables', 'fenced_code', 'codehilite'])
+
+                return web.Response(
+                    text=f'''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; line-height: 1.6; color: #d4d4d4; background: #1e1e1e; }}
+        h1, h2, h3 {{ color: #569cd6; }}
+        code {{ background: #2d2d2d; padding: 2px 6px; border-radius: 4px; }}
+        pre {{ background: #2d2d2d; padding: 15px; border-radius: 8px; overflow-x: auto; }}
+        blockquote {{ border-left: 4px solid #569cd6; margin: 0; padding-left: 15px; color: #888; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        th, td {{ border: 1px solid #3a3a3a; padding: 8px; text-align: left; }}
+        th {{ background: #2d2d2d; }}
+    </style>
+</head>
+<body>
+{html_content}
+</body>
+</html>''',
+                    content_type='text/html; charset=utf-8'
+                )
+            except Exception as e:
+                logger.warning(f"[DataManager] Failed to render markdown: {e}")
+                return web.json_response({
+                    "error": f"Failed to render markdown: {str(e)}"
+                }, status=500)
+
+        # 文本文件：返回文本内容
+        elif ext in ['.txt', '.rtf']:
+            try:
+                with open(path, 'r', encoding='utf-8', errors='replace') as f:
                     content = f.read()
 
                 # 限制大小
@@ -213,12 +266,22 @@ async def preview_file_handler(request):
                     text=content,
                     content_type='text/plain; charset=utf-8'
                 )
-
-            except UnicodeDecodeError:
-                # 二进制文件
+            except Exception as e:
                 return web.json_response({
-                    "error": "Binary file cannot be previewed"
+                    "error": f"Cannot read file: {str(e)}"
                 }, status=400)
+
+        # Word 文档：暂不支持
+        elif ext in ['.doc', '.docx']:
+            return web.json_response({
+                "error": "Word documents (.doc, .docx) preview requires additional library. Please install: pip install mammoth"
+            }, status=400)
+
+        # 其他文件
+        else:
+            return web.json_response({
+                "error": f"File type {ext} not supported for preview"
+            }, status=400)
 
     except Exception as e:
         logger.error(f"[DataManager] preview_file error: {e}")
