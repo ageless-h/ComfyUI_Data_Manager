@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
-"""shared.py - 共享的文件操作逻辑
+"""utils/file_ops.py - 文件操作模块
 
-此模块包含 V1 和 V3 API 都使用的共享函数
+提供文件和目录操作的核心功能
 """
 
 import os
-import json
 import shutil
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List
 from datetime import datetime
+
+from .info import _get_file_info, _matches_pattern
 
 
 def save_file(source: Any, target_dir: str, filename: str = None, prefix: str = "", add_timestamp: bool = False) -> str:
@@ -107,103 +108,3 @@ def list_files(directory: str, pattern: str = "*.*", recursive: bool = False, in
         pass
 
     return items
-
-
-def get_file_info(file_path: str) -> Dict[str, Any]:
-    """获取文件详细信息
-
-    Args:
-        file_path: 文件路径
-
-    Returns:
-        文件信息字典
-    """
-    return _get_file_info(file_path)
-
-
-def _get_file_info(file_path: str) -> Dict[str, Any]:
-    """内部函数：获取文件信息"""
-    path = Path(file_path)
-
-    if not path.exists():
-        return {
-            "name": os.path.basename(file_path),
-            "path": file_path,
-            "exists": False,
-            "is_dir": False,
-        }
-
-    stat = path.stat()
-
-    return {
-        "name": path.name,
-        "path": str(path.absolute()),
-        "size": stat.st_size,
-        "size_human": _human_readable_size(stat.st_size),
-        "extension": path.suffix.lower(),
-        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-        "created": datetime.fromtimestamp(stat.st_ctime).isoformat(),
-        "is_dir": path.is_dir(),
-        "exists": True,
-    }
-
-
-def _matches_pattern(filename: str, pattern: str) -> bool:
-    """检查文件名是否匹配模式"""
-    import fnmatch
-    return fnmatch.fnmatch(filename, pattern)
-
-
-def _human_readable_size(size_bytes: int) -> str:
-    """将字节数转换为可读格式"""
-    for unit in ["B", "KB", "MB", "GB", "TB"]:
-        if size_bytes < 1024.0:
-            return f"{size_bytes:.1f} {unit}"
-        size_bytes /= 1024.0
-    return f"{size_bytes:.1f} PB"
-
-
-def get_file_category(file_path: str) -> str:
-    """获取文件类别
-
-    Returns:
-        文件类别: image, video, audio, document, code, archive, unknown
-    """
-    ext = Path(file_path).suffix.lower()
-
-    categories = {
-        "image": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico"],
-        "video": [".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv"],
-        "audio": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a"],
-        "document": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".md"],
-        "code": [".py", ".js", ".html", ".css", ".json", ".xml", ".yaml", ".yml"],
-        "archive": [".zip", ".rar", ".7z", ".tar", ".gz"],
-    }
-
-    for category, extensions in categories.items():
-        if ext in extensions:
-            return category
-
-    return "unknown"
-
-
-def ensure_directory(directory: str) -> bool:
-    """确保目录存在，如果不存在则创建"""
-    try:
-        os.makedirs(directory, exist_ok=True)
-        return True
-    except Exception as e:
-        print(f"[DataManager] Failed to create directory: {e}")
-        return False
-
-
-def join_paths(*paths: str) -> str:
-    """连接多个路径组件"""
-    result = os.path.join(*paths)
-    return os.path.normpath(result)
-
-
-def get_parent_path(path: str) -> str:
-    """获取父路径"""
-    parent = os.path.dirname(path)
-    return parent if parent else "."

@@ -22,7 +22,7 @@ except ImportError:
 # 根据可用 API 导入相应模块
 if HAS_V3:
     # 使用 V3 API (Node 2.0)
-    from .nodes_v3 import comfy_entrypoint
+    from .core.nodes_v3 import comfy_entrypoint
 
     WEB_DIRECTORY = "./web"
 
@@ -30,7 +30,7 @@ if HAS_V3:
 
 else:
     # 使用 V1 API (Node 1.0) - 向后兼容
-    from .nodes_v1 import (
+    from .core.nodes_v1 import (
         NODE_CLASS_MAPPINGS,
         NODE_DISPLAY_NAME_MAPPINGS,
         WEB_DIRECTORY
