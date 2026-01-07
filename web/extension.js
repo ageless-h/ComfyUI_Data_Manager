@@ -1611,6 +1611,9 @@ function toggleFullscreen(window) {
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
             z-index: 10002;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         `;
         window.dataset.fullscreen = "true";
 
