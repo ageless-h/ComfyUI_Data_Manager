@@ -239,18 +239,18 @@ function createCodePreviewHTML(text, ext = '') {
             const jsonObj = JSON.parse(text);
             const highlighted = syntaxHighlight(jsonObj);
             return `
-                <div style="background: #1e1e1e; padding: 15px; border-radius: 8px;
+                <div style="background: #1e1e1e; padding: 15px;
                             font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
-                            overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                            overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
                     <pre style="margin: 0; white-space: pre-wrap;">${highlighted}</pre>
                 </div>
             `;
         } catch (e) {
             // JSON 解析失败，使用普通文本显示
             return `
-                <div style="background: #1e1e1e; padding: 15px; border-radius: 8px;
+                <div style="background: #1e1e1e; padding: 15px;
                             font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
-                            overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                            overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
                     <pre style="margin: 0; color: #d4d4d4;">${escapeHtml(text.substring(0, 5000))}${text.length > 5000 ? '\n\n... (文件过大，仅显示前 5000 字符)' : ''}</pre>
                 </div>
             `;
@@ -259,9 +259,9 @@ function createCodePreviewHTML(text, ext = '') {
 
     // 其他代码文件：普通文本显示
     return `
-        <div style="background: #1e1e1e; padding: 15px; border-radius: 8px;
+        <div style="background: #1e1e1e; padding: 15px;
                     font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
-                    overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                    overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
             <pre style="margin: 0; color: #d4d4d4;">${escapeHtml(text.substring(0, 5000))}${text.length > 5000 ? '\n\n... (文件过大，仅显示前 5000 字符)' : ''}</pre>
         </div>
     `;

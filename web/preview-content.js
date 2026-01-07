@@ -81,18 +81,18 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                         const jsonObj = JSON.parse(text);
                         const highlighted = syntaxHighlight(jsonObj);
                         previewHTML = `
-                            <div style="width: 100%; background: #1e1e1e; padding: 15px; border-radius: 8px;
+                            <div style="width: 100%; background: #1e1e1e; padding: 15px;
                                         font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.5;
-                                        overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                                        overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
                                 <pre style="margin: 0; white-space: pre-wrap; color: #d4d4d4;">${highlighted}</pre>
                             </div>
                         `;
                     } catch (e) {
                         // JSON 解析失败，使用普通文本显示
                         previewHTML = `
-                            <div style="width: 100%; background: #1e1e1e; padding: 15px; border-radius: 8px;
+                            <div style="width: 100%; background: #1e1e1e; padding: 15px;
                                         font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.5;
-                                        overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                                        overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
                                 <pre style="margin: 0; color: #d4d4d4; white-space: pre-wrap;">${escapeHtml(text)}</pre>
                             </div>
                         `;
@@ -100,9 +100,9 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                 } else {
                     // 其他代码文件：普通文本显示
                     previewHTML = `
-                        <div style="width: 100%; background: #1e1e1e; padding: 15px; border-radius: 8px;
+                        <div style="width: 100%; background: #1e1e1e; padding: 15px;
                                     font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.5;
-                                    overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                                    overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
                             <pre style="margin: 0; color: #d4d4d4; white-space: pre-wrap;">${escapeHtml(text)}</pre>
                         </div>
                     `;
