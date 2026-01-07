@@ -532,6 +532,34 @@ function createPreviewPanel() {
 
 
 function createStatusBar() {
+    // 创建底部区域容器（包含 Dock 栏和状态栏）
+    const bottomArea = document.createElement("div");
+    bottomArea.className = "dm-bottom-area";
+    bottomArea.style.cssText = `
+        display: flex;
+        flex-direction: column;
+    `;
+
+    // 创建 Dock 栏（最小化预览窗口缩略图区域）
+    const dock = document.createElement("div");
+    dock.id = "dm-preview-dock";
+    dock.className = "dm-preview-dock";
+    dock.style.cssText = `
+        min-height: 0;
+        max-height: 0;
+        padding: 0 15px;
+        background: linear-gradient(to bottom, #252525, #1a1a1a);
+        border-top: 1px solid #2a2a2a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        transition: min-height 0.3s ease, max-height 0.3s ease, padding 0.3s ease;
+    `;
+
+    // 创建状态栏
     const bar = document.createElement("div");
     bar.id = "dm-status-bar";
     bar.style.cssText = `
@@ -544,7 +572,11 @@ function createStatusBar() {
         justify-content: space-between;
     `;
     bar.textContent = "就绪";
-    return bar;
+
+    bottomArea.appendChild(dock);
+    bottomArea.appendChild(bar);
+
+    return bottomArea;
 }
 
 
@@ -1345,42 +1377,95 @@ function openFloatingPreview(path, fileName) {
         user-select: none;
     `;
 
+    // macOS 交通灯按钮组
+    const trafficLights = document.createElement("div");
+    trafficLights.className = "dm-traffic-lights";
+    trafficLights.style.cssText = "display: flex; gap: 8px;";
+
+    // 关闭按钮（红色）
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "comfy-btn dm-traffic-light-close";
+    closeBtn.innerHTML = '<i class="pi pi-times" style="font-size: 10px;"></i>';
+    closeBtn.style.cssText = `
+        width: 14px;
+        height: 14px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    `;
+    closeBtn.title = "关闭";
+    closeBtn.onmouseover = () => { closeBtn.style.background = "#ff5f57"; };
+    closeBtn.onmouseout = () => { closeBtn.style.background = "transparent"; };
+    closeBtn.onclick = () => closeFloatingPreview(previewWindow);
+    trafficLights.appendChild(closeBtn);
+
+    // 最小化按钮（黄色）
+    const minimizeBtn = document.createElement("button");
+    minimizeBtn.className = "comfy-btn dm-traffic-light-minimize";
+    minimizeBtn.innerHTML = '<i class="pi pi-minus" style="font-size: 10px;"></i>';
+    minimizeBtn.style.cssText = `
+        width: 14px;
+        height: 14px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    `;
+    minimizeBtn.title = "最小化";
+    minimizeBtn.onmouseover = () => { minimizeBtn.style.background = "#ffbd2e"; };
+    minimizeBtn.onmouseout = () => { minimizeBtn.style.background = "transparent"; };
+    minimizeBtn.onclick = () => minimizeFloatingPreview(previewWindow, path, fileName, fileConfig);
+    trafficLights.appendChild(minimizeBtn);
+
+    // 全屏按钮（绿色）- 仅图像、视频、音频显示
+    if (isImage || isVideo || isAudio) {
+        const fullscreenBtn = document.createElement("button");
+        fullscreenBtn.className = "comfy-btn dm-traffic-light-fullscreen";
+        fullscreenBtn.innerHTML = '<i class="pi pi-window-maximize" style="font-size: 8px;"></i>';
+        fullscreenBtn.style.cssText = `
+            width: 14px;
+            height: 14px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        `;
+        fullscreenBtn.title = "全屏";
+        fullscreenBtn.onmouseover = () => { fullscreenBtn.style.background = "#28c940"; };
+        fullscreenBtn.onmouseout = () => { fullscreenBtn.style.background = "transparent"; };
+        fullscreenBtn.onclick = () => toggleFullscreen(previewWindow);
+        trafficLights.appendChild(fullscreenBtn);
+    }
+
+    header.appendChild(trafficLights);
+
     const title = document.createElement("div");
-    title.style.cssText = "display: flex; align-items: center; gap: 8px; color: #fff; font-size: 14px; font-weight: 600;";
+    title.style.cssText = "display: flex; align-items: center; gap: 8px; color: #fff; font-size: 14px; font-weight: 600; flex: 1; justify-content: center;";
     title.innerHTML = `
         <i class="pi ${fileConfig.icon}" style="color: ${fileConfig.color};"></i>
         <span style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fileName}</span>
     `;
 
-    const actions = document.createElement("div");
-    actions.style.cssText = "display: flex; gap: 8px;";
-
-    // 全屏按钮（图像、视频、音频显示）
-    if (isImage || isVideo || isAudio) {
-        const fullscreenBtn = document.createElement("button");
-        fullscreenBtn.className = "comfy-btn";
-        fullscreenBtn.innerHTML = '<i class="pi pi-window-maximize"></i>';
-        fullscreenBtn.style.cssText = "padding: 6px 10px; background: transparent; border: none; color: #aaa; cursor: pointer; border-radius: 4px;";
-        fullscreenBtn.title = "全屏";
-        fullscreenBtn.onmouseover = () => fullscreenBtn.style.background = "#3a3a3a";
-        fullscreenBtn.onmouseout = () => fullscreenBtn.style.background = "transparent";
-        fullscreenBtn.onclick = () => toggleFullscreen(previewWindow);
-        actions.appendChild(fullscreenBtn);
-    }
-
-    // 关闭按钮
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "comfy-btn";
-    closeBtn.innerHTML = '<i class="pi pi-times"></i>';
-    closeBtn.style.cssText = "padding: 6px 10px; background: transparent; border: none; color: #aaa; cursor: pointer; border-radius: 4px;";
-    closeBtn.title = "关闭";
-    closeBtn.onmouseover = () => closeBtn.style.background = "#3a3a3a";
-    closeBtn.onmouseout = () => closeBtn.style.background = "transparent";
-    closeBtn.onclick = () => closeFloatingPreview(previewWindow);
-
-    actions.appendChild(closeBtn);
     header.appendChild(title);
-    header.appendChild(actions);
 
     // 创建内容区域
     const content = document.createElement("div");
@@ -1677,7 +1762,10 @@ function openFloatingPreview(path, fileName) {
     // 存储窗口引用
     previewFloatingWindows.push({
         path: path,
-        window: previewWindow
+        fileName: fileName,
+        fileConfig: fileConfig,
+        window: previewWindow,
+        minimized: false
     });
 
     updateStatus(`已打开预览: ${fileName}`);
@@ -1903,6 +1991,183 @@ function closeFloatingPreview(previewWindow) {
     if (previewWindow && previewWindow.parentNode) {
         previewWindow.remove();
     }
+
+    // 更新 Dock 栏
+    updateDock();
+}
+
+/**
+ * 最小化浮动预览窗口到 Dock 栏
+ * @param {HTMLElement} previewWindow - 预览窗口元素
+ * @param {string} path - 文件路径
+ * @param {string} fileName - 文件名
+ * @param {object} fileConfig - 文件配置
+ */
+function minimizeFloatingPreview(previewWindow, path, fileName, fileConfig) {
+    const windowData = previewFloatingWindows.find(w => w.window === previewWindow);
+    if (!windowData) return;
+
+    // 获取窗口当前位置和大小
+    const rect = previewWindow.getBoundingClientRect();
+    const dock = document.getElementById("dm-preview-dock");
+    if (!dock) return;
+
+    // 获取 Dock 栏位置
+    const dockRect = dock.getBoundingClientRect();
+
+    // 动画：窗口缩小并移动到 Dock 栏
+    previewWindow.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
+    previewWindow.style.transform = `translate(${dockRect.left - rect.left}px, ${dockRect.top - rect.top}px) scale(0.1)`;
+    previewWindow.style.opacity = "0";
+
+    setTimeout(() => {
+        // 隐藏窗口
+        previewWindow.style.display = "none";
+        previewWindow.style.transition = "";
+        previewWindow.style.transform = "";
+        previewWindow.style.opacity = "";
+
+        // 标记为最小化
+        windowData.minimized = true;
+
+        // 更新 Dock 栏
+        updateDock();
+    }, 300);
+
+    updateStatus(`已最小化: ${fileName}`);
+}
+
+/**
+ * 从 Dock 栏恢复浮动预览窗口
+ * @param {string} path - 文件路径
+ */
+function restoreFloatingPreview(path) {
+    const windowData = previewFloatingWindows.find(w => w.path === path);
+    if (!windowData || !windowData.minimized) return;
+
+    const previewWindow = windowData.window;
+    const dock = document.getElementById("dm-preview-dock");
+    if (!dock || !previewWindow) return;
+
+    const dockRect = dock.getBoundingClientRect();
+
+    // 显示窗口
+    previewWindow.style.display = "flex";
+    previewWindow.style.opacity = "0";
+    previewWindow.style.transform = `translate(${dockRect.left}px, ${dockRect.top}px) scale(0.1)`;
+
+    // 强制重排
+    previewWindow.offsetHeight;
+
+    // 动画：从 Dock 栏恢复
+    previewWindow.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
+    previewWindow.style.transform = "";
+    previewWindow.style.opacity = "1";
+
+    setTimeout(() => {
+        previewWindow.style.transition = "";
+    }, 300);
+
+    // 标记为已恢复
+    windowData.minimized = false;
+
+    // 聚焦窗口
+    previewWindow.focus();
+
+    // 更新 Dock 栏
+    updateDock();
+
+    updateStatus(`已恢复: ${windowData.fileName}`);
+}
+
+/**
+ * 更新 Dock 栏缩略图
+ */
+function updateDock() {
+    const dock = document.getElementById("dm-preview-dock");
+    if (!dock) return;
+
+    // 清空 Dock 栏
+    dock.innerHTML = "";
+
+    // 获取所有最小化的窗口
+    const minimizedWindows = previewFloatingWindows.filter(w => w.minimized);
+
+    if (minimizedWindows.length === 0) {
+        // 隐藏 Dock 栏
+        dock.style.minHeight = "0";
+        dock.style.maxHeight = "0";
+        dock.style.padding = "0 15px";
+        return;
+    }
+
+    // 显示 Dock 栏
+    dock.style.minHeight = "80px";
+    dock.style.maxHeight = "80px";
+    dock.style.padding = "12px 15px";
+
+    // 为每个最小化的窗口创建缩略图
+    minimizedWindows.forEach((windowData, index) => {
+        const thumbnail = document.createElement("div");
+        thumbnail.className = "dm-dock-thumbnail";
+        thumbnail.style.cssText = `
+            min-width: 70px;
+            max-width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        `;
+
+        // 悬停效果
+        thumbnail.onmouseover = () => {
+            thumbnail.style.transform = "translateY(-4px)";
+            thumbnail.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.4)";
+            thumbnail.style.borderColor = windowData.fileConfig.color;
+        };
+        thumbnail.onmouseout = () => {
+            thumbnail.style.transform = "";
+            thumbnail.style.boxShadow = "";
+            thumbnail.style.borderColor = "#3a3a3a";
+        };
+
+        // 文件图标
+        const icon = document.createElement("i");
+        icon.className = `pi ${windowData.fileConfig.icon}`;
+        icon.style.cssText = `
+            font-size: 24px;
+            color: ${windowData.fileConfig.color};
+        `;
+
+        // 文件名（截断）
+        const name = document.createElement("div");
+        name.textContent = windowData.fileName.length > 8
+            ? windowData.fileName.substring(0, 6) + "..."
+            : windowData.fileName;
+        name.style.cssText = `
+            font-size: 10px;
+            color: #aaa;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        `;
+
+        // 点击恢复
+        thumbnail.onclick = () => restoreFloatingPreview(windowData.path);
+
+        thumbnail.appendChild(icon);
+        thumbnail.appendChild(name);
+        dock.appendChild(thumbnail);
+    });
 }
 
 /**
