@@ -1318,7 +1318,7 @@ function openFloatingPreview(path, fileName) {
         top: 100px;
         right: 50px;
         width: 500px;
-        max-height: 600px;
+        height: 600px;
         background: #1a1a1a;
         border: 1px solid #3a3a3a;
         border-radius: 12px;
