@@ -271,11 +271,21 @@ async def preview_file_handler(request):
                     "error": f"Cannot read file: {str(e)}"
                 }, status=400)
 
-        # Word 文档：暂不支持
+        # Word 文档：返回二进制内容供前端 mammoth.js 处理
         elif ext in ['.doc', '.docx']:
-            return web.json_response({
-                "error": "Word documents (.doc, .docx) preview requires additional library. Please install: pip install mammoth"
-            }, status=400)
+            with open(path, 'rb') as f:
+                content = f.read()
+
+            # .docx 是 Office Open XML 格式，.doc 是旧版二进制格式
+            content_type_map = {
+                '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                '.doc': 'application/msword',
+            }
+
+            return web.Response(
+                body=content,
+                content_type=content_type_map.get(ext, 'application/octet-stream')
+            )
 
         # 其他文件
         else:

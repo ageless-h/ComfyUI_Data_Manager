@@ -78,9 +78,11 @@ class InputPathConfig(io.ComfyNode):
                     default="./output",
                     multiline=False,
                 ),
-                io.String.Input(
+                io.Combo.Input(
                     "file_type",
+                    options=["string", "image", "audio", "video", "3d_model"],
                     default="image",
+                    tooltip="输入文件类型",
                 ),
                 io.String.Input(
                     "file_input",
@@ -139,9 +141,11 @@ class OutputPathConfig(io.ComfyNode):
                     default="./input",
                     multiline=False,
                 ),
-                io.String.Input(
+                io.Combo.Input(
                     "file_type",
+                    options=["string", "image", "audio", "video", "3d_model"],
                     default="image",
+                    tooltip="输出文件类型",
                 ),
                 io.String.Input(
                     "input",
