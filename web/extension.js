@@ -1238,27 +1238,38 @@ function updateStatus(text) {
 
 
 function setupWindowDrag(window, header) {
+    // 每个窗口独立的拖动状态
+    let isDraggingWindow = false;
+    let offset = { x: 0, y: 0 };
+
+    // 移除旧的监听器（如果存在）
+    const mouseMoveHandler = (e) => {
+        if (!isDraggingWindow || !window) return;
+        const x = e.clientX - offset.x;
+        const y = e.clientY - offset.y;
+        window.style.left = Math.max(0, x) + "px";
+        window.style.top = Math.max(0, y) + "px";
+    };
+
+    const mouseUpHandler = () => {
+        isDraggingWindow = false;
+        if (window) window.style.transition = "";
+    };
+
+    // mousedown 事件添加到 header，并阻止冒泡
     header.addEventListener("mousedown", (e) => {
         if (e.target.tagName === "BUTTON" || e.target.tagName === "I") return;
-        isDragging = true;
+        e.stopPropagation();  // 阻止事件冒泡到其他窗口
+        isDraggingWindow = true;
         const rect = window.getBoundingClientRect();
-        dragOffset.x = e.clientX - rect.left;
-        dragOffset.y = e.clientY - rect.top;
+        offset.x = e.clientX - rect.left;
+        offset.y = e.clientY - rect.top;
         window.style.transition = "none";
     });
 
-    document.addEventListener("mousemove", (e) => {
-        if (!isDragging || !window) return;
-        const x = e.clientX - dragOffset.x;
-        const y = e.clientY - dragOffset.y;
-        window.style.left = Math.max(0, x) + "px";
-        window.style.top = Math.max(0, y) + "px";
-    });
-
-    document.addEventListener("mouseup", () => {
-        isDragging = false;
-        if (window) window.style.transition = "";
-    });
+    // mousemove 和 mouseup 添加到 document，但使用独立的状态
+    document.addEventListener("mousemove", mouseMoveHandler);
+    document.addEventListener("mouseup", mouseUpHandler);
 }
 
 
