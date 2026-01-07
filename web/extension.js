@@ -601,14 +601,14 @@ async function loadDirectory(path) {
 
             // 保存到历史记录
             if (FileManagerState.historyIndex === -1 ||
-                FileManagerState.history[FileManagerState.historyIndex] !== path) {
+                FileManagerState.history[FileManagerState.historyIndex] !== data.path) {
                 FileManagerState.history = FileManagerState.history.slice(0, FileManagerState.historyIndex + 1);
-                FileManagerState.history.push(path);
+                FileManagerState.history.push(data.path);
                 FileManagerState.historyIndex = FileManagerState.history.length - 1;
             }
 
             const pathInput = document.getElementById("dm-path-input");
-            if (pathInput) pathInput.value = path;
+            if (pathInput) pathInput.value = data.path;
 
             renderFileList();
             updateStatus(`${FileManagerState.files.length} 个项目`);
