@@ -242,18 +242,25 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
         # 获取帧尺寸
         height, width = frames_np.shape[1:3]
 
-        # 四位数的 fourcc
+        # 四位数的 fourcc - 使用更兼容的编码器
         fourcc_map = {
-            "mp4": "mp4v",
-            "avi": "XVID",
-            "mov": "mp4v",  # MOV 使用与 MP4 相同的编码
-            "mkv": "mp4v",  # MKV 使用与 MP4 相同的编码
-            "flv": "FLV1",
-            "webm": "VP80",
+            "mp4": "avc1",      # H.264 编码，广泛兼容
+            "avi": "XVID",      # 经典 AVI 编码
+            "mov": "avc1",      # MOV 使用 H.264
+            "mkv": "avc1",      # MKV 使用 H.264
+            "flv": "FLV1",      # Flash 视频
+            "webm": "VP80",     # WebM 视频
         }
 
-        fourcc = cv2.VideoWriter_fourcc(*fourcc_map.get(format, "mp4v"))
+        # 尝试使用指定的 fourcc，如果失败则使用默认
+        fourcc_code = fourcc_map.get(format, "avc1")
+        print(f"[DataManager] Using fourcc: {fourcc_code} for format: {format}")
+
+        fourcc = cv2.VideoWriter_fourcc(*fourcc_code)
         video_writer = cv2.VideoWriter(file_path, fourcc, float(frame_rate), (width, height))
+
+        if not video_writer.isOpened():
+            raise RuntimeError(f"无法创建视频写入器: {file_path}, fourcc: {fourcc_code}, fps: {frame_rate}, size: {width}x{height}")
 
         # 写入每一帧
         for frame in frames_np:
