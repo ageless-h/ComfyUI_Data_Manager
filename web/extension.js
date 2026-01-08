@@ -386,33 +386,64 @@ async function deleteSelectedFiles() {
 }
 
 /**
+ * 复制文本到剪贴板（带降级方案）
+ * @param {string} text - 要复制的文本
+ * @returns {Promise<boolean>} 是否成功
+ */
+async function copyToClipboard(text) {
+    // 方案 1: 现代 Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (err) {
+            console.log("Clipboard API failed, trying fallback:", err);
+        }
+    }
+
+    // 方案 2: 降级到 execCommand (兼容旧浏览器)
+    try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.cssText = "position: fixed; top: -9999px; left: -9999px;";
+        document.body.appendChild(textArea);
+        textArea.select();
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        return successful;
+    } catch (err) {
+        console.error("Copy fallback failed:", err);
+        return false;
+    }
+}
+
+/**
  * 复制路径到剪贴板
  */
 async function copySelectedPaths() {
+    let text = "";
+    let count = 0;
+
     // 优先使用当前预览文件
     if (FileManagerState.currentPreviewFile) {
-        try {
-            await navigator.clipboard.writeText(FileManagerState.currentPreviewFile);
-            showToast("success", "成功", `已复制文件路径`);
-        } catch (error) {
-            console.error("复制失败:", error);
-            showToast("error", "错误", "复制失败，请检查浏览器权限");
+        text = FileManagerState.currentPreviewFile;
+        count = 1;
+    } else {
+        // 其次使用选中的文件
+        if (FileManagerState.selectedFiles.length === 0) {
+            showToast("info", "提示", "请先选择文件");
+            return;
         }
-        return;
+        text = FileManagerState.selectedFiles.join('\n');
+        count = FileManagerState.selectedFiles.length;
     }
 
-    // 其次使用选中的文件
-    if (FileManagerState.selectedFiles.length === 0) {
-        showToast("info", "提示", "请先选择文件");
-        return;
-    }
+    const success = await copyToClipboard(text);
 
-    try {
-        await navigator.clipboard.writeText(FileManagerState.selectedFiles.join('\n'));
-        showToast("success", "成功", `已复制 ${FileManagerState.selectedFiles.length} 个路径`);
-    } catch (error) {
-        console.error("复制失败:", error);
-        showToast("error", "错误", "复制失败，请检查浏览器权限");
+    if (success) {
+        showToast("success", "成功", `已复制 ${count} 个路径`);
+    } else {
+        showToast("error", "错误", "复制失败，请手动复制");
     }
 }
 
