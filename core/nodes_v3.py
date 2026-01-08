@@ -167,6 +167,7 @@ class DataManagerCore(io.ComfyNode):
     - 通过 input 端口接收来自 InputPathConfig 的配置
     - 提供按钮打开文件管理器 UI
     - 通过 output 端口输出文件路径信息
+    - 既是起点也是终点（is_output_node=True）
     """
 
     @classmethod
@@ -186,7 +187,7 @@ class DataManagerCore(io.ComfyNode):
             outputs=[
                 io.String.Output("output", display_name="Output"),
             ],
-            is_output_node=False,
+            is_output_node=True,  # 设置为 True 使其可以作为终点节点
         )
 
     @classmethod
