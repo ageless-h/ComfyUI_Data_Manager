@@ -14,6 +14,7 @@ from typing import Any, Optional
 # 添加项目路径
 project_path = Path(__file__).parent.parent
 sys.path.insert(0, str(project_path))
+from utils.formatters import parse_format_string
 
 
 # ============================================================================
@@ -38,11 +39,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
 
     支持格式: MP4, AVI, MKV, MOV, WebM
     """
-    # 解析格式字符串
-    if " - " in format:
-        format = format.split(" - ")[-1].lower()
-    else:
-        format = format.lower()
+    format = parse_format_string(format)
 
     # 确保 file_path 有正确的扩展名
     path = Path(file_path)

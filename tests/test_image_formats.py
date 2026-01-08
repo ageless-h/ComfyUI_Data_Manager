@@ -6,18 +6,19 @@
 """
 
 import os
+import sys
 import numpy as np
 from PIL import Image
 from pathlib import Path
 
+# 添加项目根目录到路径以导入 parse_format_string
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.formatters import parse_format_string
+
 # 直接复制 save_image 函数
 def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     """保存 ComfyUI 图像张量到文件"""
-    # 解析格式字符串
-    if " - " in format:
-        format = format.split(" - ")[-1].lower()
-    else:
-        format = format.lower()
+    format = parse_format_string(format)
 
     # 确保 file_path 有正确的扩展名
     path = Path(file_path)

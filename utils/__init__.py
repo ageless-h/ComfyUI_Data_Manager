@@ -6,7 +6,7 @@
 
 from .file_ops import save_file, list_files, create_file, create_directory, delete_file
 from .path_utils import ensure_directory, join_paths, get_parent_path
-from .formatters import human_readable_size
+from .formatters import human_readable_size, parse_format_string
 from .info import get_file_info, get_file_category
 
 __all__ = [
@@ -25,4 +25,5 @@ __all__ = [
     'get_parent_path',
     # 格式化工具
     'human_readable_size',
+    'parse_format_string',
 ]

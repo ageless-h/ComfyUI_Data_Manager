@@ -10,6 +10,10 @@ import numpy as np
 from pathlib import Path
 from typing import Any
 
+# 添加项目根目录到路径以导入 parse_format_string
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.formatters import parse_format_string
+
 
 # ============================================================================
 # 直接复制 save_video 函数（避免导入问题）
@@ -28,11 +32,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
     Returns:
         保存后的完整文件路径
     """
-    # 解析格式字符串
-    if " - " in format:
-        format = format.split(" - ")[-1].lower()
-    else:
-        format = format.lower()
+    format = parse_format_string(format)
 
     # 确保 file_path 有正确的扩展名
     path = Path(file_path)

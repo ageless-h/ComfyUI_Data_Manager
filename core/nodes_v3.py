@@ -5,7 +5,6 @@
 使用 comfy_api.latest (V3) API
 """
 
-import asyncio
 import json
 import os
 import pickle
@@ -18,7 +17,7 @@ import numpy as np
 from comfy_api.latest import ComfyExtension, io, _io
 from typing_extensions import override
 
-from ..utils import save_file, list_files, get_file_info, get_file_category
+from ..utils import save_file, list_files, get_file_info, get_file_category, parse_format_string
 
 
 # ============================================================================
@@ -39,11 +38,7 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     Returns:
         保存后的完整文件路径
     """
-    # 解析格式字符串：如果是 "类型 - 格式" 格式，提取出格式名
-    if " - " in format:
-        format = format.split(" - ")[-1].lower()
-    else:
-        format = format.lower()
+    format = parse_format_string(format)
 
     try:
         from PIL import Image
@@ -201,11 +196,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
     Returns:
         保存后的完整文件路径
     """
-    # 解析格式字符串
-    if " - " in format:
-        format = format.split(" - ")[-1].lower()
-    else:
-        format = format.lower()
+    format = parse_format_string(format)
 
     # 确保 file_path 有正确的扩展名
     path = Path(file_path)
@@ -307,11 +298,7 @@ def save_audio(data: Any, file_path: str, format: str = "mp3") -> str:
     Returns:
         保存后的完整文件路径
     """
-    # 解析格式字符串
-    if " - " in format:
-        format = format.split(" - ")[-1].lower()
-    else:
-        format = format.lower()
+    format = parse_format_string(format)
 
     # 确保 file_path 有正确的扩展名
     path = Path(file_path)
@@ -679,11 +666,7 @@ class InputPathConfig(io.ComfyNode):
         Returns:
             JSON 格式的保存结果信息
         """
-        # 解析格式字符串：如果是 "类型 - 格式" 格式，提取出格式名
-        if " - " in format:
-            format = format.split(" - ")[-1].lower()
-        else:
-            format = format.lower()
+        format = parse_format_string(format)
 
         print(f"[DataManager] Saving file: {target_path}, format: {format}")
 
