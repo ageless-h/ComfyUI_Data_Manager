@@ -243,7 +243,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
         codec_map = {
             "mp4": "libx264",      # H.264，最兼容
             "mov": "libx264",      # MOV 使用 H.264
-            "avi": "libx264",      # AVI 使用 H.264
+            "avi": "mpeg4",        # MPEG-4 Part 2，AVI 更兼容
             "mkv": "libx264",      # MKV 使用 H.264
             "webm": "libvpx-vp9", # WebM 使用 VP9
         }
