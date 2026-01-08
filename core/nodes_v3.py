@@ -248,8 +248,8 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
             "webm": "libvpx-vp9", # WebM 使用 VP9
         }
 
-        # 格式支持的 pixel_format
-        pixel_format_map = {
+        # 格式支持的 pixelformat (注意：imageio 使用 pixelformat 不是 pixel_format)
+        pixelformat_map = {
             "mp4": "yuv420p",      # 最兼容
             "mov": "yuv420p",
             "avi": "yuv420p",
@@ -261,7 +261,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
             raise ValueError(f"不支持的视频格式: {format}。支持的格式: {list(codec_map.keys())}")
 
         codec = codec_map[format]
-        pixel_format = pixel_format_map[format]
+        pixelformat = pixelformat_map[format]
 
         print(f"[DataManager] Using imageio: format={format}, codec={codec}")
 
@@ -270,7 +270,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
             "fps": float(frame_rate),
             "codec": codec,
             "quality": 8,  # 用于 libx264 (0-10, 10是最佳质量)
-            "pixel_format": pixel_format,
+            "pixelformat": pixelformat,
             "macro_block_size": 8,  # 避免尺寸不是16倍数的问题
         }
 
