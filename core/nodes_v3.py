@@ -188,6 +188,84 @@ def save_conditioning(cond_data: Any, file_path: str) -> str:
     return file_path
 
 
+def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
+    """保存 ComfyUI 视频数据到文件
+
+    支持格式: MP4, WebM, AVI, MOV, MKV, FLV
+
+    Args:
+        data: ComfyUI io.Video 类型数据
+        file_path: 目标文件路径
+        format: 视频格式 (mp4, webm, avi, mov, mkv, flv)
+
+    Returns:
+        保存后的完整文件路径
+    """
+    # 解析格式字符串
+    if " - " in format:
+        format = format.split(" - ")[-1].lower()
+    else:
+        format = format.lower()
+
+    # 确保 file_path 有正确的扩展名
+    path = Path(file_path)
+    if path.suffix.lower() != f".{format}":
+        file_path = str(path.with_suffix(f".{format}"))
+
+    # 创建目录
+    os.makedirs(Path(file_path).parent, exist_ok=True)
+
+    # 提取视频数据
+    # io.Video 类型包含：images (tensor), frame_rate, audio
+    if hasattr(data, 'images'):
+        # ComfyUI VideoComponents: images 是 [F, H, W, C] 格式的张量
+        frames = data.images
+        frame_rate = getattr(data, 'frame_rate', 24)
+
+        # 转换为 numpy
+        import torch
+        if isinstance(frames, torch.Tensor):
+            frames_np = frames.cpu().numpy()
+        else:
+            frames_np = frames
+
+        # 转换为 uint8
+        if frames_np.dtype != np.uint8:
+            frames_np = (frames_np * 255).astype(np.uint8)
+
+        # 使用 OpenCV 保存视频
+        try:
+            import cv2
+        except ImportError:
+            raise ImportError("opencv-python 未安装，无法保存视频")
+
+        # 获取帧尺寸
+        height, width = frames_np.shape[1:3]
+
+        # 四位数的 fourcc
+        fourcc_map = {
+            "mp4": "mp4v",
+            "avi": "XVID",
+            "mov": "mp4v",  # MOV 使用与 MP4 相同的编码
+            "mkv": "mp4v",  # MKV 使用与 MP4 相同的编码
+            "flv": "FLV1",
+            "webm": "VP80",
+        }
+
+        fourcc = cv2.VideoWriter_fourcc(*fourcc_map.get(format, "mp4v"))
+        video_writer = cv2.VideoWriter(file_path, fourcc, float(frame_rate), (width, height))
+
+        # 写入每一帧
+        for frame in frames_np:
+            # OpenCV 使用 BGR 格式，需要转换
+            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            video_writer.write(frame_bgr)
+
+        video_writer.release()
+
+    return file_path
+
+
 def parse_target_path(target_path: str, detected_type: str, format: str) -> Tuple[str, str]:
     """解析目标路径，返回目录和文件名
 
@@ -228,7 +306,7 @@ TYPE_FORMAT_MAP = {
         "description": "图像格式"
     },
     "VIDEO": {
-        "formats": ["mp4", "webm", "avi"],
+        "formats": ["mp4", "webm", "avi", "mov", "mkv", "flv"],
         "default": "mp4",
         "description": "视频格式"
     },
@@ -633,6 +711,16 @@ class InputPathConfig(io.ComfyNode):
                         full_path = os.path.join(directory, filename)
                         saved_path = save_image(tensor_np, full_path, format)
                         print(f"[DataManager] Saved {detected_type} to: {saved_path}")
+
+            # 处理视频类型
+            elif isinstance(file_input, io.Video):
+                detected_type = "VIDEO"
+                print(f"[DataManager] Detected VIDEO type")
+
+                directory, filename = parse_target_path(target_path, detected_type, format)
+                full_path = os.path.join(directory, filename)
+                saved_path = save_video(file_input, full_path, format)
+                print(f"[DataManager] Saved VIDEO to: {saved_path}")
 
             # 其他类型，转为字符串保存
             else:
