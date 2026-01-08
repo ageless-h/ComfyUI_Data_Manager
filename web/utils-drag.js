@@ -37,6 +37,12 @@ export function setupWindowDrag(windowEl, header) {
         // 移除过渡效果以提高性能
         windowEl.style.transition = "none";
 
+        // 清除 transform，改用 left/top 定位
+        // 保存当前的实际位置
+        windowEl.style.transform = "none";
+        windowEl.style.left = rect.left + "px";
+        windowEl.style.top = rect.top + "px";
+
         // 标记正在拖动
         windowEl._isDragging = true;
 
