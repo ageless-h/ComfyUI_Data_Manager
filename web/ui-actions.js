@@ -105,6 +105,9 @@ function renderFileListUI() {
 
     container.innerHTML = html;
 
+    // 重置滚动位置到顶部
+    container.scrollTop = 0;
+
     // 绑定事件
     container.querySelectorAll(".dm-file-item").forEach(item => {
         item.onclick = () => selectFile(item);
