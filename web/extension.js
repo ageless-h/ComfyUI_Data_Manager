@@ -67,6 +67,11 @@ const extensionConfig = {
 
     async setup() {
         console.log("[DataManager] Extension setup completed");
+
+        // 监听节点连接事件，自动更新格式选择器
+        app.graph.on('nodeConnected', (node, link, type) => {
+            onNodeConnected(node, link);
+        });
     },
 
     async nodeCreated(node) {
@@ -117,6 +122,10 @@ const extensionConfig = {
                     minHeight: 50
                 });
             }
+        } else if (node.comfyClass === "InputPathConfig") {
+            console.log("[DataManager] InputPathConfig node created");
+            // 初始化格式选择器状态
+            node._dmFormatSelectorEnabled = false;
         }
     },
 
@@ -445,6 +454,107 @@ async function copySelectedPaths() {
     } else {
         showToast("error", "错误", "复制失败，请手动复制");
     }
+}
+
+/**
+ * 节点连接事件处理
+ * @param {Object} node - 节点对象
+ * @param {Object} link - 连接对象
+ */
+function onNodeConnected(node, link) {
+    // 只处理 InputPathConfig 节点的连接
+    if (node.comfyClass !== "InputPathConfig") {
+        return;
+    }
+
+    console.log("[DataManager] InputPathConfig node connected, checking format selector update");
+
+    // 获取连接的源节点
+    const sourceNodeId = link.origin_id;
+    const sourceNode = app.graph.getNodeById(sourceNodeId);
+
+    if (!sourceNode) {
+        console.log("[DataManager] Source node not found");
+        return;
+    }
+
+    // 检测源节点类型
+    const detectedType = detectTypeFromNode(sourceNode);
+
+    console.log("[DataManager] Detected type:", detectedType);
+
+    // 如果文件管理器已打开，更新格式选择器
+    if (fileManagerWindow && fileManagerWindow.parentNode) {
+        updateFormatSelectorInUI(detectedType);
+    }
+}
+
+/**
+ * 根据节点类型检测数据类型
+ * @param {Object} node - 源节点
+ * @returns {string} 检测到的类型
+ */
+function detectTypeFromNode(node) {
+    const nodeType = node.type || node.comfyClass || "";
+
+    // 根据节点类型映射到数据类型
+    const typeMapping = {
+        "LoadImage": "IMAGE",
+        "LoadVideo": "VIDEO",
+        "LoadAudio": "AUDIO",
+        "EmptyLatentImage": "LATENT",
+        "VAEDecode": "IMAGE",
+        "CheckpointLoaderSimple": "MODEL",
+    };
+
+    // 检查输出端口类型
+    if (node.outputs && node.outputs.length > 0) {
+        for (const output of node.outputs) {
+            if (output.type === "IMAGE") return "IMAGE";
+            if (output.type === "LATENT") return "LATENT";
+            if (output.type === "MASK") return "MASK";
+            if (output.type === "VIDEO") return "VIDEO";
+            if (output.type === "AUDIO") return "AUDIO";
+            if (output.type === "MODEL") return "MODEL";
+            if (output.type === "VAE") return "VAE";
+            if (output.type === "CLIP") return "CLIP";
+        }
+    }
+
+    // 使用节点类型映射
+    for (const [key, value] of Object.entries(typeMapping)) {
+        if (nodeType.includes(key)) {
+            return value;
+        }
+    }
+
+    return "IMAGE"; // 默认返回 IMAGE
+}
+
+/**
+ * 在 UI 中更新格式选择器
+ * @param {string} detectedType - 检测到的类型
+ */
+function updateFormatSelectorInUI(detectedType) {
+    // 导入 updateFormatSelector 函数
+    import('./ui-preview.js').then(module => {
+        const { updateFormatSelector } = module;
+        if (typeof updateFormatSelector === 'function') {
+            // 获取当前格式值
+            const formatSelect = document.getElementById('dm-format-select');
+            const currentFormat = formatSelect ? formatSelect.value : null;
+
+            // 更新格式选择器
+            updateFormatSelector(detectedType, currentFormat, (newFormat) => {
+                console.log("[DataManager] Format changed to:", newFormat);
+                // 格式变化时的回调处理
+            });
+        } else {
+            console.log("[DataManager] updateFormatSelector function not found");
+        }
+    }).catch(err => {
+        console.log("[DataManager] Failed to import ui-preview.js:", err);
+    });
 }
 
 // ============================================
