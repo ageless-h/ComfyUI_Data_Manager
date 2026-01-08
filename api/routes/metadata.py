@@ -291,6 +291,42 @@ async def preview_file_handler(request):
                     "error": f"Cannot read file: {str(e)}"
                 }, status=400)
 
+        # CSV 文件：返回文本内容
+        elif ext == '.csv':
+            try:
+                with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+
+                # 限制大小
+                max_size = 500 * 1024  # 500KB
+                if len(content) > max_size:
+                    content = content[:max_size] + "\n\n... (文件过大，已截断)"
+
+                return web.Response(
+                    text=content,
+                    content_type='text/plain'
+                )
+            except Exception as e:
+                return web.json_response({
+                    "error": f"Cannot read CSV file: {str(e)}"
+                }, status=400)
+
+        # Excel 文件：返回二进制内容供前端 SheetJS 处理
+        elif ext in ['.xls', '.xlsx', '.ods']:
+            with open(path, 'rb') as f:
+                content = f.read()
+
+            content_type_map = {
+                '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                '.xls': 'application/vnd.ms-excel',
+                '.ods': 'application/vnd.oasis.opendocument.spreadsheet',
+            }
+
+            return web.Response(
+                body=content,
+                content_type=content_type_map.get(ext, 'application/octet-stream')
+            )
+
         # Word 文档：返回二进制内容供前端 mammoth.js 处理
         elif ext in ['.doc', '.docx']:
             with open(path, 'rb') as f:
