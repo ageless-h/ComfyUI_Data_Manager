@@ -2,6 +2,8 @@
  * ui-preview.js - 右侧预览面板
  */
 
+import { createFormatSelector, getFormatsForType, detectFormatFromFilename } from './ui-format-selector.js';
+
 /**
  * 创建预览面板
  * @param {object} callbacks - 回调函数
@@ -69,6 +71,23 @@ export function createPreviewPanel(callbacks) {
     `;
     panel.appendChild(content);
 
+    // 格式选择器区域
+    const formatSection = document.createElement("div");
+    formatSection.id = "dm-format-section";
+    formatSection.style.cssText = `
+        padding: 15px;
+        background: #1f1f1f;
+        border-top: 1px solid #2a2a2a;
+        display: none;
+    `;
+    formatSection.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: #666;">
+            <i class="pi pi-cog" style="font-size: 32px; opacity: 0.5;"></i>
+            <div style="margin-top: 10px; font-size: 12px;">连接节点以启用格式选择</div>
+        </div>
+    `;
+    panel.appendChild(formatSection);
+
     // 文件信息区域
     const infoSection = document.createElement("div");
     infoSection.id = "dm-file-info";
@@ -102,6 +121,46 @@ export function createPreviewPanel(callbacks) {
     }
 
     return panel;
+}
+
+/**
+ * 更新格式选择器
+ * @param {string} detectedType - 检测到的类型
+ * @param {string} currentFormat - 当前格式
+ * @param {Function} onFormatChange - 格式变化回调
+ */
+export function updateFormatSelector(detectedType, currentFormat = null, onFormatChange = null) {
+    const formatSection = document.getElementById("dm-format-section");
+    if (!formatSection) return;
+
+    // 清空现有内容
+    formatSection.innerHTML = '';
+
+    if (!detectedType) {
+        formatSection.style.display = 'none';
+        return;
+    }
+
+    formatSection.style.display = 'block';
+
+    const selector = createFormatSelector({
+        detectedType: detectedType,
+        selectedFormat: currentFormat,
+        onFormatChange: onFormatChange,
+        compact: true
+    });
+
+    formatSection.appendChild(selector);
+}
+
+/**
+ * 隐藏格式选择器
+ */
+export function hideFormatSelector() {
+    const formatSection = document.getElementById("dm-format-section");
+    if (formatSection) {
+        formatSection.style.display = 'none';
+    }
 }
 
 /**
