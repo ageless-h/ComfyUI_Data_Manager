@@ -142,22 +142,12 @@ class InputPathConfig(io.ComfyNode):
             node_id="InputPathConfig",
             display_name="Data Manager - Input Path",
             category="Data Manager/Config",
-            description="配置文件保存的目标目录，支持所有 ComfyUI 数据类型输入（动态端口）",
+            description="配置文件保存的目标目录，支持所有 ComfyUI 数据类型输入（动态端口，自动识别类型）",
             inputs=[
                 io.String.Input(
                     "target_path",
                     default="./output",
                     multiline=False,
-                ),
-                io.Combo.Input(
-                    "file_type",
-                    options=[
-                        "string", "image", "mask", "latent", "conditioning",
-                        "model", "vae", "clip", "controlnet", "upscale_model",
-                        "audio", "video", "sampler", "noise", "3d_model", "other"
-                    ],
-                    default="image",
-                    tooltip="输入文件类型",
                 ),
                 # 使用 MultiType 实现真正的动态端口，支持所有 ComfyUI 数据类型
                 io.MultiType.Input(
@@ -175,49 +165,86 @@ class InputPathConfig(io.ComfyNode):
     def execute(
         cls,
         target_path: str,
-        file_type: str = "image",
         file_input = None
     ) -> io.NodeOutput:
         """处理动态类型的输入并输出配置的路径信息（JSON 格式）
 
         Args:
             target_path: 目标保存路径
-            file_type: 文件类型选择
-            file_input: 动态类型输入（IMAGE、STRING、LATENT、MASK 等）
+            file_input: 动态类型输入（自动识别类型：IMAGE、STRING、LATENT、MASK、MODEL、VAE、VIDEO、AUDIO 等）
 
         Returns:
             JSON 格式的配置信息
         """
-        # 处理文件输入
+        # 自动检测输入类型
+        detected_type = "unknown"
         input_data = None
+
         if file_input is not None and file_input != "":
             if isinstance(file_input, dict):
                 # 处理字典类型（ComfyUI 图像、latent 等）
                 input_data = file_input
+                # 尝试从字典中检测类型
+                if "samples" in file_input:
+                    detected_type = "LATENT"
+                elif "pooled_output" in file_input:
+                    detected_type = "CONDITIONING"
+                elif "noise_mask" in file_input:
+                    detected_type = "LATENT"
+                else:
+                    detected_type = "DICT"
             elif isinstance(file_input, str):
                 # 字符串类型（文件路径）
                 input_data = {"path": file_input}
+                detected_type = "STRING"
             elif hasattr(file_input, 'shape'):
                 # 处理张量类型（numpy array 或 torch tensor）
                 try:
                     import torch
+                    import numpy as np
                     if isinstance(file_input, torch.Tensor):
-                        input_data = {"tensor": file_input.cpu().numpy().tolist(), "dtype": str(file_input.dtype)}
-                    else:
-                        input_data = {"tensor": file_input.tolist(), "dtype": str(file_input.dtype)}
+                        # 检查张量形状判断类型
+                        shape = file_input.shape
+                        if len(shape) == 4 and shape[1] == 3:  # [B, C, H, W] 格式
+                            detected_type = "IMAGE"
+                        elif len(shape) == 3 and shape[0] == 1:  # [B, H, W] 格式（mask）
+                            detected_type = "MASK"
+                        else:
+                            detected_type = "TENSOR"
+                        input_data = {
+                            "tensor": file_input.cpu().numpy().tolist(),
+                            "dtype": str(file_input.dtype),
+                            "shape": list(file_input.shape)
+                        }
+                    elif isinstance(file_input, np.ndarray):
+                        shape = file_input.shape
+                        if len(shape) == 4 and shape[1] == 3:
+                            detected_type = "IMAGE"
+                        elif len(shape) == 3 and shape[0] == 1:
+                            detected_type = "MASK"
+                        else:
+                            detected_type = "TENSOR"
+                        input_data = {
+                            "tensor": file_input.tolist(),
+                            "dtype": str(file_input.dtype),
+                            "shape": list(file_input.shape)
+                        }
                 except:
+                    detected_type = "TENSOR"
                     input_data = {"data": str(file_input)}
             else:
                 # 其他类型，尝试转换为字符串
                 try:
                     input_data = {"data": str(file_input)}
+                    detected_type = type(file_input).__name__
                 except:
                     input_data = {"data": repr(file_input)}
+                    detected_type = "UNKNOWN"
 
         config = {
             "type": "input",
             "target_path": target_path,
-            "file_type": file_type,
+            "detected_type": detected_type,
             "file_data": input_data,
         }
         return io.NodeOutput(json.dumps(config, ensure_ascii=False))
@@ -232,22 +259,12 @@ class OutputPathConfig(io.ComfyNode):
             node_id="OutputPathConfig",
             display_name="Data Manager - Output Path",
             category="Data Manager/Config",
-            description="配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口）",
+            description="配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口，自动识别类型）",
             inputs=[
                 io.String.Input(
                     "source_path",
                     default="./input",
                     multiline=False,
-                ),
-                io.Combo.Input(
-                    "file_type",
-                    options=[
-                        "string", "image", "mask", "latent", "conditioning",
-                        "model", "vae", "clip", "controlnet", "upscale_model",
-                        "audio", "video", "sampler", "noise", "3d_model", "other"
-                    ],
-                    default="image",
-                    tooltip="输出文件类型",
                 ),
                 # 使用 MultiType 实现真正的动态端口，支持所有 ComfyUI 数据类型
                 io.MultiType.Input(
@@ -265,15 +282,13 @@ class OutputPathConfig(io.ComfyNode):
     def execute(
         cls,
         source_path: str,
-        file_type: str = "image",
         input = None
     ) -> io.NodeOutput:
-        """根据文件路径加载文件并输出（支持动态类型输入）
+        """根据文件路径加载文件并输出（支持动态类型输入，自动识别类型）
 
         Args:
             source_path: 源目录路径
-            file_type: 输出文件类型
-            input: 动态类型输入（可以是 IMAGE、STRING、LATENT、MASK 等）
+            input: 动态类型输入（可以是 IMAGE、STRING、LATENT、MASK、MODEL、VAE、VIDEO、AUDIO 等）
 
         Returns:
             根据配置输出的数据
@@ -281,42 +296,51 @@ class OutputPathConfig(io.ComfyNode):
         # 解析文件路径或数据
         file_path = None
         file_data = None
+        detected_type = "unknown"
 
         if input is not None and input != "":
             if isinstance(input, dict):
                 # 处理字典类型配置
                 if "path" in input:
                     file_path = input["path"]
+                    detected_type = "DICT_PATH"
+                if "detected_type" in input:
+                    detected_type = input["detected_type"]
                 file_data = input
             elif isinstance(input, str):
                 # 字符串类型，尝试解析为 JSON
                 try:
                     parsed = json.loads(input)
                     if isinstance(parsed, dict):
-                        file_path = parsed.get("path")
+                        if "path" in parsed:
+                            file_path = parsed["path"]
                         file_data = parsed
+                        detected_type = "DICT_JSON"
                     else:
                         file_path = input
+                        detected_type = "STRING"
                 except:
                     file_path = input
+                    detected_type = "STRING"
             else:
-                # 其他类型，直接使用
+                # 其他类型，直接透传
                 file_data = input
+                detected_type = type(input).__name__
 
-        # 根据 file_type 返回对应格式
-        if file_type == "image" and file_path:
-            # 加载图像：返回 ComfyUI 图像格式
+        # 如果有文件路径且是图像类型，尝试加载
+        if file_path and detected_type in ["IMAGE", "DICT_PATH", "DICT_JSON", "STRING"]:
+            # 尝试加载图像：返回 ComfyUI 图像格式
             try:
                 from nodes import LoadImageNode
                 loader = LoadImageNode()
                 result = loader.load_image(file_path)
                 return io.NodeOutput(result[0])  # 返回 IMAGE 类型
-            except Exception as e:
+            except Exception:
                 # 加载失败，返回文件路径字符串
                 return io.NodeOutput(file_path)
         else:
-            # 返回文件路径字符串
-            return io.NodeOutput(file_path or "")
+            # 返回文件路径字符串或原始数据
+            return io.NodeOutput(file_path or (str(input) if input else ""))
 
 
 class DataManagerExtension(ComfyExtension):
