@@ -202,7 +202,13 @@ def delete_file(file_path: str, use_trash: bool = True) -> bool:
             import logging
             logger = logging.getLogger(__name__)
             logger.warning("[DataManager] send2trash not available, using permanent delete")
+        except Exception as e:
+            # send2trash 调用失败，记录错误并使用永久删除
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"[DataManager] send2trash failed: {e}, using permanent delete")
 
+    # 永久删除
     if os.path.isdir(file_path):
         shutil.rmtree(file_path)
     else:
