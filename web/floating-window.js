@@ -62,6 +62,8 @@ export function openFloatingPreview(path, fileName) {
     const isDocument = isPDF || isMarkdown || FILE_TYPES.document.exts.includes(ext);
     // 代码文件类型
     const isCode = FILE_TYPES.code.exts.includes(ext);
+    // 表格文件类型
+    const isSpreadsheet = FILE_TYPES.spreadsheet.exts.includes(ext);
 
     // 创建浮动预览窗口
     const previewWindow = document.createElement("div");
@@ -84,7 +86,7 @@ export function openFloatingPreview(path, fileName) {
     `;
 
     // 创建标题栏
-    const header = createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, isCode, previewWindow, path);
+    const header = createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, isCode, isSpreadsheet, previewWindow, path);
     previewWindow.appendChild(header);
 
     // 创建内容区域
@@ -92,7 +94,7 @@ export function openFloatingPreview(path, fileName) {
     previewWindow.appendChild(content);
 
     // 创建工具栏
-    const toolbar = createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMarkdown, isCode, content, previewWindow);
+    const toolbar = createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMarkdown, isCode, isSpreadsheet, content, previewWindow);
     previewWindow.appendChild(toolbar);
 
     document.body.appendChild(previewWindow);
@@ -116,7 +118,7 @@ export function openFloatingPreview(path, fileName) {
 /**
  * 创建预览窗口标题栏
  */
-function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, isCode, previewWindow, path) {
+function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, isCode, isSpreadsheet, previewWindow, path) {
     const header = document.createElement("div");
     header.className = "dm-preview-header";
     header.style.cssText = `
@@ -143,8 +145,8 @@ function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, is
     const minimizeBtn = createTrafficLightButton("pi-minus", "#ffbd2e", "最小化", () => minimizeFloatingPreview(previewWindow, path, fileName, fileConfig));
     trafficLights.appendChild(minimizeBtn);
 
-    // 全屏按钮（绿色）- 图像、视频、音频、文档、代码文件
-    if (isImage || isVideo || isAudio || isDocument || isCode) {
+    // 全屏按钮（绿色）- 图像、视频、音频、文档、代码、表格文件
+    if (isImage || isVideo || isAudio || isDocument || isCode || isSpreadsheet) {
         const fullscreenBtn = createTrafficLightButton("pi-window-maximize", "#28c940", "全屏", () => toggleFullscreen(previewWindow));
         trafficLights.appendChild(fullscreenBtn);
     }
@@ -235,7 +237,7 @@ function createPreviewContent(path, ext, isImage) {
 /**
  * 创建预览工具栏
  */
-function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMarkdown, isCode, content, previewWindow) {
+function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMarkdown, isCode, isSpreadsheet, content, previewWindow) {
     const toolbar = document.createElement("div");
     toolbar.className = "dm-preview-toolbar";
     toolbar.style.cssText = `
@@ -314,6 +316,13 @@ function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMar
         toolbarRight.appendChild(createToolbarSeparator());
         const codeFullscreenBtn = createToolbarButton("pi-arrows-alt", "全屏预览", () => toggleFullscreen(previewWindow));
         toolbarRight.appendChild(codeFullscreenBtn);
+    }
+
+    // 表格文件全屏按钮
+    if (isSpreadsheet) {
+        toolbarRight.appendChild(createToolbarSeparator());
+        const spreadsheetFullscreenBtn = createToolbarButton("pi-arrows-alt", "全屏预览", () => toggleFullscreen(previewWindow));
+        toolbarRight.appendChild(spreadsheetFullscreenBtn);
     }
 
     // 打开按钮
