@@ -15,6 +15,77 @@ from typing_extensions import override
 from ..utils import save_file, list_files, get_file_info, get_file_category
 
 
+# ============================================================================
+# 定义所有支持的 ComfyUI 数据类型
+# ============================================================================
+# 基础数据类型
+BASIC_TYPES = [io.Boolean, io.Int, io.Float, io.String, io.Combo]
+
+# 图像和视觉类型
+IMAGE_TYPES = [io.Image, io.Mask, io.WanCameraEmbedding]
+
+# Latent 和 Conditioning
+LATENT_TYPES = [io.Latent, io.Conditioning]
+
+# 模型类型
+MODEL_TYPES = [
+    io.Model,
+    io.Vae,
+    io.Clip,
+    io.ClipVision,
+    io.ControlNet,
+    io.StyleModel,
+    io.Gligen,
+    io.UpscaleModel,
+    io.LatentUpscaleModel,
+    io.LoraModel,
+]
+
+# 音频和视频
+MEDIA_TYPES = [io.Audio, io.AudioEncoder, io.AudioEncoderOutput, io.Video, io.Webcam]
+
+# 采样相关
+SAMPLER_TYPES = [io.Sampler, io.Sigmas, io.Noise, io.Guider]
+
+# 高级和特殊类型
+ADVANCED_TYPES = [
+    io.ClipVisionOutput,
+    io.TimestepsRange,
+    io.LatentOperation,
+    io.FlowControl,
+    io.Accumulation,
+    io.Hooks,
+    io.HookKeyframes,
+    io.LossMap,
+    io.Tracks,
+]
+
+# 3D 模型类型
+MODEL_3D_TYPES = [io.Load3D, io.Load3DAnimation, io.Load3DCamera, io.Voxel, io.Mesh, io.SVG]
+
+# 其他扩展类型
+EXTENDED_TYPES = [
+    io.Photomaker,
+    io.Point,
+    io.FaceAnalysis,
+    io.BBOX,
+    io.SEGS,
+]
+
+# 所有支持的类型（合并所有类型列表）
+ALL_SUPPORTED_TYPES = (
+    BASIC_TYPES +
+    IMAGE_TYPES +
+    LATENT_TYPES +
+    MODEL_TYPES +
+    MEDIA_TYPES +
+    SAMPLER_TYPES +
+    ADVANCED_TYPES +
+    MODEL_3D_TYPES +
+    EXTENDED_TYPES
+)
+
+
 class DataManagerCore(io.ComfyNode):
     """核心文件管理器节点 - V3 API
 
@@ -63,7 +134,7 @@ class DataManagerCore(io.ComfyNode):
 
 
 class InputPathConfig(io.ComfyNode):
-    """输入路径配置节点 - 配置文件保存的目标目录，支持多种文件类型输入（动态端口）"""
+    """输入路径配置节点 - 配置文件保存的目标目录，支持所有 ComfyUI 数据类型（动态端口）"""
 
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -71,7 +142,7 @@ class InputPathConfig(io.ComfyNode):
             node_id="InputPathConfig",
             display_name="Data Manager - Input Path",
             category="Data Manager/Config",
-            description="配置文件保存的目标目录，支持多种文件类型输入（动态端口）",
+            description="配置文件保存的目标目录，支持所有 ComfyUI 数据类型输入（动态端口）",
             inputs=[
                 io.String.Input(
                     "target_path",
@@ -80,14 +151,18 @@ class InputPathConfig(io.ComfyNode):
                 ),
                 io.Combo.Input(
                     "file_type",
-                    options=["string", "image", "audio", "video", "3d_model"],
+                    options=[
+                        "string", "image", "mask", "latent", "conditioning",
+                        "model", "vae", "clip", "controlnet", "upscale_model",
+                        "audio", "video", "sampler", "noise", "3d_model", "other"
+                    ],
                     default="image",
                     tooltip="输入文件类型",
                 ),
-                # 使用 MultiType 实现动态端口，支持 IMAGE、STRING、LATENT、MASK 类型
+                # 使用 MultiType 实现真正的动态端口，支持所有 ComfyUI 数据类型
                 io.MultiType.Input(
                     "file_input",
-                    [io.Image, io.String, io.Latent, io.Mask],
+                    ALL_SUPPORTED_TYPES,
                     optional=True,
                 ),
             ],
@@ -149,7 +224,7 @@ class InputPathConfig(io.ComfyNode):
 
 
 class OutputPathConfig(io.ComfyNode):
-    """输出路径配置节点 - 配置文件读取的源目录，支持多种文件类型输出（动态端口）"""
+    """输出路径配置节点 - 配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口）"""
 
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -157,7 +232,7 @@ class OutputPathConfig(io.ComfyNode):
             node_id="OutputPathConfig",
             display_name="Data Manager - Output Path",
             category="Data Manager/Config",
-            description="配置文件读取的源目录，支持多种文件类型输出（动态端口）",
+            description="配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口）",
             inputs=[
                 io.String.Input(
                     "source_path",
@@ -166,14 +241,18 @@ class OutputPathConfig(io.ComfyNode):
                 ),
                 io.Combo.Input(
                     "file_type",
-                    options=["string", "image", "audio", "video", "3d_model"],
+                    options=[
+                        "string", "image", "mask", "latent", "conditioning",
+                        "model", "vae", "clip", "controlnet", "upscale_model",
+                        "audio", "video", "sampler", "noise", "3d_model", "other"
+                    ],
                     default="image",
                     tooltip="输出文件类型",
                 ),
-                # 使用 MultiType 实现动态端口，支持 IMAGE、STRING、LATENT、MASK 类型
+                # 使用 MultiType 实现真正的动态端口，支持所有 ComfyUI 数据类型
                 io.MultiType.Input(
                     "input",
-                    [io.Image, io.String, io.Latent, io.Mask],
+                    ALL_SUPPORTED_TYPES,
                     optional=True,
                 ),
             ],
