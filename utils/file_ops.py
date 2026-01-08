@@ -108,3 +108,67 @@ def list_files(directory: str, pattern: str = "*.*", recursive: bool = False, in
         pass
 
     return items
+
+
+def create_file(directory: str, filename: str, content: str = "") -> str:
+    """创建新文件
+
+    Args:
+        directory: 目标目录
+        filename: 文件名
+        content: 文件内容（默认为空）
+
+    Returns:
+        创建的文件完整路径
+
+    Raises:
+        FileNotFoundError: 目录不存在
+        FileExistsError: 文件已存在
+        PermissionError: 无写入权限
+    """
+    if not os.path.exists(directory):
+        raise FileNotFoundError(f"目录不存在: {directory}")
+
+    if not os.path.isdir(directory):
+        raise NotADirectoryError(f"路径不是目录: {directory}")
+
+    file_path = os.path.join(directory, filename)
+
+    if os.path.exists(file_path):
+        raise FileExistsError(f"文件已存在: {file_path}")
+
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    return file_path
+
+
+def create_directory(directory: str, dirname: str) -> str:
+    """创建新文件夹
+
+    Args:
+        directory: 父目录
+        dirname: 文件夹名称
+
+    Returns:
+        创建的文件夹完整路径
+
+    Raises:
+        FileNotFoundError: 父目录不存在
+        FileExistsError: 文件夹已存在
+        PermissionError: 无创建权限
+    """
+    if not os.path.exists(directory):
+        raise FileNotFoundError(f"目录不存在: {directory}")
+
+    if not os.path.isdir(directory):
+        raise NotADirectoryError(f"路径不是目录: {directory}")
+
+    dir_path = os.path.join(directory, dirname)
+
+    if os.path.exists(dir_path):
+        raise FileExistsError(f"文件夹已存在: {dir_path}")
+
+    os.makedirs(dir_path)
+
+    return dir_path

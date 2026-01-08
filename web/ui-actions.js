@@ -245,9 +245,7 @@ export function navigateUp() {
         return;
     }
 
-    const parts = FileManagerState.currentPath.split('/').filter(p => p);
-    parts.pop();
-    const parentPath = parts.length > 0 ? parts.join('/') : '.';
+    const parentPath = getParentPath(FileManagerState.currentPath);
     if (parentPath !== FileManagerState.currentPath) {
         loadDirectory(parentPath);
     }

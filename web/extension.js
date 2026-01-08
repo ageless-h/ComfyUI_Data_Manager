@@ -18,6 +18,9 @@ import { FileManagerState } from './core-state.js';
 import { createFileManagerWindow } from './ui-window.js';
 import { loadDirectory, toggleSort, navigateUp, navigateHome } from './ui-actions.js';
 
+// 导入 API 模块
+import { createFile as apiCreateFile, createDirectory as apiCreateDirectory } from './api-index.js';
+
 // 导入浮动窗口模块
 import { openFloatingPreview, closeFloatingPreview, toggleFullscreen, restoreFloatingPreview } from './floating-window.js';
 import { updateDock } from './floating-dock.js';
@@ -284,26 +287,34 @@ function showNewFileDialog() {
 /**
  * 创建新文件
  */
-function createNewFile() {
+async function createNewFile() {
     const name = prompt("输入文件名:", "new_file.txt");
     if (name) {
-        const path = require('path').join(FileManagerState.currentPath, name);
-        require('fs').writeFileSync(path, '');
-        loadDirectory(FileManagerState.currentPath);
-        showToast("success", "成功", `文件已创建: ${name}`);
+        try {
+            await apiCreateFile(FileManagerState.currentPath, name, "");
+            await loadDirectory(FileManagerState.currentPath);
+            showToast("success", "成功", `文件已创建: ${name}`);
+        } catch (error) {
+            console.error("创建文件失败:", error);
+            showToast("error", "错误", `创建文件失败: ${error.message}`);
+        }
     }
 }
 
 /**
  * 创建新文件夹
  */
-function createNewFolder() {
+async function createNewFolder() {
     const name = prompt("输入文件夹名称:", "新建文件夹");
     if (name) {
-        const path = require('path').join(FileManagerState.currentPath, name);
-        require('fs').mkdirSync(path);
-        loadDirectory(FileManagerState.currentPath);
-        showToast("success", "成功", `文件夹已创建: ${name}`);
+        try {
+            await apiCreateDirectory(FileManagerState.currentPath, name);
+            await loadDirectory(FileManagerState.currentPath);
+            showToast("success", "成功", `文件夹已创建: ${name}`);
+        } catch (error) {
+            console.error("创建文件夹失败:", error);
+            showToast("error", "错误", `创建文件夹失败: ${error.message}`);
+        }
     }
 }
 
@@ -311,33 +322,78 @@ function createNewFolder() {
  * 删除选中文件
  */
 function deleteSelectedFiles() {
-    if (FileManagerState.selectedFiles.length === 0) {
+    let filesToDelete = [];
+
+    // 优先使用当前预览文件
+    if (FileManagerState.currentPreviewFile) {
+        filesToDelete = [FileManagerState.currentPreviewFile];
+    }
+    // 其次使用选中的文件
+    else if (FileManagerState.selectedFiles.length === 0) {
         showToast("info", "提示", "请先选择要删除的文件");
         return;
+    } else {
+        filesToDelete = FileManagerState.selectedFiles;
     }
 
-    if (!confirm(`确定要删除 ${FileManagerState.selectedFiles.length} 个项目吗？`)) return;
+    if (!confirm(`确定要删除 ${filesToDelete.length} 个项目吗？`)) return;
 
     const { shell } = require('electron');
-    FileManagerState.selectedFiles.forEach(path => {
+    let deletedCount = 0;
+
+    filesToDelete.forEach(path => {
         try {
             const stat = require('fs').statSync(path);
             if (stat.isDirectory()) shell.trashItem(path);
             else require('fs').unlinkSync(path);
+            deletedCount++;
         } catch (err) {
             console.error(`删除失败: ${path}`, err);
         }
     });
 
+    // 清空当前预览文件
+    if (FileManagerState.currentPreviewFile) {
+        FileManagerState.currentPreviewFile = null;
+        // 清空预览面板
+        const content = document.getElementById("dm-preview-content");
+        if (content) {
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <i class="pi pi-file" style="font-size: 48px; opacity: 0.5;"></i>
+                    <div style="margin-top: 15px; font-size: 13px;">选择文件以预览</div>
+                </div>
+            `;
+        }
+        // 清空文件信息
+        const infoSection = document.getElementById("dm-file-info");
+        if (infoSection) {
+            infoSection.innerHTML = '<div style="text-align: center;">未选择文件</div>';
+        }
+    }
+
     loadDirectory(FileManagerState.currentPath);
-    showToast("success", "成功", `已删除 ${FileManagerState.selectedFiles.length} 个项目`);
-    FileManagerState.selectedFiles = [];
+    showToast("success", "成功", `已删除 ${deletedCount} 个项目`);
+
+    // 只清空选中的文件列表（不是当前预览文件的情况）
+    if (!FileManagerState.currentPreviewFile) {
+        FileManagerState.selectedFiles = [];
+    }
 }
 
 /**
  * 复制路径到剪贴板
  */
 function copySelectedPaths() {
+    // 优先使用当前预览文件
+    if (FileManagerState.currentPreviewFile) {
+        const { clipboard } = require('electron');
+        clipboard.writeText(FileManagerState.currentPreviewFile);
+        showToast("success", "成功", `已复制文件路径`);
+        return;
+    }
+
+    // 其次使用选中的文件
     if (FileManagerState.selectedFiles.length === 0) {
         showToast("info", "提示", "请先选择文件");
         return;

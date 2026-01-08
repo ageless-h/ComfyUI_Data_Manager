@@ -4,7 +4,7 @@
 提供文件操作、路径处理、格式化等通用功能
 """
 
-from .file_ops import save_file, list_files
+from .file_ops import save_file, list_files, create_file, create_directory
 from .path_utils import ensure_directory, join_paths, get_parent_path
 from .formatters import human_readable_size
 from .info import get_file_info, get_file_category
@@ -13,6 +13,8 @@ __all__ = [
     # 文件操作
     'save_file',
     'list_files',
+    'create_file',
+    'create_directory',
     # 文件信息
     'get_file_info',
     'get_file_category',

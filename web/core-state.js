@@ -6,6 +6,7 @@
 export const FileManagerState = {
     currentPath: '',
     selectedFiles: [],
+    currentPreviewFile: null,  // 当前正在预览的文件路径
     viewMode: 'list',  // 'list' or 'grid'
     sortBy: 'name',    // 'name', 'size', 'modified'
     sortOrder: 'asc',  // 'asc' or 'desc'

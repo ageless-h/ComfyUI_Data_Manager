@@ -47,3 +47,44 @@ export async function getFileInfo(path) {
     }
     throw new Error('Failed to get file info');
 }
+
+/**
+ * 创建新文件
+ * @param {string} directory - 目标目录
+ * @param {string} filename - 文件名
+ * @param {string} content - 文件内容（默认为空）
+ * @returns {Promise<object>} 创建结果
+ */
+export async function createFile(directory, filename, content = "") {
+    const response = await fetch("/dm/create/file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directory, filename, content })
+    });
+
+    if (response && response.ok) {
+        return await response.json();
+    }
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(error.error || error.message || 'Failed to create file');
+}
+
+/**
+ * 创建新文件夹
+ * @param {string} directory - 父目录
+ * @param {string} dirname - 文件夹名称
+ * @returns {Promise<object>} 创建结果
+ */
+export async function createDirectory(directory, dirname) {
+    const response = await fetch("/dm/create/directory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directory, dirname })
+    });
+
+    if (response && response.ok) {
+        return await response.json();
+    }
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(error.error || error.message || 'Failed to create directory');
+}

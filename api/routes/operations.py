@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from ...utils import save_file
+from ...utils import save_file, create_file, create_directory
 
 
 async def save_file_handler(request):
@@ -65,6 +65,114 @@ async def save_file_handler(request):
         }, status=500)
 
 
+async def create_file_handler(request):
+    """创建新文件
+
+    POST /dm/create/file
+    Body: {
+        "directory": "./output",
+        "filename": "new_file.txt",
+        "content": ""
+    }
+    """
+    try:
+        data = await request.json()
+        directory = data.get("directory", ".")
+        filename = data.get("filename", "")
+        content = data.get("content", "")
+
+        if not filename:
+            return web.json_response({
+                "error": "Filename is required"
+            }, status=400)
+
+        # 规范化路径
+        if not os.path.isabs(directory):
+            import folder_paths
+            comfy_root = os.path.dirname(folder_paths.__file__)
+            directory = os.path.abspath(os.path.join(comfy_root, directory))
+
+        # 创建文件
+        file_path = create_file(directory, filename, content)
+
+        return web.json_response({
+            "success": True,
+            "path": file_path,
+            "filename": filename
+        })
+
+    except FileExistsError as e:
+        return web.json_response({
+            "error": "File already exists",
+            "message": str(e)
+        }, status=409)
+
+    except FileNotFoundError as e:
+        return web.json_response({
+            "error": "Directory not found",
+            "message": str(e)
+        }, status=404)
+
+    except Exception as e:
+        logger.error(f"[DataManager] create_file error: {e}")
+        return web.json_response({
+            "error": str(e)
+        }, status=500)
+
+
+async def create_directory_handler(request):
+    """创建新文件夹
+
+    POST /dm/create/directory
+    Body: {
+        "directory": "./output",
+        "dirname": "new_folder"
+    }
+    """
+    try:
+        data = await request.json()
+        directory = data.get("directory", ".")
+        dirname = data.get("dirname", "")
+
+        if not dirname:
+            return web.json_response({
+                "error": "Directory name is required"
+            }, status=400)
+
+        # 规范化路径
+        if not os.path.isabs(directory):
+            import folder_paths
+            comfy_root = os.path.dirname(folder_paths.__file__)
+            directory = os.path.abspath(os.path.join(comfy_root, directory))
+
+        # 创建文件夹
+        dir_path = create_directory(directory, dirname)
+
+        return web.json_response({
+            "success": True,
+            "path": dir_path,
+            "dirname": dirname
+        })
+
+    except FileExistsError as e:
+        return web.json_response({
+            "error": "Directory already exists",
+            "message": str(e)
+        }, status=409)
+
+    except FileNotFoundError as e:
+        return web.json_response({
+            "error": "Parent directory not found",
+            "message": str(e)
+        }, status=404)
+
+    except Exception as e:
+        logger.error(f"[DataManager] create_directory error: {e}")
+        return web.json_response({
+            "error": str(e)
+        }, status=500)
+
+
 def register_operation_routes(server):
     """注册文件操作路由
 
@@ -75,6 +183,8 @@ def register_operation_routes(server):
     if hasattr(server, "routes") and server.routes is not None:
         try:
             server.routes.post("/dm/save")(save_file_handler)
+            server.routes.post("/dm/create/file")(create_file_handler)
+            server.routes.post("/dm/create/directory")(create_directory_handler)
             logger.info("[DataManager] Operation routes registered (PromptServer.routes)")
             return
         except Exception as e:
@@ -84,4 +194,6 @@ def register_operation_routes(server):
     app = getattr(server, "app", None)
     if app and hasattr(app, 'router'):
         app.router.add_post("/dm/save", save_file_handler)
+        app.router.add_post("/dm/create/file", create_file_handler)
+        app.router.add_post("/dm/create/directory", create_directory_handler)
         logger.info("[DataManager] Operation routes registered (app.router fallback)")

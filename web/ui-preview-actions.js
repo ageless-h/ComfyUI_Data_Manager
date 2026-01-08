@@ -9,12 +9,16 @@ import { escapeHtml } from './utils-format.js';
 import { updateStatus, getFileName, getExt } from './utils-helpers.js';
 import { openFloatingPreview } from './floating-window.js';
 import { openFileExternally } from './floating-actions.js';
+import { FileManagerState } from './core-state.js';
 
 /**
  * 预览文件
  * @param {string} path - 文件路径
  */
 export async function previewFile(path) {
+    // 保存当前预览文件
+    FileManagerState.currentPreviewFile = path;
+
     const content = document.getElementById("dm-preview-content");
     const floatingBtn = document.getElementById("dm-open-floating-preview-btn");
     const openBtn = document.getElementById("dm-open-preview-btn");

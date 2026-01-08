@@ -35,11 +35,17 @@ export function createPreviewPanel(callbacks) {
             <i class="pi pi-eye"></i> 预览
         </h3>
         <div style="display: flex; gap: 5px;">
+            <button id="dm-copy-path-btn" class="comfy-btn" style="padding: 6px 12px; font-size: 12px;">
+                <i class="pi pi-copy"></i>
+            </button>
+            <button id="dm-delete-file-btn" class="comfy-btn" style="padding: 6px 12px; font-size: 12px;">
+                <i class="pi pi-trash"></i>
+            </button>
             <button id="dm-open-floating-preview-btn" class="comfy-btn" style="display: none; padding: 6px 12px; font-size: 12px;">
-                <i class="pi pi-window-maximize"></i> 浮窗
+                <i class="pi pi-window-maximize"></i>
             </button>
             <button id="dm-open-preview-btn" class="comfy-btn" style="display: none; padding: 6px 12px; font-size: 12px;">
-                <i class="pi pi-external-link"></i> 打开
+                <i class="pi pi-external-link"></i>
             </button>
         </div>
     `;
@@ -76,34 +82,11 @@ export function createPreviewPanel(callbacks) {
     infoSection.innerHTML = '<div style="text-align: center;">未选择文件</div>';
     panel.appendChild(infoSection);
 
-    // 操作按钮区域
-    const actionBar = document.createElement("div");
-    actionBar.id = "dm-preview-action-bar";
-    actionBar.style.cssText = `
-        padding: 12px 15px;
-        background: #222;
-        border-top: 1px solid #2a2a2a;
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-    `;
-    actionBar.innerHTML = `
-        <button id="dm-copy-path-btn" class="comfy-btn" style="flex: 1; padding: 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px;">
-            <i class="pi pi-copy"></i>
-            <span>复制路径</span>
-        </button>
-        <button id="dm-delete-file-btn" class="comfy-btn" style="flex: 1; padding: 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px;">
-            <i class="pi pi-trash"></i>
-            <span>删除</span>
-        </button>
-    `;
-    panel.appendChild(actionBar);
-
     // 绑定按钮事件
     const floatingBtn = header.querySelector('#dm-open-floating-preview-btn');
     const openBtn = header.querySelector('#dm-open-preview-btn');
-    const copyPathBtn = actionBar.querySelector('#dm-copy-path-btn');
-    const deleteBtn = actionBar.querySelector('#dm-delete-file-btn');
+    const copyPathBtn = header.querySelector('#dm-copy-path-btn');
+    const deleteBtn = header.querySelector('#dm-delete-file-btn');
 
     if (floatingBtn && onOpenFloating) {
         floatingBtn.onclick = onOpenFloating;
