@@ -240,6 +240,11 @@ export function updateHeaderSortIndicators() {
  * 导航到上级目录
  */
 export function navigateUp() {
+    // 在根目录时不执行操作
+    if (FileManagerState.currentPath === "." || FileManagerState.currentPath === "/") {
+        return;
+    }
+
     const parts = FileManagerState.currentPath.split('/').filter(p => p);
     parts.pop();
     const parentPath = parts.length > 0 ? parts.join('/') : '.';
