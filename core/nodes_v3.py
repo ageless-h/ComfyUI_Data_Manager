@@ -349,21 +349,6 @@ TYPE_FORMAT_MAP = {
         "default": "png",
         "description": "遮罩格式"
     },
-    "MODEL": {
-        "formats": ["safetensors", "pt"],
-        "default": "safetensors",
-        "description": "模型格式"
-    },
-    "VAE": {
-        "formats": ["safetensors", "pt"],
-        "default": "safetensors",
-        "description": "VAE 格式"
-    },
-    "CLIP": {
-        "formats": ["safetensors", "pt"],
-        "default": "safetensors",
-        "description": "CLIP 格式"
-    },
     "CONDITIONING": {
         "formats": ["json"],
         "default": "json",

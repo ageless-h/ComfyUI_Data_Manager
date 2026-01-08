@@ -15,8 +15,6 @@ export const FORMAT_TYPE_MAP = {
     "flac": { type: "AUDIO", label: "FLAC 音频", description: "无损压缩音频" },
     "ogg": { type: "AUDIO", label: "OGG 音频", description: "开源音频格式" },
     "latent": { type: "LATENT", label: "Latent", description: "ComfyUI Latent 数据" },
-    "safetensors": { type: "MODEL", label: "SafeTensors", description: "安全的模型格式" },
-    "pt": { type: "MODEL", label: "PyTorch", description: "PyTorch 模型格式" },
     "json": { type: "DATA", label: "JSON", description: "通用数据格式" },
     "txt": { type: "DATA", label: "文本", description: "纯文本格式" },
 };
@@ -28,9 +26,6 @@ export const TYPE_FORMATS = {
     "AUDIO": ["mp3", "wav", "flac", "ogg"],
     "LATENT": ["latent"],
     "MASK": ["png"],
-    "MODEL": ["safetensors", "pt"],
-    "VAE": ["safetensors", "pt"],
-    "CLIP": ["safetensors", "pt"],
     "CONDITIONING": ["json"],
     "STRING": ["txt", "json"],
 };
@@ -235,9 +230,6 @@ function getTypeIcon(type) {
         "AUDIO": "pi-volume-up",
         "LATENT": "pi-box",
         "MASK": "pi-eye",
-        "MODEL": "pi-cube",
-        "VAE": "pi-cube",
-        "CLIP": "pi-cube",
         "CONDITIONING": "pi-code",
         "STRING": "pi-file",
     };
@@ -256,9 +248,6 @@ function getTypeColor(type) {
         "AUDIO": "#3498db",
         "LATENT": "#f39c12",
         "MASK": "#e67e22",
-        "MODEL": "#27ae60",
-        "VAE": "#27ae60",
-        "CLIP": "#27ae60",
         "CONDITIONING": "#1abc9c",
         "STRING": "#95a5a6",
     };
