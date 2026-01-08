@@ -65,7 +65,9 @@ function createMainContent(callbacks) {
 
     const previewPanel = createPreviewPanel({
         onOpenFloating: () => callbacks.onOpenFloating && callbacks.onOpenFloating(),
-        onOpenExternally: () => callbacks.onOpenExternally && callbacks.onOpenExternally()
+        onOpenExternally: () => callbacks.onOpenExternally && callbacks.onOpenExternally(),
+        onCopyPath: () => callbacks.onCopyPath && callbacks.onCopyPath(),
+        onDelete: () => callbacks.onDelete && callbacks.onDelete()
     });
     mainContent.appendChild(previewPanel);
 

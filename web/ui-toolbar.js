@@ -13,9 +13,7 @@ export function createToolbar(callbacks) {
         onNavigateHome,
         onSortChange,
         onViewToggle,
-        onNewFile,
-        onCopyPath,
-        onDelete
+        onNewFile
     } = callbacks;
 
     const toolbar = document.createElement("div");
@@ -95,8 +93,6 @@ export function createToolbar(callbacks) {
     const actionGroup = document.createElement("div");
     actionGroup.style.cssText = "display: flex; gap: 5px; margin-left: auto;";
     actionGroup.appendChild(createToolButton("pi-plus", "新建", onNewFile));
-    actionGroup.appendChild(createToolButton("pi-copy", "复制路径", onCopyPath));
-    actionGroup.appendChild(createToolButton("pi-trash", "删除", onDelete));
     toolbar.appendChild(actionGroup);
 
     return toolbar;
