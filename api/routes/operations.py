@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from ...utils import save_file, create_file, create_directory, delete_file
+from ...utils import save_file, create_file, create_directory, delete_file, normalize_comfyui_path
 
 
 async def save_file_handler(request):
@@ -87,10 +87,7 @@ async def create_file_handler(request):
             }, status=400)
 
         # 规范化路径
-        if not os.path.isabs(directory):
-            import folder_paths
-            comfy_root = os.path.dirname(folder_paths.__file__)
-            directory = os.path.abspath(os.path.join(comfy_root, directory))
+        directory = normalize_comfyui_path(directory)
 
         # 创建文件
         file_path = create_file(directory, filename, content)
@@ -140,10 +137,7 @@ async def create_directory_handler(request):
             }, status=400)
 
         # 规范化路径
-        if not os.path.isabs(directory):
-            import folder_paths
-            comfy_root = os.path.dirname(folder_paths.__file__)
-            directory = os.path.abspath(os.path.join(comfy_root, directory))
+        directory = normalize_comfyui_path(directory)
 
         # 创建文件夹
         dir_path = create_directory(directory, dirname)
@@ -193,10 +187,7 @@ async def delete_file_handler(request):
             }, status=400)
 
         # 规范化路径
-        if not os.path.isabs(path):
-            import folder_paths
-            comfy_root = os.path.dirname(folder_paths.__file__)
-            path = os.path.abspath(os.path.join(comfy_root, path))
+        path = normalize_comfyui_path(path)
 
         # 删除文件
         delete_file(path, use_trash)

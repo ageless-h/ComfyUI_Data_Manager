@@ -7,6 +7,31 @@
 import os
 
 
+def normalize_comfyui_path(path: str) -> str:
+    """将相对路径转换为相对于 ComfyUI 根目录的绝对路径
+
+    如果路径已经是绝对路径，则直接返回。
+    如果是相对路径，则将其转换为相对于 ComfyUI 安装目录的绝对路径。
+
+    Args:
+        path: 文件或目录路径
+
+    Returns:
+        规范化后的绝对路径
+    """
+    if os.path.isabs(path):
+        return path
+
+    # 导入 folder_paths 获取 ComfyUI 根目录
+    try:
+        import folder_paths
+        comfy_root = os.path.dirname(folder_paths.__file__)
+        return os.path.abspath(os.path.join(comfy_root, path))
+    except ImportError:
+        # 如果无法导入 folder_paths，返回当前工作目录的绝对路径
+        return os.path.abspath(path)
+
+
 def ensure_directory(directory: str) -> bool:
     """确保目录存在，如果不存在则创建
 

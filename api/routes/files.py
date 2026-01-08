@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from ...utils import list_files, get_file_info
+from ...utils import list_files, get_file_info, normalize_comfyui_path
 
 
 async def list_files_handler(request):
@@ -26,11 +26,7 @@ async def list_files_handler(request):
         recursive = data.get("recursive", False)
 
         # 规范化路径
-        if not os.path.isabs(path):
-            # 相对路径，相对于 ComfyUI 根目录
-            import folder_paths
-            comfy_root = os.path.dirname(folder_paths.__file__)
-            path = os.path.abspath(os.path.join(comfy_root, path))
+        path = normalize_comfyui_path(path)
 
         if not os.path.exists(path):
             return web.json_response({
