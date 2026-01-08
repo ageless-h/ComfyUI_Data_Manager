@@ -558,7 +558,7 @@ export function toggleFullscreen(window) {
             overflow: hidden;
         `;
 
-        // 修复：全屏时调整代码/文档预览容器高度
+        // 修复：全屏时调整代码/文档/表格预览容器高度
         if (content) {
             const codeContainer = content.querySelector('div[style*="Consolas"], div[style*="Monaco"]');
             const preElem = content.querySelector('pre');
@@ -568,6 +568,28 @@ export function toggleFullscreen(window) {
             }
             if (preElem) {
                 preElem.style.maxHeight = "none";
+            }
+
+            // 表格全屏适配：调整表格wrapper和表格宽度
+            const tableWrapper = content.querySelector('.dm-table-wrapper');
+            const table = content.querySelector('.dm-data-table');
+            if (tableWrapper && table) {
+                // 保存原始样式
+                tableWrapper.dataset.originalWidth = tableWrapper.style.width;
+                table.datasetOriginalWidth = table.style.width;
+                table.datasetOriginalTransform = table.style.transform;
+
+                // 全屏时适配宽度
+                tableWrapper.style.width = "100%";
+                tableWrapper.style.height = "calc(100vh - 180px)";
+                table.style.width = "100%";
+                table.style.transform = "scale(1)";
+
+                // 更新缩放显示（如果存在）
+                const zoomDisplay = window.querySelector('[id$="-zoom"]');
+                if (zoomDisplay) {
+                    zoomDisplay.textContent = "100%";
+                }
             }
         }
 
@@ -594,7 +616,7 @@ export function toggleFullscreen(window) {
         window.style.left = window.dataset.originalLeft || "50px";
         window.dataset.fullscreen = "false";
 
-        // 恢复代码/文档预览容器高度
+        // 恢复代码/文档/表格预览容器
         if (content) {
             const codeContainer = content.querySelector('div[style*="Consolas"], div[style*="Monaco"]');
             const preElem = content.querySelector('pre');
@@ -604,6 +626,22 @@ export function toggleFullscreen(window) {
             }
             if (preElem) {
                 preElem.style.maxHeight = "";
+            }
+
+            // 恢复表格原始样式
+            const tableWrapper = content.querySelector('.dm-table-wrapper');
+            const table = content.querySelector('.dm-data-table');
+            if (tableWrapper && table) {
+                tableWrapper.style.width = tableWrapper.dataset.originalWidth || "100%";
+                tableWrapper.style.height = tableWrapper.dataset.originalHeight || "100%";
+                table.style.width = table.datasetOriginalWidth || "100%";
+                table.style.transform = table.datasetOriginalTransform || "scale(1)";
+
+                // 清除保存的数据
+                delete tableWrapper.dataset.originalWidth;
+                delete tableWrapper.dataset.originalHeight;
+                delete table.datasetOriginalWidth;
+                delete table.datasetOriginalTransform;
             }
         }
 
