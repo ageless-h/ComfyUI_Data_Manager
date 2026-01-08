@@ -233,45 +233,59 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
         if frames_np.dtype != np.uint8:
             frames_np = (frames_np * 255).astype(np.uint8)
 
-        # 使用 OpenCV 保存视频
+        # 使用 imageio 保存视频（比 OpenCV 更可靠）
         try:
-            import cv2
+            import imageio
         except ImportError:
-            raise ImportError("opencv-python 未安装，无法保存视频")
+            raise ImportError("imageio 未安装，无法保存视频。请运行: pip install imageio imageio-ffmpeg")
 
-        # 获取帧尺寸
-        height, width = frames_np.shape[1:3]
-
-        # FLV 格式不支持（Flash 已过时）
-        if format == "flv":
-            raise NotImplementedError("FLV 格式暂时不支持（Flash 已过时）。建议使用 MP4、AVI、MKV 或 WebM 格式。")
-
-        # 四位数的 fourcc - 使用更兼容的编码器
-        fourcc_map = {
-            "mp4": "avc1",      # H.264 编码，广泛兼容
-            "avi": "MJPG",      # Motion JPEG，Windows 兼容性好
-            "mov": "avc1",      # MOV 使用 H.264
-            "mkv": "H264",      # MKV 使用 H264（注意：不是 avc1）
-            "webm": "VP90",     # VP9 编码器（更现代）
+        # 格式对应的编码器配置
+        codec_map = {
+            "mp4": "libx264",      # H.264，最兼容
+            "mov": "libx264",      # MOV 使用 H.264
+            "avi": "libx264",      # AVI 使用 H.264
+            "mkv": "libx264",      # MKV 使用 H.264
+            "webm": "libvpx-vp9", # WebM 使用 VP9
         }
 
-        # 尝试使用指定的 fourcc，如果失败则使用默认
-        fourcc_code = fourcc_map.get(format, "avc1")
-        print(f"[DataManager] Using fourcc: {fourcc_code} for format: {format}")
+        # 格式支持的 pixel_format
+        pixel_format_map = {
+            "mp4": "yuv420p",      # 最兼容
+            "mov": "yuv420p",
+            "avi": "yuv420p",
+            "mkv": "yuv420p",
+            "webm": "yuv420p",
+        }
 
-        fourcc = cv2.VideoWriter_fourcc(*fourcc_code)
-        video_writer = cv2.VideoWriter(file_path, fourcc, float(frame_rate), (width, height))
+        if format not in codec_map:
+            raise ValueError(f"不支持的视频格式: {format}。支持的格式: {list(codec_map.keys())}")
 
-        if not video_writer.isOpened():
-            raise RuntimeError(f"无法创建视频写入器: {file_path}, fourcc: {fourcc_code}, fps: {frame_rate}, size: {width}x{height}")
+        codec = codec_map[format]
+        pixel_format = pixel_format_map[format]
 
-        # 写入每一帧
+        print(f"[DataManager] Using imageio: format={format}, codec={codec}")
+
+        # 使用 imageio-ffmpeg 的参数
+        writer_kwargs = {
+            "fps": float(frame_rate),
+            "codec": codec,
+            "quality": 8,  # 用于 libx264 (0-10, 10是最佳质量)
+            "pixel_format": pixel_format,
+            "macro_block_size": 8,  # 避免尺寸不是16倍数的问题
+        }
+
+        # WebM 格式特殊处理
+        if format == "webm":
+            writer_kwargs["quality"] = 9  # VP9 质量设置
+
+        writer = imageio.get_writer(file_path, **writer_kwargs)
+
+        # 写入每一帧（imageio 使用 RGB 格式，不需要转换）
         for frame in frames_np:
-            # OpenCV 使用 BGR 格式，需要转换
-            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            video_writer.write(frame_bgr)
+            writer.append_data(frame)
 
-        video_writer.release()
+        writer.close()
+        print(f"[DataManager] Video saved successfully: {file_path}")
 
     return file_path
 
