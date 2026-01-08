@@ -233,9 +233,8 @@ class InputPathConfig(io.ComfyNode):
                 # 格式选择（根据输入类型自动筛选可用的格式）
                 io.Combo.Input(
                     "format",
-                    choices=all_formats,
+                    options=all_formats,
                     default="png",
-                    label="Output Format",
                 ),
                 # 使用 MultiType 实现真正的动态端口，支持所有 ComfyUI 数据类型
                 io.MultiType.Input(
