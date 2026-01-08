@@ -16,6 +16,80 @@ from ..utils import save_file, list_files, get_file_info, get_file_category
 
 
 # ============================================================================
+# 类型到文件格式的映射配置
+# ============================================================================
+TYPE_FORMAT_MAP = {
+    "IMAGE": {
+        "formats": ["png", "jpg", "webp"],
+        "default": "png",
+        "description": "图像格式"
+    },
+    "VIDEO": {
+        "formats": ["mp4", "webm", "avi"],
+        "default": "mp4",
+        "description": "视频格式"
+    },
+    "AUDIO": {
+        "formats": ["mp3", "wav", "flac", "ogg"],
+        "default": "mp3",
+        "description": "音频格式"
+    },
+    "LATENT": {
+        "formats": ["latent"],
+        "default": "latent",
+        "description": "Latent 数据"
+    },
+    "MASK": {
+        "formats": ["png"],
+        "default": "png",
+        "description": "遮罩格式"
+    },
+    "MODEL": {
+        "formats": ["safetensors", "pt"],
+        "default": "safetensors",
+        "description": "模型格式"
+    },
+    "VAE": {
+        "formats": ["safetensors", "pt"],
+        "default": "safetensors",
+        "description": "VAE 格式"
+    },
+    "CLIP": {
+        "formats": ["safetensors", "pt"],
+        "default": "safetensors",
+        "description": "CLIP 格式"
+    },
+    "CONDITIONING": {
+        "formats": ["json"],
+        "default": "json",
+        "description": "Conditioning 数据"
+    },
+    "STRING": {
+        "formats": ["txt", "json"],
+        "default": "txt",
+        "description": "文本格式"
+    },
+}
+
+
+def get_format_for_type(detected_type: str) -> tuple[list[str], str]:
+    """获取指定类型支持的格式列表
+
+    Args:
+        detected_type: 检测到的类型（如 IMAGE、VIDEO 等）
+
+    Returns:
+        (格式列表, 默认格式)
+    """
+    type_key = detected_type.upper()
+    if type_key in TYPE_FORMAT_MAP:
+        config = TYPE_FORMAT_MAP[type_key]
+        return config["formats"], config["default"]
+    # 默认返回 JSON 格式
+    return ["json"], "json"
+
+
+# ============================================================================
 # 定义所有支持的 ComfyUI 数据类型
 # ============================================================================
 # 基础数据类型
@@ -138,6 +212,13 @@ class InputPathConfig(io.ComfyNode):
 
     @classmethod
     def define_schema(cls) -> io.Schema:
+        # 收集所有可能的格式选项
+        all_formats = []
+        for type_config in TYPE_FORMAT_MAP.values():
+            all_formats.extend(type_config["formats"])
+        # 去重并排序
+        all_formats = sorted(set(all_formats))
+
         return io.Schema(
             node_id="InputPathConfig",
             display_name="Data Manager - Input Path",
@@ -148,6 +229,13 @@ class InputPathConfig(io.ComfyNode):
                     "target_path",
                     default="./output",
                     multiline=False,
+                ),
+                # 格式选择（根据输入类型自动筛选可用的格式）
+                io.Combo.Input(
+                    "format",
+                    choices=all_formats,
+                    default="png",
+                    label="Output Format",
                 ),
                 # 使用 MultiType 实现真正的动态端口，支持所有 ComfyUI 数据类型
                 io.MultiType.Input(
@@ -165,12 +253,14 @@ class InputPathConfig(io.ComfyNode):
     def execute(
         cls,
         target_path: str,
+        format: str,
         file_input = None
     ) -> io.NodeOutput:
         """处理动态类型的输入并输出配置的路径信息（JSON 格式）
 
         Args:
             target_path: 目标保存路径
+            format: 输出文件格式（如 png、jpg、webp、mp4、mp3 等）
             file_input: 动态类型输入（自动识别类型：IMAGE、STRING、LATENT、MASK、MODEL、VAE、VIDEO、AUDIO 等）
 
         Returns:
@@ -245,6 +335,7 @@ class InputPathConfig(io.ComfyNode):
             "type": "input",
             "target_path": target_path,
             "detected_type": detected_type,
+            "format": format,
             "file_data": input_data,
         }
         return io.NodeOutput(json.dumps(config, ensure_ascii=False))
