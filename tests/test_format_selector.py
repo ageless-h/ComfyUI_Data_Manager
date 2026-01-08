@@ -216,6 +216,23 @@ def main():
             else:
                 print(f"  ✗ 连接失败: {connect_result.get('error')}")
 
+            # 检查控制台日志中的 DataManager 相关消息
+            console_check = page.evaluate("""() => {
+                // 获取所有控制台日志（ DataManager 相关的）
+                const logs = [];
+                const originalLog = console.log;
+                console.log = function(...args) {
+                    logs.push(args.join(' '));
+                    originalLog.apply(console, args);
+                };
+                return {
+                    hasLogs: logs.length > 0,
+                    dmLogs: logs.filter(l => l.includes('DataManager'))
+                };
+            }""")
+
+            print(f"  控制台检查: {console_check}")
+
             # 截图
             page.screenshot(path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\31_nodes_connected.png")
 
@@ -234,9 +251,50 @@ def main():
 
             if open_result.get("success"):
                 print(f"  ✓ 文件管理器已打开")
-                time.sleep(2)
             else:
                 print(f"  ✗ 打开失败: {open_result.get('error')}")
+
+            # 等待窗口完全创建
+            time.sleep(2)
+
+            # 检查 checkNodeConnectionAndUpdateFormat 函数是否被调用
+            print("\n[步骤 7.5] 检查自动触发状态")
+            auto_trigger_check = page.evaluate("""() => {
+                // 检查 dm-format-section 是否存在
+                const formatSection = document.getElementById('dm-format-section');
+                const sectionExists = !!formatSection;
+                const sectionDisplay = formatSection ? formatSection.style.display : null;
+
+                // 手动调用 checkNodeConnectionAndUpdateFormat
+                let triggerResult = null;
+                if (window.checkNodeConnectionAndUpdateFormat) {
+                    try {
+                        window.checkNodeConnectionAndUpdateFormat();
+                        triggerResult = { success: true, message: '手动调用成功' };
+                    } catch (e) {
+                        triggerResult = { success: false, error: e.message };
+                    }
+                } else {
+                    triggerResult = { error: 'checkNodeConnectionAndUpdateFormat not found' };
+                }
+
+                // 等待一下然后再次检查
+                setTimeout(() => {
+                    const updatedSection = document.getElementById('dm-format-section');
+                    const hasSelect = !!updatedSection.querySelector('#dm-format-select');
+                }, 100);
+
+                return {
+                    sectionExists,
+                    sectionDisplay,
+                    triggerResult
+                };
+            }""")
+
+            print(f"  自动触发检查: {auto_trigger_check}")
+
+            # 再次等待格式选择器更新
+            time.sleep(1)
 
             print("\n[步骤 8] 检查格式选择器 UI")
             format_ui_check = page.evaluate("""() => {

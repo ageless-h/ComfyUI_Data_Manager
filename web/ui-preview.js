@@ -5,6 +5,89 @@
 import { createFormatSelector, getFormatsForType, detectFormatFromFilename } from './ui-format-selector.js';
 
 /**
+ * 检查节点连接状态并更新格式选择器
+ */
+export function checkNodeConnectionAndUpdateFormat() {
+    try {
+        console.log("[DataManager] checkNodeConnectionAndUpdateFormat called");
+        const nodes = window.app?.graph?._nodes || [];
+        const inputPathConfigNodes = nodes.filter(n => n.comfyClass === "InputPathConfig");
+        console.log("[DataManager] Found InputPathConfig nodes:", inputPathConfigNodes.length);
+
+        if (inputPathConfigNodes.length === 0) {
+            return;
+        }
+
+        // 检查第一个 InputPathConfig 节点的连接
+        const node = inputPathConfigNodes[0];
+        const inputs = node.inputs || [];
+        const fileInput = inputs.find(i => i.name === 'file_input');
+        console.log("[DataManager] fileInput link:", fileInput ? fileInput.link : null);
+
+        if (fileInput && fileInput.link) {
+            // 找到连接的源节点
+            const link = fileInput.link;
+            const sourceNodeId = link.origin_id;
+            const sourceNode = window.app.graph.getNodeById(sourceNodeId);
+            console.log("[DataManager] Source node:", sourceNode ? sourceNode.type : null);
+
+            if (sourceNode) {
+                const detectedType = detectTypeFromSourceNode(sourceNode);
+                console.log("[DataManager] Auto-detected type from connected node:", detectedType);
+                console.log("[DataManager] Calling updateFormatSelector with:", detectedType);
+                updateFormatSelector(detectedType, null, null);
+            }
+        } else {
+            console.log("[DataManager] No file input link found");
+        }
+    } catch (e) {
+        console.log("[DataManager] Error checking node connection:", e);
+    }
+}
+
+/**
+ * 根据节点类型检测数据类型
+ * @param {Object} node - 源节点
+ * @returns {string} 检测到的类型
+ */
+function detectTypeFromSourceNode(node) {
+    const nodeType = node.type || node.comfyClass || "";
+
+    // 根据节点类型映射到数据类型
+    const typeMapping = {
+        "LoadImage": "IMAGE",
+        "LoadVideo": "VIDEO",
+        "LoadAudio": "AUDIO",
+        "EmptyLatentImage": "LATENT",
+        "VAEDecode": "IMAGE",
+        "CheckpointLoaderSimple": "MODEL",
+    };
+
+    // 检查输出端口类型
+    if (node.outputs && node.outputs.length > 0) {
+        for (const output of node.outputs) {
+            if (output.type === "IMAGE") return "IMAGE";
+            if (output.type === "LATENT") return "LATENT";
+            if (output.type === "MASK") return "MASK";
+            if (output.type === "VIDEO") return "VIDEO";
+            if (output.type === "AUDIO") return "AUDIO";
+            if (output.type === "MODEL") return "MODEL";
+            if (output.type === "VAE") return "VAE";
+            if (output.type === "CLIP") return "CLIP";
+        }
+    }
+
+    // 使用节点类型映射
+    for (const [key, value] of Object.entries(typeMapping)) {
+        if (nodeType.includes(key)) {
+            return value;
+        }
+    }
+
+    return "IMAGE"; // 默认返回 IMAGE
+}
+
+/**
  * 创建预览面板
  * @param {object} callbacks - 回调函数
  * @returns {HTMLElement} 面板元素
@@ -130,17 +213,21 @@ export function createPreviewPanel(callbacks) {
  * @param {Function} onFormatChange - 格式变化回调
  */
 export function updateFormatSelector(detectedType, currentFormat = null, onFormatChange = null) {
+    console.log("[DataManager] updateFormatSelector called with:", detectedType);
     const formatSection = document.getElementById("dm-format-section");
+    console.log("[DataManager] formatSection found:", !!formatSection);
     if (!formatSection) return;
 
     // 清空现有内容
     formatSection.innerHTML = '';
 
     if (!detectedType) {
+        console.log("[DataManager] No detected type, hiding format selector");
         formatSection.style.display = 'none';
         return;
     }
 
+    console.log("[DataManager] Showing format selector for type:", detectedType);
     formatSection.style.display = 'block';
 
     const selector = createFormatSelector({
@@ -151,6 +238,7 @@ export function updateFormatSelector(detectedType, currentFormat = null, onForma
     });
 
     formatSection.appendChild(selector);
+    console.log("[DataManager] Format selector appended");
 }
 
 /**
