@@ -570,20 +570,32 @@ export function toggleFullscreen(window) {
                 preElem.style.maxHeight = "none";
             }
 
-            // 表格全屏适配：调整表格wrapper和表格宽度
+            // 表格全屏适配：调整表格所有层级容器
             const tableWrapper = content.querySelector('.dm-table-wrapper');
+            const tableMiddleLayer = tableWrapper?.parentElement; // 中间层：position: relative; overflow: hidden;
+            const tableOuterLayer = tableMiddleLayer?.parentElement; // 最外层：display: flex
             const table = content.querySelector('.dm-data-table');
-            if (tableWrapper && table) {
+
+            if (tableWrapper && tableMiddleLayer && table) {
                 // 保存原始样式
                 tableWrapper.dataset.originalWidth = tableWrapper.style.width;
                 table.datasetOriginalWidth = table.style.width;
                 table.datasetOriginalTransform = table.style.transform;
 
-                // 全屏时适配宽度
+                // 全屏时适配：从最外层开始调整
+                if (tableOuterLayer) {
+                    tableOuterLayer.dataset.originalHeight = tableOuterLayer.style.height;
+                    tableOuterLayer.style.height = "calc(100vh - 160px)";
+                }
+                if (tableMiddleLayer) {
+                    tableMiddleLayer.dataset.originalOverflow = tableMiddleLayer.style.overflow;
+                    tableMiddleLayer.style.overflow = "auto";
+                }
                 tableWrapper.style.width = "100%";
-                tableWrapper.style.height = "calc(100vh - 180px)";
-                table.style.width = "100%";
+                tableWrapper.style.height = "100%";
+                table.style.width = "auto"; // 使用 auto 让表格自适应内容宽度
                 table.style.transform = "scale(1)";
+                table.style.tableLayout = "auto"; // 确保表格布局正确
 
                 // 更新缩放显示（如果存在）
                 const zoomDisplay = window.querySelector('[id$="-zoom"]');
@@ -630,16 +642,28 @@ export function toggleFullscreen(window) {
 
             // 恢复表格原始样式
             const tableWrapper = content.querySelector('.dm-table-wrapper');
+            const tableMiddleLayer = tableWrapper?.parentElement;
+            const tableOuterLayer = tableMiddleLayer?.parentElement;
             const table = content.querySelector('.dm-data-table');
-            if (tableWrapper && table) {
+
+            if (tableWrapper && tableMiddleLayer && table) {
+                // 恢复所有层级
+                if (tableOuterLayer && tableOuterLayer.dataset.originalHeight) {
+                    tableOuterLayer.style.height = tableOuterLayer.dataset.originalHeight;
+                    delete tableOuterLayer.dataset.originalHeight;
+                }
+                if (tableMiddleLayer && tableMiddleLayer.dataset.originalOverflow !== undefined) {
+                    tableMiddleLayer.style.overflow = tableMiddleLayer.dataset.originalOverflow;
+                    delete tableMiddleLayer.dataset.originalOverflow;
+                }
                 tableWrapper.style.width = tableWrapper.dataset.originalWidth || "100%";
-                tableWrapper.style.height = tableWrapper.dataset.originalHeight || "100%";
+                tableWrapper.style.height = "100%";
                 table.style.width = table.datasetOriginalWidth || "100%";
                 table.style.transform = table.datasetOriginalTransform || "scale(1)";
+                table.style.tableLayout = "";
 
                 // 清除保存的数据
                 delete tableWrapper.dataset.originalWidth;
-                delete tableWrapper.dataset.originalHeight;
                 delete table.datasetOriginalWidth;
                 delete table.datasetOriginalTransform;
             }
