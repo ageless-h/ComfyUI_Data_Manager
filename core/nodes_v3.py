@@ -63,7 +63,7 @@ class DataManagerCore(io.ComfyNode):
 
 
 class InputPathConfig(io.ComfyNode):
-    """输入路径配置节点 - 配置文件保存的目标目录，支持多种文件类型输入"""
+    """输入路径配置节点 - 配置文件保存的目标目录，支持多种文件类型输入（动态端口）"""
 
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -71,7 +71,7 @@ class InputPathConfig(io.ComfyNode):
             node_id="InputPathConfig",
             display_name="Data Manager - Input Path",
             category="Data Manager/Config",
-            description="配置文件保存的目标目录，支持多种文件类型输入",
+            description="配置文件保存的目标目录，支持多种文件类型输入（动态端口）",
             inputs=[
                 io.String.Input(
                     "target_path",
@@ -84,9 +84,10 @@ class InputPathConfig(io.ComfyNode):
                     default="image",
                     tooltip="输入文件类型",
                 ),
-                io.String.Input(
+                # 使用 MultiType 实现动态端口，支持 IMAGE、STRING、LATENT、MASK 类型
+                io.MultiType.Input(
                     "file_input",
-                    force_input=True,  # 纯连接端口，不显示文本框
+                    [io.Image, io.String, io.Latent, io.Mask],
                     optional=True,
                 ),
             ],
@@ -102,19 +103,41 @@ class InputPathConfig(io.ComfyNode):
         file_type: str = "image",
         file_input = None
     ) -> io.NodeOutput:
-        """输出配置的路径信息（JSON 格式）"""
+        """处理动态类型的输入并输出配置的路径信息（JSON 格式）
+
+        Args:
+            target_path: 目标保存路径
+            file_type: 文件类型选择
+            file_input: 动态类型输入（IMAGE、STRING、LATENT、MASK 等）
+
+        Returns:
+            JSON 格式的配置信息
+        """
         # 处理文件输入
         input_data = None
         if file_input is not None and file_input != "":
             if isinstance(file_input, dict):
+                # 处理字典类型（ComfyUI 图像、latent 等）
                 input_data = file_input
             elif isinstance(file_input, str):
+                # 字符串类型（文件路径）
                 input_data = {"path": file_input}
-            else:
+            elif hasattr(file_input, 'shape'):
+                # 处理张量类型（numpy array 或 torch tensor）
                 try:
-                    input_data = str(file_input)
+                    import torch
+                    if isinstance(file_input, torch.Tensor):
+                        input_data = {"tensor": file_input.cpu().numpy().tolist(), "dtype": str(file_input.dtype)}
+                    else:
+                        input_data = {"tensor": file_input.tolist(), "dtype": str(file_input.dtype)}
                 except:
-                    pass
+                    input_data = {"data": str(file_input)}
+            else:
+                # 其他类型，尝试转换为字符串
+                try:
+                    input_data = {"data": str(file_input)}
+                except:
+                    input_data = {"data": repr(file_input)}
 
         config = {
             "type": "input",
@@ -126,7 +149,7 @@ class InputPathConfig(io.ComfyNode):
 
 
 class OutputPathConfig(io.ComfyNode):
-    """输出路径配置节点 - 配置文件读取的源目录，支持多种文件类型输出"""
+    """输出路径配置节点 - 配置文件读取的源目录，支持多种文件类型输出（动态端口）"""
 
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -134,7 +157,7 @@ class OutputPathConfig(io.ComfyNode):
             node_id="OutputPathConfig",
             display_name="Data Manager - Output Path",
             category="Data Manager/Config",
-            description="配置文件读取的源目录，支持多种文件类型输出",
+            description="配置文件读取的源目录，支持多种文件类型输出（动态端口）",
             inputs=[
                 io.String.Input(
                     "source_path",
@@ -147,9 +170,10 @@ class OutputPathConfig(io.ComfyNode):
                     default="image",
                     tooltip="输出文件类型",
                 ),
-                io.String.Input(
+                # 使用 MultiType 实现动态端口，支持 IMAGE、STRING、LATENT、MASK 类型
+                io.MultiType.Input(
                     "input",
-                    force_input=True,  # 纯连接端口，不显示文本框
+                    [io.Image, io.String, io.Latent, io.Mask],
                     optional=True,
                 ),
             ],
@@ -163,17 +187,42 @@ class OutputPathConfig(io.ComfyNode):
         cls,
         source_path: str,
         file_type: str = "image",
-        input: str = ""
+        input = None
     ) -> io.NodeOutput:
-        """根据文件路径加载文件并输出"""
-        # 解析文件路径
-        file_path = input
-        try:
-            parsed = json.loads(input)
-            if isinstance(parsed, dict) and "path" in parsed:
-                file_path = parsed["path"]
-        except:
-            pass
+        """根据文件路径加载文件并输出（支持动态类型输入）
+
+        Args:
+            source_path: 源目录路径
+            file_type: 输出文件类型
+            input: 动态类型输入（可以是 IMAGE、STRING、LATENT、MASK 等）
+
+        Returns:
+            根据配置输出的数据
+        """
+        # 解析文件路径或数据
+        file_path = None
+        file_data = None
+
+        if input is not None and input != "":
+            if isinstance(input, dict):
+                # 处理字典类型配置
+                if "path" in input:
+                    file_path = input["path"]
+                file_data = input
+            elif isinstance(input, str):
+                # 字符串类型，尝试解析为 JSON
+                try:
+                    parsed = json.loads(input)
+                    if isinstance(parsed, dict):
+                        file_path = parsed.get("path")
+                        file_data = parsed
+                    else:
+                        file_path = input
+                except:
+                    file_path = input
+            else:
+                # 其他类型，直接使用
+                file_data = input
 
         # 根据 file_type 返回对应格式
         if file_type == "image" and file_path:
@@ -182,14 +231,13 @@ class OutputPathConfig(io.ComfyNode):
                 from nodes import LoadImageNode
                 loader = LoadImageNode()
                 result = loader.load_image(file_path)
-                # 只返回图像数据
-                return io.NodeOutput(result[0])
+                return io.NodeOutput(result[0])  # 返回 IMAGE 类型
             except Exception as e:
                 # 加载失败，返回文件路径字符串
                 return io.NodeOutput(file_path)
         else:
             # 返回文件路径字符串
-            return io.NodeOutput(file_path)
+            return io.NodeOutput(file_path or "")
 
 
 class DataManagerExtension(ComfyExtension):
