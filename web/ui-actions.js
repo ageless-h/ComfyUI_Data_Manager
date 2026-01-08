@@ -77,13 +77,23 @@ function renderFileListUI() {
 
     // 父目录链接
     if (FileManagerState.currentPath !== "." && FileManagerState.currentPath !== "/") {
-        html += createFileListItem({
-            name: "..",
-            is_dir: true,
-            path: getParentPath(FileManagerState.currentPath),
-            size: 0,
-            modified: null
-        }, true);
+        // 根据视图模式选择渲染方式
+        if (FileManagerState.viewMode === 'list') {
+            html += createFileListItem({
+                name: "..",
+                is_dir: true,
+                path: getParentPath(FileManagerState.currentPath),
+                size: 0,
+                modified: null
+            }, true);
+        } else {
+            // 网格模式使用特殊的父目录项
+            html += createFileGridItem({
+                name: "..",
+                is_dir: true,
+                path: getParentPath(FileManagerState.currentPath)
+            }, true);
+        }
     }
 
     // 渲染文件列表

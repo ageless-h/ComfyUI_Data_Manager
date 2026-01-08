@@ -128,6 +128,23 @@ export function createFileListItem(file, isParent) {
  * @returns {string} HTML 字符串
  */
 export function createFileGridItem(file, isParent) {
+    // 父目录使用特殊样式
+    if (isParent) {
+        return `
+            <div class="dm-grid-item" data-path="${file.path}" data-is-dir="true"
+                 data-name=".."
+                 style="display: flex; flex-direction: column; align-items: center; justify-content: center;
+                        padding: 12px 8px; height: 90px;
+                        background: #2a2a2a; border-radius: 8px; cursor: pointer;
+                        transition: all 0.2s; border: 2px dashed #444; box-sizing: border-box;">
+                <i class="pi pi-folder-open" style="color: #888; font-size: 40px;"></i>
+                <span style="color: #888; font-size: 11px; text-align: center;
+                              overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                              width: 100%; margin-top: 8px;">返回上级</span>
+            </div>
+        `;
+    }
+
     const fileType = getFileType(file);
     const icon = FILE_TYPES[fileType]?.icon || FILE_TYPES.unknown.icon;
     const color = FILE_TYPES[fileType]?.color || FILE_TYPES.unknown.color;
