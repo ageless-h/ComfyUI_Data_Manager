@@ -712,14 +712,26 @@ class InputPathConfig(io.ComfyNode):
                         saved_path = save_image(tensor_np, full_path, format)
                         print(f"[DataManager] Saved {detected_type} to: {saved_path}")
 
-            # 处理视频类型
-            elif isinstance(file_input, io.Video):
+            # 处理视频类型 - 使用属性检测而不是 isinstance(io.Video)
+            # 因为 io.Video 只是类型标记，实际数据是 VideoInput 或 VideoComponents
+            elif hasattr(file_input, 'get_components') or (
+                hasattr(file_input, 'images') and
+                hasattr(file_input, 'frame_rate')
+            ):
                 detected_type = "VIDEO"
                 print(f"[DataManager] Detected VIDEO type")
 
+                # 如果是 VideoInput，先获取 components
+                if hasattr(file_input, 'get_components'):
+                    video_data = file_input.get_components()
+                    print(f"[DataManager] Got VideoComponents from VideoInput")
+                else:
+                    video_data = file_input
+                    print(f"[DataManager] Using data as VideoComponents directly")
+
                 directory, filename = parse_target_path(target_path, detected_type, format)
                 full_path = os.path.join(directory, filename)
-                saved_path = save_video(file_input, full_path, format)
+                saved_path = save_video(video_data, full_path, format)
                 print(f"[DataManager] Saved VIDEO to: {saved_path}")
 
             # 其他类型，转为字符串保存
