@@ -8,7 +8,13 @@
 import asyncio
 import json
 import os
-from typing import Dict, Any
+import pickle
+import shutil
+from pathlib import Path
+from typing import Dict, Any, Union, Tuple
+from datetime import datetime
+import numpy as np
+
 from comfy_api.latest import ComfyExtension, io, _io
 from typing_extensions import override
 
@@ -16,11 +22,183 @@ from ..utils import save_file, list_files, get_file_info, get_file_category
 
 
 # ============================================================================
+# 图像保存功能
+# ============================================================================
+
+def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
+    """保存 ComfyUI 图像张量到文件
+
+    支持格式: PNG, JPG/JPEG, WebP, BMP, TIFF/TIF, GIF
+
+    Args:
+        tensor: ComfyUI 图像张量 (Numpy array, shape: [H, W, C] 或 [B, H, W, C])
+        file_path: 目标文件路径
+        format: 图像格式 (png, jpg, jpeg, webp, bmp, tiff, tif, gif)
+
+    Returns:
+        保存后的完整文件路径
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        raise ImportError("PIL/Pillow 未安装，无法保存图像")
+
+    # 确保 file_path 有正确的扩展名
+    path = Path(file_path)
+    if path.suffix.lower() != f".{format}":
+        file_path = str(path.with_suffix(f".{format}"))
+
+    # 处理张量形状
+    if len(tensor.shape) == 4:
+        tensor = tensor[0]
+    elif len(tensor.shape) == 3:
+        pass
+    else:
+        raise ValueError(f"不支持的张量形状: {tensor.shape}")
+
+    # 转换为 uint8
+    if tensor.dtype != np.uint8:
+        tensor = (tensor * 255).astype(np.uint8)
+
+    # 转换为 PIL Image
+    if len(tensor.shape) == 2:
+        # 灰度图像
+        img = Image.fromarray(tensor, 'L')
+    else:
+        # RGB 图像
+        img = Image.fromarray(tensor, 'RGB')
+
+    # 保存图像
+    os.makedirs(Path(file_path).parent, exist_ok=True)
+
+    save_kwargs = {}
+    # 将格式名转换为 PIL 支持的格式
+    pil_format = format.upper()
+
+    # 格式映射和参数配置
+    if pil_format == "JPG":
+        pil_format = "JPEG"
+        save_kwargs["quality"] = 95
+    elif pil_format == "JPEG":
+        save_kwargs["quality"] = 95
+    elif pil_format == "WEBP":
+        save_kwargs["quality"] = 95
+        save_kwargs["method"] = 6
+    elif pil_format == "TIF":
+        pil_format = "TIFF"
+    elif pil_format == "TIFF":
+        # TIFF 可以使用压缩
+        save_kwargs["compression"] = "tiff_lzw"
+    elif pil_format == "BMP":
+        # BMP 无需特殊参数
+        pass
+    elif pil_format == "GIF":
+        # GIF 只支持 256 色，PIL 会自动转换
+        pass
+    elif pil_format == "PNG":
+        # PNG 可以使用压缩
+        save_kwargs["optimize"] = True
+
+    img.save(file_path, pil_format, **save_kwargs)
+
+    return file_path
+
+
+def save_latent(latent_data: Dict[str, np.ndarray], file_path: str) -> str:
+    """保存 Latent 数据到文件
+
+    Args:
+        latent_data: Latent 数据字典，通常包含 "samples" 键
+        file_path: 目标文件路径
+
+    Returns:
+        保存后的完整文件路径
+    """
+    # 确保 file_path 有正确的扩展名
+    path = Path(file_path)
+    if path.suffix.lower() != ".latent":
+        file_path = str(path.with_suffix(".latent"))
+
+    # 保存为 pickle 格式
+    os.makedirs(Path(file_path).parent, exist_ok=True)
+
+    with open(file_path, 'wb') as f:
+        pickle.dump(latent_data, f)
+
+    return file_path
+
+
+def save_conditioning(cond_data: Any, file_path: str) -> str:
+    """保存 Conditioning 数据到文件
+
+    Args:
+        cond_data: Conditioning 数据
+        file_path: 目标文件路径
+
+    Returns:
+        保存后的完整文件路径
+    """
+    # 确保 file_path 有正确的扩展名
+    path = Path(file_path)
+    if path.suffix.lower() != ".json":
+        file_path = str(path.with_suffix(".json"))
+
+    # 尝试转换为可序列化的格式
+    os.makedirs(Path(file_path).parent, exist_ok=True)
+
+    # 如果是列表，尝试序列化每个元素
+    serializable_data = []
+    if isinstance(cond_data, list):
+        for item in cond_data:
+            if hasattr(item, '__dict__'):
+                serializable_data.append(str(item))
+            else:
+                serializable_data.append(item)
+    else:
+        serializable_data = str(cond_data)
+
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(serializable_data, f, ensure_ascii=False, indent=2)
+
+    return file_path
+
+
+def parse_target_path(target_path: str, detected_type: str, format: str) -> Tuple[str, str]:
+    """解析目标路径，返回目录和文件名
+
+    Args:
+        target_path: 用户输入的目标路径（可能是目录或完整文件路径）
+        detected_type: 检测到的数据类型
+        format: 文件格式
+
+    Returns:
+        (目录, 文件名)
+    """
+    path = Path(target_path)
+
+    # 如果是完整文件路径（有扩展名）
+    if path.suffix:
+        directory = str(path.parent)
+        filename = path.name
+        # 确保扩展名匹配格式
+        name_without_ext = path.stem
+        if filename.split('.')[-1].lower() != format.lower():
+            filename = f"{name_without_ext}.{format}"
+    else:
+        # 如果是目录路径，生成默认文件名
+        directory = str(path)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"output_{timestamp}.{format}"
+
+    return directory, filename
+
+
+# ============================================================================
 # 类型到文件格式的映射配置
 # ============================================================================
 TYPE_FORMAT_MAP = {
     "IMAGE": {
-        "formats": ["png", "jpg", "webp"],
+        "formats": ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif"],
         "default": "png",
         "description": "图像格式"
     },
@@ -40,7 +218,7 @@ TYPE_FORMAT_MAP = {
         "description": "Latent 数据"
     },
     "MASK": {
-        "formats": ["png"],
+        "formats": ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif"],
         "default": "png",
         "description": "遮罩格式"
     },
@@ -256,90 +434,201 @@ class InputPathConfig(io.ComfyNode):
         format: str,
         file_input = None
     ) -> io.NodeOutput:
-        """处理动态类型的输入并输出配置的路径信息（JSON 格式）
+        """处理动态类型的输入并保存文件
 
         Args:
-            target_path: 目标保存路径
+            target_path: 目标保存路径（可以是目录或完整文件路径）
             format: 输出文件格式（如 png、jpg、webp、mp4、mp3 等）
             file_input: 动态类型输入（自动识别类型：IMAGE、STRING、LATENT、MASK、MODEL、VAE、VIDEO、AUDIO 等）
 
         Returns:
-            JSON 格式的配置信息
+            JSON 格式的保存结果信息
         """
-        # 自动检测输入类型
-        detected_type = "unknown"
-        input_data = None
+        print(f"[DataManager] Saving file: {target_path}")
 
-        if file_input is not None and file_input != "":
+        detected_type = "unknown"
+        saved_path = None
+        error_msg = None
+
+        if file_input is None or file_input == "":
+            config = {
+                "type": "input",
+                "target_path": target_path,
+                "detected_type": "none",
+                "format": format,
+                "saved_path": None,
+                "status": "no_input"
+            }
+            return io.NodeOutput(json.dumps(config, ensure_ascii=False))
+
+        try:
+            # 处理字典类型（ComfyUI 特殊格式）
             if isinstance(file_input, dict):
-                # 处理字典类型（ComfyUI 图像、latent 等）
-                input_data = file_input
-                # 尝试从字典中检测类型
+                detected_type = "DICT"
+                # 检查是否是 LATENT
                 if "samples" in file_input:
                     detected_type = "LATENT"
-                elif "pooled_output" in file_input:
+                    print(f"[DataManager] Detected LATENT type")
+                    directory, filename = parse_target_path(target_path, detected_type, "latent")
+                    full_path = os.path.join(directory, filename)
+                    saved_path = save_latent(file_input, full_path)
+                    print(f"[DataManager] Saved LATENT to: {saved_path}")
+                # 检查是否是 CONDITIONING
+                elif "pooled_output" in file_input or isinstance(file_input.get("model"), dict):
                     detected_type = "CONDITIONING"
-                elif "noise_mask" in file_input:
-                    detected_type = "LATENT"
+                    print(f"[DataManager] Detected CONDITIONING type")
+                    directory, filename = parse_target_path(target_path, detected_type, "json")
+                    full_path = os.path.join(directory, filename)
+                    saved_path = save_conditioning(file_input, full_path)
+                    print(f"[DataManager] Saved CONDITIONING to: {saved_path}")
+                # 检查是否是带 tensor 的图像
+                elif "tensor" in file_input:
+                    detected_type = "IMAGE"
+                    print(f"[DataManager] Detected IMAGE (dict with tensor)")
+                    tensor = file_input["tensor"]
+                    directory, filename = parse_target_path(target_path, detected_type, format)
+                    full_path = os.path.join(directory, filename)
+                    saved_path = save_image(tensor, full_path, format)
+                    print(f"[DataManager] Saved IMAGE to: {saved_path}")
                 else:
-                    detected_type = "DICT"
-            elif isinstance(file_input, str):
-                # 字符串类型（文件路径）
-                input_data = {"path": file_input}
-                detected_type = "STRING"
-            elif hasattr(file_input, 'shape'):
-                # 处理张量类型（numpy array 或 torch tensor）
-                try:
-                    import torch
-                    import numpy as np
-                    if isinstance(file_input, torch.Tensor):
-                        # 检查张量形状判断类型
-                        shape = file_input.shape
-                        if len(shape) == 4 and shape[1] == 3:  # [B, C, H, W] 格式
-                            detected_type = "IMAGE"
-                        elif len(shape) == 3 and shape[0] == 1:  # [B, H, W] 格式（mask）
-                            detected_type = "MASK"
-                        else:
-                            detected_type = "TENSOR"
-                        input_data = {
-                            "tensor": file_input.cpu().numpy().tolist(),
-                            "dtype": str(file_input.dtype),
-                            "shape": list(file_input.shape)
-                        }
-                    elif isinstance(file_input, np.ndarray):
-                        shape = file_input.shape
-                        if len(shape) == 4 and shape[1] == 3:
-                            detected_type = "IMAGE"
-                        elif len(shape) == 3 and shape[0] == 1:
-                            detected_type = "MASK"
-                        else:
-                            detected_type = "TENSOR"
-                        input_data = {
-                            "tensor": file_input.tolist(),
-                            "dtype": str(file_input.dtype),
-                            "shape": list(file_input.shape)
-                        }
-                except:
-                    detected_type = "TENSOR"
-                    input_data = {"data": str(file_input)}
-            else:
-                # 其他类型，尝试转换为字符串
-                try:
-                    input_data = {"data": str(file_input)}
-                    detected_type = type(file_input).__name__
-                except:
-                    input_data = {"data": repr(file_input)}
-                    detected_type = "UNKNOWN"
+                    error_msg = f"未知的字典类型，键: {list(file_input.keys())}"
 
+            # 处理字符串类型
+            elif isinstance(file_input, str):
+                detected_type = "STRING"
+                # 如果是文件路径，复制到目标位置
+                if os.path.exists(file_input):
+                    directory, filename = parse_target_path(target_path, detected_type, format)
+                    os.makedirs(directory, exist_ok=True)
+                    full_path = os.path.join(directory, filename)
+                    shutil.copy2(file_input, full_path)
+                    saved_path = full_path
+                    print(f"[DataManager] Copied file to: {saved_path}")
+                else:
+                    # 保存为文本文件
+                    directory, filename = parse_target_path(target_path, "STRING", "txt")
+                    os.makedirs(directory, exist_ok=True)
+                    full_path = os.path.join(directory, filename)
+                    with open(full_path, 'w', encoding='utf-8') as f:
+                        f.write(file_input)
+                    saved_path = full_path
+                    print(f"[DataManager] Saved text to: {saved_path}")
+
+            # 处理张量类型
+            elif hasattr(file_input, 'shape'):
+                import torch
+
+                if isinstance(file_input, torch.Tensor):
+                    shape = file_input.shape
+                    print(f"[DataManager] Tensor shape: {shape}, dtype: {file_input.dtype}")
+
+                    if len(shape) == 4:
+                        # 4D 张量
+                        if shape[1] == 3:  # [B, C, H, W]
+                            detected_type = "IMAGE"
+                            tensor_np = file_input.cpu().numpy()[0].transpose(1, 2, 0)
+                        elif shape[3] == 3:  # [B, H, W, C]
+                            detected_type = "IMAGE"
+                            tensor_np = file_input.cpu().numpy()[0]
+                        else:
+                            detected_type = "TENSOR"
+                            error_msg = f"不支持的 4D 张量形状: {shape}"
+
+                        if detected_type == "IMAGE":
+                            directory, filename = parse_target_path(target_path, detected_type, format)
+                            full_path = os.path.join(directory, filename)
+                            saved_path = save_image(tensor_np, full_path, format)
+                            print(f"[DataManager] Saved IMAGE to: {saved_path}")
+
+                    elif len(shape) == 3:
+                        # 3D 张量
+                        if shape[0] == 1:  # [1, H, W] - MASK
+                            detected_type = "MASK"
+                            tensor_np = file_input.cpu().numpy()[0]
+                            directory, filename = parse_target_path(target_path, detected_type, format)
+                            full_path = os.path.join(directory, filename)
+                            saved_path = save_image(tensor_np, full_path, format)
+                            print(f"[DataManager] Saved MASK to: {saved_path}")
+                        elif shape[2] == 3 or shape[2] == 4:  # [H, W, C] - IMAGE
+                            detected_type = "IMAGE"
+                            tensor_np = file_input.cpu().numpy()
+                            directory, filename = parse_target_path(target_path, detected_type, format)
+                            full_path = os.path.join(directory, filename)
+                            saved_path = save_image(tensor_np, full_path, format)
+                            print(f"[DataManager] Saved IMAGE to: {saved_path}")
+                        else:
+                            detected_type = "TENSOR"
+                            error_msg = f"不支持的 3D 张量形状: {shape}"
+
+                    elif len(shape) == 2:  # [H, W] - MASK
+                        detected_type = "MASK"
+                        tensor_np = file_input.cpu().numpy()
+                        directory, filename = parse_target_path(target_path, detected_type, format)
+                        full_path = os.path.join(directory, filename)
+                        saved_path = save_image(tensor_np, full_path, format)
+                        print(f"[DataManager] Saved MASK to: {saved_path}")
+
+                    else:
+                        detected_type = "TENSOR"
+                        error_msg = f"不支持的张量形状: {shape}"
+
+                elif isinstance(file_input, np.ndarray):
+                    # NumPy 数组处理
+                    shape = file_input.shape
+                    print(f"[DataManager] NumPy shape: {shape}, dtype: {file_input.dtype}")
+
+                    if len(shape) == 4 and shape[1] == 3:  # [B, C, H, W]
+                        detected_type = "IMAGE"
+                        tensor_np = file_input[0].transpose(1, 2, 0)
+                    elif len(shape) == 4 and shape[3] == 3:  # [B, H, W, C]
+                        detected_type = "IMAGE"
+                        tensor_np = file_input[0]
+                    elif len(shape) == 3 and shape[0] == 1:  # [1, H, W] - MASK
+                        detected_type = "MASK"
+                        tensor_np = file_input[0]
+                    elif len(shape) == 3 and (shape[2] == 3 or shape[2] == 4):  # [H, W, C] - IMAGE
+                        detected_type = "IMAGE"
+                        tensor_np = file_input
+                    elif len(shape) == 2:  # [H, W] - MASK
+                        detected_type = "MASK"
+                        tensor_np = file_input
+                    else:
+                        detected_type = "TENSOR"
+                        error_msg = f"不支持的 NumPy 形状: {shape}"
+
+                    if detected_type in ("IMAGE", "MASK"):
+                        directory, filename = parse_target_path(target_path, detected_type, format)
+                        full_path = os.path.join(directory, filename)
+                        saved_path = save_image(tensor_np, full_path, format)
+                        print(f"[DataManager] Saved {detected_type} to: {saved_path}")
+
+            # 其他类型，转为字符串保存
+            else:
+                detected_type = type(file_input).__name__
+                directory, filename = parse_target_path(target_path, "DATA", "txt")
+                os.makedirs(directory, exist_ok=True)
+                full_path = os.path.join(directory, filename)
+                with open(full_path, 'w', encoding='utf-8') as f:
+                    f.write(str(file_input))
+                saved_path = full_path
+                print(f"[DataManager] Saved as text to: {saved_path}")
+
+        except Exception as e:
+            error_msg = str(e)
+            import traceback
+            traceback.print_exc()
+
+        # 构建返回结果
         config = {
             "type": "input",
             "target_path": target_path,
             "detected_type": detected_type,
             "format": format,
-            "file_data": input_data,
+            "saved_path": saved_path,
+            "status": "success" if saved_path else "error",
+            "error": error_msg
         }
         return io.NodeOutput(json.dumps(config, ensure_ascii=False))
-
 
 class OutputPathConfig(io.ComfyNode):
     """输出路径配置节点 - 配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口）"""
@@ -357,7 +646,6 @@ class OutputPathConfig(io.ComfyNode):
                     default="./input",
                     multiline=False,
                 ),
-                # 使用 MultiType 实现真正的动态端口，支持所有 ComfyUI 数据类型
                 io.MultiType.Input(
                     "input",
                     ALL_SUPPORTED_TYPES,
@@ -375,63 +663,8 @@ class OutputPathConfig(io.ComfyNode):
         source_path: str,
         input = None
     ) -> io.NodeOutput:
-        """根据文件路径加载文件并输出（支持动态类型输入，自动识别类型）
-
-        Args:
-            source_path: 源目录路径
-            input: 动态类型输入（可以是 IMAGE、STRING、LATENT、MASK、MODEL、VAE、VIDEO、AUDIO 等）
-
-        Returns:
-            根据配置输出的数据
-        """
-        # 解析文件路径或数据
-        file_path = None
-        file_data = None
-        detected_type = "unknown"
-
-        if input is not None and input != "":
-            if isinstance(input, dict):
-                # 处理字典类型配置
-                if "path" in input:
-                    file_path = input["path"]
-                    detected_type = "DICT_PATH"
-                if "detected_type" in input:
-                    detected_type = input["detected_type"]
-                file_data = input
-            elif isinstance(input, str):
-                # 字符串类型，尝试解析为 JSON
-                try:
-                    parsed = json.loads(input)
-                    if isinstance(parsed, dict):
-                        if "path" in parsed:
-                            file_path = parsed["path"]
-                        file_data = parsed
-                        detected_type = "DICT_JSON"
-                    else:
-                        file_path = input
-                        detected_type = "STRING"
-                except:
-                    file_path = input
-                    detected_type = "STRING"
-            else:
-                # 其他类型，直接透传
-                file_data = input
-                detected_type = type(input).__name__
-
-        # 如果有文件路径且是图像类型，尝试加载
-        if file_path and detected_type in ["IMAGE", "DICT_PATH", "DICT_JSON", "STRING"]:
-            # 尝试加载图像：返回 ComfyUI 图像格式
-            try:
-                from nodes import LoadImageNode
-                loader = LoadImageNode()
-                result = loader.load_image(file_path)
-                return io.NodeOutput(result[0])  # 返回 IMAGE 类型
-            except Exception:
-                # 加载失败，返回文件路径字符串
-                return io.NodeOutput(file_path)
-        else:
-            # 返回文件路径字符串或原始数据
-            return io.NodeOutput(file_path or (str(input) if input else ""))
+        """根据文件路径加载文件并输出"""
+        return io.NodeOutput(source_path or (str(input) if input else ""))
 
 
 class DataManagerExtension(ComfyExtension):
@@ -447,10 +680,6 @@ class DataManagerExtension(ComfyExtension):
         ]
 
 
-# V3 API 入口点
 async def comfy_entrypoint() -> DataManagerExtension:
-    """ComfyUI V3 入口点
-
-    这是 ComfyUI 加载扩展时调用的函数
-    """
+    """ComfyUI V3 入口点"""
     return DataManagerExtension()
