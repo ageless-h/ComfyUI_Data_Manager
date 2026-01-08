@@ -29,6 +29,7 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     """保存 ComfyUI 图像张量到文件
 
     支持格式: PNG, JPG/JPEG, WebP, BMP, TIFF/TIF, GIF
+    支持通道: RGB (3通道), RGBA (4通道), 灰度 (1通道)
 
     Args:
         tensor: ComfyUI 图像张量 (Numpy array, shape: [H, W, C] 或 [B, H, W, C])
@@ -66,13 +67,24 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     if tensor.dtype != np.uint8:
         tensor = (tensor * 255).astype(np.uint8)
 
-    # 转换为 PIL Image
+    # 转换为 PIL Image，根据通道数选择模式
     if len(tensor.shape) == 2:
-        # 灰度图像
+        # 灰度图像 [H, W]
         img = Image.fromarray(tensor, 'L')
-    else:
-        # RGB 图像
+    elif tensor.shape[2] == 1:
+        # 灰度图像 [H, W, 1]
+        img = Image.fromarray(tensor[:, :, 0], 'L')
+    elif tensor.shape[2] == 2:
+        # 灰度 + Alpha [H, W, 2]
+        img = Image.fromarray(tensor[:, :, 0], 'L')
+    elif tensor.shape[2] == 3:
+        # RGB 图像 [H, W, 3]
         img = Image.fromarray(tensor, 'RGB')
+    elif tensor.shape[2] == 4:
+        # RGBA 图像 [H, W, 4]
+        img = Image.fromarray(tensor, 'RGBA')
+    else:
+        raise ValueError(f"不支持的通道数: {tensor.shape[2]}")
 
     # 保存图像
     os.makedirs(Path(file_path).parent, exist_ok=True)
@@ -104,6 +116,13 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     elif pil_format == "PNG":
         # PNG 可以使用压缩
         save_kwargs["optimize"] = True
+
+    # JPEG 和 BMP 不支持透明通道，如果是 RGBA 需要转换为 RGB
+    if pil_format in ["JPEG", "JPG", "BMP"] and img.mode == "RGBA":
+        # 创建白色背景
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[3])  # 使用 alpha 通道作为掩码
+        img = background
 
     img.save(file_path, pil_format, **save_kwargs)
 
