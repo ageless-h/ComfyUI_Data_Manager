@@ -290,6 +290,128 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
     return file_path
 
 
+# ============================================================================
+# 音频保存功能
+# ============================================================================
+
+def save_audio(data: Any, file_path: str, format: str = "mp3") -> str:
+    """保存 ComfyUI 音频数据到文件
+
+    支持格式: MP3, WAV, FLAC, OGG
+
+    Args:
+        data: ComfyUI 音频数据，格式为 {"waveform": Tensor, "sample_rate": int}
+        file_path: 目标文件路径
+        format: 音频格式 (mp3, wav, flac, ogg)
+
+    Returns:
+        保存后的完整文件路径
+    """
+    # 解析格式字符串
+    if " - " in format:
+        format = format.split(" - ")[-1].lower()
+    else:
+        format = format.lower()
+
+    # 确保 file_path 有正确的扩展名
+    path = Path(file_path)
+    if path.suffix.lower() != f".{format}":
+        file_path = str(path.with_suffix(f".{format}"))
+
+    # 创建目录
+    os.makedirs(Path(file_path).parent, exist_ok=True)
+
+    # 提取音频数据
+    # ComfyUI Audio 格式: {"waveform": Tensor, "sample_rate": int}
+    if isinstance(data, dict):
+        if "waveform" in data:
+            waveform = data["waveform"]
+            sample_rate = data.get("sample_rate", 44100)
+        else:
+            raise ValueError(f"音频数据缺少 'waveform' 键，包含的键: {list(data.keys())}")
+    else:
+        raise ValueError(f"不支持的音频数据类型: {type(data)}")
+
+    # 转换为 numpy
+    if hasattr(waveform, 'cpu'):  # torch.Tensor
+        waveform_np = waveform.cpu().numpy()
+    else:
+        waveform_np = waveform
+
+    # 转换为 float32 并归一化到 [-1, 1] 范围
+    if waveform_np.dtype != np.float32:
+        waveform_np = waveform_np.astype(np.float32)
+
+    # 确保波形在 [-1, 1] 范围内
+    if np.abs(waveform_np).max() > 1.0:
+        waveform_np = waveform_np / np.abs(waveform_np).max()
+
+    # PyAV 保存音频
+    try:
+        import av
+    except ImportError:
+        raise ImportError("PyAV (av) 未安装，无法保存音频。请运行: pip install av")
+
+    # 格式对应的编码器配置
+    codec_map = {
+        "mp3": "libmp3lame",
+        "wav": "pcm_s16le",
+        "flac": "flac",
+        "ogg": "libvorbis",
+    }
+
+    if format not in codec_map:
+        raise ValueError(f"不支持的音频格式: {format}")
+
+    codec = codec_map[format]
+
+    print(f"[DataManager] Saving audio: format={format}, codec={codec}, sample_rate={sample_rate}")
+
+    # 处理批次维度
+    if len(waveform_np.shape) == 3:
+        # [B, C, T] -> 取第一个批次
+        waveform_np = waveform_np[0]
+
+    # 确保是 [C, T] 格式 (通道数, 样本数)
+    if len(waveform_np.shape) != 2:
+        raise ValueError(f"不支持的音频形状: {waveform_np.shape}，期望 [C, T] 格式")
+
+    num_channels = waveform_np.shape[0]
+    num_samples = waveform_np.shape[1]
+
+    # 转置为 [T, C] 格式（PyAV 要求）
+    waveform_np = waveform_np.T
+
+    # 创建输出容器
+    output_container = av.open(file_path, mode="w")
+    stream = output_container.add_stream(codec, rate=sample_rate, layout="mono" if num_channels == 1 else "stereo")
+
+    # 设置 MP3 编码质量
+    if format == "mp3":
+        stream.codec_context.qscale = 2  # 高质量 (0-9, 越小质量越高)
+
+    # 分帧写入音频
+    frame_size = 1024
+    for i in range(0, num_samples, frame_size):
+        frame = av.AudioFrame.from_ndarray(
+            waveform_np[i:i + frame_size],
+            format="flt",
+            layout="mono" if num_channels == 1 else "stereo"
+        )
+        frame.sample_rate = sample_rate
+        for packet in stream.encode(frame):
+            output_container.mux(packet)
+
+    # 写入剩余的帧
+    for packet in stream.encode():
+        output_container.mux(packet)
+
+    output_container.close()
+    print(f"[DataManager] Audio saved successfully: {file_path}")
+
+    return file_path
+
+
 def parse_target_path(target_path: str, detected_type: str, format: str) -> Tuple[str, str]:
     """解析目标路径，返回目录和文件名
 
@@ -720,6 +842,16 @@ class InputPathConfig(io.ComfyNode):
                         full_path = os.path.join(directory, filename)
                         saved_path = save_image(tensor_np, full_path, format)
                         print(f"[DataManager] Saved {detected_type} to: {saved_path}")
+
+            # 处理音频类型 - ComfyUI Audio 格式: {"waveform": Tensor, "sample_rate": int}
+            elif isinstance(file_input, dict) and "waveform" in file_input:
+                detected_type = "AUDIO"
+                print(f"[DataManager] Detected AUDIO type")
+
+                directory, filename = parse_target_path(target_path, detected_type, format)
+                full_path = os.path.join(directory, filename)
+                saved_path = save_audio(file_input, full_path, format)
+                print(f"[DataManager] Saved AUDIO to: {saved_path}")
 
             # 处理视频类型 - 使用属性检测而不是 isinstance(io.Video)
             # 因为 io.Video 只是类型标记，实际数据是 VideoInput 或 VideoComponents
