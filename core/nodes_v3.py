@@ -38,6 +38,12 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     Returns:
         保存后的完整文件路径
     """
+    # 解析格式字符串：如果是 "类型 - 格式" 格式，提取出格式名
+    if " - " in format:
+        format = format.split(" - ")[-1].lower()
+    else:
+        format = format.lower()
+
     try:
         from PIL import Image
     except ImportError:
