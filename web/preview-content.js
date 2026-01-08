@@ -211,6 +211,10 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                 }
             }
         }
+        // 表格预览
+        else if (FILE_TYPES.spreadsheet.exts.includes(ext)) {
+            previewHTML = await createSpreadsheetPreviewHTML(path, ext);
+        }
         // 其他文件
         else {
             const icon = FILE_TYPES[getFileType({ name: path })]?.icon || FILE_TYPES.unknown.icon;
@@ -378,4 +382,179 @@ function highlightGeneric(code) {
     return code.replace(comments, `<span style="color: ${CODE_COLORS.comment};">$&</span>`)
         .replace(strings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
         .replace(numbers, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
+}
+
+/**
+ * 创建表格预览 HTML（CSV/Excel）
+ */
+async function createSpreadsheetPreviewHTML(path, ext) {
+    const fileUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+
+    try {
+        // CSV 文件直接解析
+        if (ext === '.csv') {
+            const response = await fetch(fileUrl);
+            if (!response.ok) throw new Error('Failed to load CSV');
+
+            const text = await response.text();
+            const rows = parseCSV(text);
+
+            if (rows.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 40px; color: #888;">
+                        <i class="pi pi-table" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div style="margin-top: 10px; color: #888; font-size: 12px;">空表格文件</div>
+                    </div>
+                `;
+            }
+
+            return createTableHTML(rows, 100);
+        }
+
+        // Excel 文件使用 SheetJS 解析
+        if (ext === '.xls' || ext === '.xlsx') {
+            // 检查 xlsx 库是否已加载
+            if (typeof XLSX === 'undefined') {
+                await loadScript('https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js');
+            }
+
+            const response = await fetch(fileUrl);
+            if (!response.ok) throw new Error('Failed to load Excel');
+
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+            // 读取第一个工作表
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+
+            // 转换为二维数组
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            if (rows.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 40px; color: #888;">
+                        <i class="pi pi-table" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div style="margin-top: 10px; color: #888; font-size: 12px;">空表格文件</div>
+                    </div>
+                `;
+            }
+
+            return createTableHTML(rows, 100);
+        }
+
+        // 其他表格格式不支持预览
+        return `
+            <div style="text-align: center; padding: 40px; color: #888;">
+                <i class="pi pi-table" style="font-size: 64px; color: #27ae60; margin-bottom: 15px;"></i>
+                <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                <div style="margin-top: 10px; color: #888; font-size: 12px;">此格式暂不支持预览</div>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('[DataManager] Spreadsheet preview error:', error);
+        return `
+            <div style="text-align: center; padding: 40px; color: #888;">
+                <i class="pi pi-exclamation-triangle" style="font-size: 48px; color: #e74c3c;"></i>
+                <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
+                <div style="margin-top: 10px; color: #e74c3c; font-size: 12px;">预览加载失败</div>
+                <div style="margin-top: 5px; color: #666; font-size: 11px;">${error.message}</div>
+            </div>
+        `;
+    }
+}
+
+/**
+ * 解析 CSV 文本
+ */
+function parseCSV(text) {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (inQuotes) {
+            if (char === '"') {
+                if (nextChar === '"') {
+                    currentCell += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                currentCell += char;
+            }
+        } else {
+            if (char === '"') {
+                inQuotes = true;
+            } else if (char === ',') {
+                currentRow.push(currentCell);
+                currentCell = '';
+            } else if (char === '\r' && nextChar === '\n') {
+                currentRow.push(currentCell);
+                rows.push(currentRow);
+                currentRow = [];
+                currentCell = '';
+                i++;
+            } else if (char === '\n') {
+                currentRow.push(currentCell);
+                rows.push(currentRow);
+                currentRow = [];
+                currentCell = '';
+            } else if (char !== '\r') {
+                currentCell += char;
+            }
+        }
+    }
+
+    currentRow.push(currentCell);
+    if (currentRow.length > 0 || rows.length > 0) {
+        rows.push(currentRow);
+    }
+
+    return rows;
+}
+
+/**
+ * 创建表格 HTML
+ */
+function createTableHTML(rows, maxRows = 100) {
+    const displayRows = rows.slice(0, maxRows);
+    const isTruncated = rows.length > maxRows;
+
+    let tableHTML = '<div style="width: 100%; height: 100%; overflow: auto; background: #1e1e1e; padding: 15px;">';
+    tableHTML += '<table style="width: 100%; border-collapse: collapse; font-size: 12px; color: #d4d4d4;">';
+
+    displayRows.forEach((row, rowIndex) => {
+        const isHeader = rowIndex === 0;
+        tableHTML += '<tr>';
+
+        row.forEach(cell => {
+            const cellContent = escapeHtml(String(cell || ''));
+            if (isHeader) {
+                tableHTML += `<th style="background: #2d2d2d; border: 1px solid #3a3a3a; padding: 8px 12px; text-align: left; font-weight: 600; color: #fff;">${cellContent}</th>`;
+            } else {
+                tableHTML += `<td style="border: 1px solid #3a3a3a; padding: 8px 12px;">${cellContent}</td>`;
+            }
+        });
+
+        tableHTML += '</tr>';
+    });
+
+    tableHTML += '</table>';
+
+    if (isTruncated) {
+        tableHTML += `<div style="text-align: center; padding: 10px; color: #888; font-size: 11px;">... (仅显示前 ${maxRows} 行，共 ${rows.length} 行)</div>`;
+    }
+
+    tableHTML += '</div>';
+
+    return tableHTML;
 }
