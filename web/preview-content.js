@@ -54,7 +54,7 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                 </div>
             `;
         }
-        // 视频预览
+        // 视频预览（浏览器支持）
         else if (FILE_TYPES.video.exts.includes(ext)) {
             const videoUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             const videoId = `dm-preview-video-${Date.now()}`;
@@ -66,6 +66,24 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                         <source src="${videoUrl}">
                         您的浏览器不支持视频播放
                     </video>
+                </div>
+            `;
+        }
+        // 外部视频格式预览（需要外部播放器）
+        else if (FILE_TYPES.videoExternal && FILE_TYPES.videoExternal.exts.includes(ext)) {
+            const extUpper = ext.toUpperCase().replace('.', '');
+            previewHTML = `
+                <div style="text-align: center; padding: 40px; color: #888;">
+                    <i class="pi pi-video" style="font-size: 64px; color: #8e44ad; margin-bottom: 15px;"></i>
+                    <div style="color: #fff; font-size: 16px; margin-bottom: 8px;">${path.split(/[\\/]/).pop()}</div>
+                    <div style="color: #8e44ad; font-size: 14px; font-weight: 600; margin-bottom: 15px;">${extUpper} 格式</div>
+                    <div style="margin-top: 10px; color: #666; font-size: 12px; max-width: 300px; margin-left: auto; margin-right: auto;">
+                        此格式需要使用外部播放器打开<br>
+                        <span style="color: #888;">（VLC、Windows Media Player 等）</span>
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: #2a2a2a; border-radius: 6px; font-size: 11px; color: #aaa;">
+                        提示：点击下方"打开"按钮可用外部播放器播放
+                    </div>
                 </div>
             `;
         }

@@ -10,9 +10,16 @@ export const FILE_TYPES = {
         color: '#e74c3c'
     },
     video: {
-        exts: ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv'],
+        // 浏览器可预览的视频格式
+        exts: ['.mp4', '.webm', '.mov', '.mkv'],
         icon: 'pi-video',
         color: '#9b59b6'
+    },
+    // 外部播放器格式的视频（AVI 等需要外部播放器）
+    videoExternal: {
+        exts: ['.avi'],
+        icon: 'pi-video',
+        color: '#8e44ad'
     },
     audio: {
         exts: ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.wma', '.m4a'],
