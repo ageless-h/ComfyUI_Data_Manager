@@ -242,14 +242,17 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
         # 获取帧尺寸
         height, width = frames_np.shape[1:3]
 
+        # FLV 格式不支持（Flash 已过时）
+        if format == "flv":
+            raise NotImplementedError("FLV 格式暂时不支持（Flash 已过时）。建议使用 MP4、AVI、MKV 或 WebM 格式。")
+
         # 四位数的 fourcc - 使用更兼容的编码器
         fourcc_map = {
             "mp4": "avc1",      # H.264 编码，广泛兼容
-            "avi": "XVID",      # 经典 AVI 编码
+            "avi": "MJPG",      # Motion JPEG，Windows 兼容性好
             "mov": "avc1",      # MOV 使用 H.264
-            "mkv": "avc1",      # MKV 使用 H.264
-            "flv": "FLV1",      # Flash 视频
-            "webm": "VP80",     # WebM 视频
+            "mkv": "H264",      # MKV 使用 H264（注意：不是 avc1）
+            "webm": "VP90",     # VP9 编码器（更现代）
         }
 
         # 尝试使用指定的 fourcc，如果失败则使用默认
@@ -313,7 +316,7 @@ TYPE_FORMAT_MAP = {
         "description": "图像格式"
     },
     "VIDEO": {
-        "formats": ["mp4", "webm", "avi", "mov", "mkv", "flv"],
+        "formats": ["mp4", "webm", "avi", "mov", "mkv"],
         "default": "mp4",
         "description": "视频格式"
     },
