@@ -528,9 +528,16 @@ function parseCSV(text) {
 function createTableHTML(rows, maxRows = 100) {
     const displayRows = rows.slice(0, maxRows);
     const isTruncated = rows.length > maxRows;
+    const tableId = `dm-floating-table-${Date.now()}`;
 
-    let tableHTML = '<div style="width: 100%; height: 100%; overflow: auto; background: #1e1e1e; padding: 15px;">';
-    tableHTML += '<table style="width: 100%; border-collapse: collapse; font-size: 12px; color: #d4d4d4;">';
+    let tableHTML = `
+        <div style="display: flex; flex-direction: column; gap: 0; height: 100%;">
+            <div style="position: relative; background: #1e1e1e; flex: 1; overflow: hidden;">
+                <div id="${tableId}-wrapper" class="dm-table-wrapper"
+                     style="width: 100%; height: 100%; overflow: auto; padding: 15px;">
+                    <table id="${tableId}" class="dm-data-table"
+                           style="width: 100%; border-collapse: collapse; font-size: 12px; color: #d4d4d4; transform-origin: top left;">
+    `;
 
     displayRows.forEach((row, rowIndex) => {
         const isHeader = rowIndex === 0;
@@ -548,13 +555,80 @@ function createTableHTML(rows, maxRows = 100) {
         tableHTML += '</tr>';
     });
 
-    tableHTML += '</table>';
+    tableHTML += `
+                    </table>
+                </div>
+            </div>
+            <div id="${tableId}-controls" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #252525; flex-shrink: 0;">
+                <button class="comfy-btn dm-table-zoom-out-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="缩小">
+                    <i class="pi pi-search-minus"></i>
+                </button>
+                <span id="${tableId}-zoom" style="color: #aaa; font-size: 11px; min-width: 45px; text-align: center;">100%</span>
+                <button class="comfy-btn dm-table-zoom-in-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="放大">
+                    <i class="pi pi-search-plus"></i>
+                </button>
+                <button class="comfy-btn dm-table-fit-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="自动缩放">
+                    <i class="pi pi-arrows-alt"></i>
+                </button>
+            </div>
+        </div>
+    `;
 
     if (isTruncated) {
-        tableHTML += `<div style="text-align: center; padding: 10px; color: #888; font-size: 11px;">... (仅显示前 ${maxRows} 行，共 ${rows.length} 行)</div>`;
+        tableHTML = tableHTML.replace(`</div>`, `<div style="text-align: center; padding: 10px; color: #888; font-size: 11px;">... (仅显示前 ${maxRows} 行，共 ${rows.length} 行)</div></div>`);
     }
 
-    tableHTML += '</div>';
+    // 延迟设置控件
+    setTimeout(() => setupFloatingTableControls(tableId), 0);
 
     return tableHTML;
+}
+
+/**
+ * 设置浮动窗口表格控件
+ */
+function setupFloatingTableControls(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    let zoom = 100;
+    const wrapper = document.getElementById(`${tableId}-wrapper`);
+    const zoomDisplay = document.getElementById(`${tableId}-zoom`);
+    const zoomInBtn = document.querySelector(`.dm-table-zoom-in-btn[data-table-id="${tableId}"]`);
+    const zoomOutBtn = document.querySelector(`.dm-table-zoom-out-btn[data-table-id="${tableId}"]`);
+    const fitBtn = document.querySelector(`.dm-table-fit-btn[data-table-id="${tableId}"]`);
+
+    function updateZoom() {
+        table.style.transform = `scale(${zoom / 100})`;
+        if (zoomDisplay) zoomDisplay.textContent = `${zoom}%`;
+        // 调整 wrapper 宽度以适应缩放
+        if (wrapper) {
+            wrapper.style.width = zoom > 100 ? `${zoom}%` : '100%';
+        }
+    }
+
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', () => {
+            zoom = Math.min(zoom + 25, 300);
+            updateZoom();
+        });
+    }
+
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', () => {
+            zoom = Math.max(zoom - 25, 25);
+            updateZoom();
+        });
+    }
+
+    if (fitBtn) {
+        fitBtn.addEventListener('click', () => {
+            // 自动缩放以适应容器
+            const containerWidth = wrapper?.clientWidth || 400;
+            const tableWidth = table.scrollWidth;
+            const newZoom = Math.min(Math.floor((containerWidth / tableWidth) * 100), 100);
+            zoom = Math.max(newZoom, 25);
+            updateZoom();
+        });
+    }
 }
