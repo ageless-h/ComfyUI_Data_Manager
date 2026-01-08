@@ -391,12 +391,13 @@ class InputPathConfig(io.ComfyNode):
 
     @classmethod
     def define_schema(cls) -> io.Schema:
-        # 收集所有可能的格式选项
+        # 收集所有可能的格式选项，按类型分组显示
         all_formats = []
-        for type_config in TYPE_FORMAT_MAP.values():
-            all_formats.extend(type_config["formats"])
-        # 去重并排序
-        all_formats = sorted(set(all_formats))
+        for type_name, type_config in TYPE_FORMAT_MAP.items():
+            type_desc = type_config["description"]
+            for fmt in type_config["formats"]:
+                # 格式：类型 - 格式名 (例如: 图像格式 - PNG)
+                all_formats.append(f"{type_desc} - {fmt.upper()}")
 
         return io.Schema(
             node_id="InputPathConfig",
@@ -409,11 +410,11 @@ class InputPathConfig(io.ComfyNode):
                     default="./output",
                     multiline=False,
                 ),
-                # 格式选择（根据输入类型自动筛选可用的格式）
+                # 格式选择（按类型分组显示）
                 io.Combo.Input(
                     "format",
                     options=all_formats,
-                    default="png",
+                    default="图像格式 - PNG",
                 ),
                 # 使用 MultiType 实现真正的动态端口，支持所有 ComfyUI 数据类型
                 io.MultiType.Input(
@@ -438,13 +439,19 @@ class InputPathConfig(io.ComfyNode):
 
         Args:
             target_path: 目标保存路径（可以是目录或完整文件路径）
-            format: 输出文件格式（如 png、jpg、webp、mp4、mp3 等）
+            format: 输出文件格式（如 "图像格式 - PNG" 或直接的 "png"）
             file_input: 动态类型输入（自动识别类型：IMAGE、STRING、LATENT、MASK、MODEL、VAE、VIDEO、AUDIO 等）
 
         Returns:
             JSON 格式的保存结果信息
         """
-        print(f"[DataManager] Saving file: {target_path}")
+        # 解析格式字符串：如果是 "类型 - 格式" 格式，提取出格式名
+        if " - " in format:
+            format = format.split(" - ")[-1].lower()
+        else:
+            format = format.lower()
+
+        print(f"[DataManager] Saving file: {target_path}, format: {format}")
 
         detected_type = "unknown"
         saved_path = None
