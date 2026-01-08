@@ -172,3 +172,40 @@ def create_directory(directory: str, dirname: str) -> str:
     os.makedirs(dir_path)
 
     return dir_path
+
+
+def delete_file(file_path: str, use_trash: bool = True) -> bool:
+    """删除文件或文件夹
+
+    Args:
+        file_path: 文件或文件夹路径
+        use_trash: 是否移动到回收站（True）还是永久删除（False）
+
+    Returns:
+        是否成功删除
+
+    Raises:
+        FileNotFoundError: 文件不存在
+        PermissionError: 无删除权限
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"文件不存在: {file_path}")
+
+    if use_trash:
+        try:
+            # 使用 send2trash 模块移动到回收站
+            import send2trash
+            send2trash.send2trash(file_path)
+            return True
+        except ImportError:
+            # 如果 send2trash 不可用，记录警告并使用永久删除
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("[DataManager] send2trash not available, using permanent delete")
+
+    if os.path.isdir(file_path):
+        shutil.rmtree(file_path)
+    else:
+        os.remove(file_path)
+
+    return True

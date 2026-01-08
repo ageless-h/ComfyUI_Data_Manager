@@ -88,3 +88,23 @@ export async function createDirectory(directory, dirname) {
     const error = await response.json().catch(() => ({ error: "Unknown error" }));
     throw new Error(error.error || error.message || 'Failed to create directory');
 }
+
+/**
+ * 删除文件或文件夹
+ * @param {string} path - 文件或文件夹路径
+ * @param {boolean} useTrash - 是否移动到回收站（默认 true）
+ * @returns {Promise<object>} 删除结果
+ */
+export async function deleteFile(path, useTrash = true) {
+    const response = await fetch("/dm/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path, use_trash: useTrash })
+    });
+
+    if (response && response.ok) {
+        return await response.json();
+    }
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(error.error || error.message || 'Failed to delete file');
+}

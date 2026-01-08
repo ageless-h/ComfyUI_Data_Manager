@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from ...utils import save_file, create_file, create_directory
+from ...utils import save_file, create_file, create_directory, delete_file
 
 
 async def save_file_handler(request):
@@ -173,6 +173,58 @@ async def create_directory_handler(request):
         }, status=500)
 
 
+async def delete_file_handler(request):
+    """删除文件或文件夹
+
+    POST /dm/delete
+    Body: {
+        "path": "./output/image.png",
+        "use_trash": true
+    }
+    """
+    try:
+        data = await request.json()
+        path = data.get("path", "")
+        use_trash = data.get("use_trash", True)
+
+        if not path:
+            return web.json_response({
+                "error": "Path is required"
+            }, status=400)
+
+        # 规范化路径
+        if not os.path.isabs(path):
+            import folder_paths
+            comfy_root = os.path.dirname(folder_paths.__file__)
+            path = os.path.abspath(os.path.join(comfy_root, path))
+
+        # 删除文件
+        delete_file(path, use_trash)
+
+        return web.json_response({
+            "success": True,
+            "path": path
+        })
+
+    except FileNotFoundError as e:
+        return web.json_response({
+            "error": "File not found",
+            "message": str(e)
+        }, status=404)
+
+    except PermissionError as e:
+        return web.json_response({
+            "error": "Permission denied",
+            "message": str(e)
+        }, status=403)
+
+    except Exception as e:
+        logger.error(f"[DataManager] delete_file error: {e}")
+        return web.json_response({
+            "error": str(e)
+        }, status=500)
+
+
 def register_operation_routes(server):
     """注册文件操作路由
 
@@ -185,6 +237,7 @@ def register_operation_routes(server):
             server.routes.post("/dm/save")(save_file_handler)
             server.routes.post("/dm/create/file")(create_file_handler)
             server.routes.post("/dm/create/directory")(create_directory_handler)
+            server.routes.post("/dm/delete")(delete_file_handler)
             logger.info("[DataManager] Operation routes registered (PromptServer.routes)")
             return
         except Exception as e:
@@ -196,4 +249,5 @@ def register_operation_routes(server):
         app.router.add_post("/dm/save", save_file_handler)
         app.router.add_post("/dm/create/file", create_file_handler)
         app.router.add_post("/dm/create/directory", create_directory_handler)
+        app.router.add_post("/dm/delete", delete_file_handler)
         logger.info("[DataManager] Operation routes registered (app.router fallback)")

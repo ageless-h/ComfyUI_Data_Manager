@@ -19,7 +19,7 @@ import { createFileManagerWindow } from './ui-window.js';
 import { loadDirectory, toggleSort, navigateUp, navigateHome } from './ui-actions.js';
 
 // 导入 API 模块
-import { createFile as apiCreateFile, createDirectory as apiCreateDirectory } from './api-index.js';
+import { createFile as apiCreateFile, createDirectory as apiCreateDirectory, deleteFile as apiDeleteFile } from './api-index.js';
 
 // 导入浮动窗口模块
 import { openFloatingPreview, closeFloatingPreview, toggleFullscreen, restoreFloatingPreview } from './floating-window.js';
@@ -321,7 +321,7 @@ async function createNewFolder() {
 /**
  * 删除选中文件
  */
-function deleteSelectedFiles() {
+async function deleteSelectedFiles() {
     let filesToDelete = [];
 
     // 优先使用当前预览文件
@@ -338,19 +338,18 @@ function deleteSelectedFiles() {
 
     if (!confirm(`确定要删除 ${filesToDelete.length} 个项目吗？`)) return;
 
-    const { shell } = require('electron');
     let deletedCount = 0;
+    let errorCount = 0;
 
-    filesToDelete.forEach(path => {
+    for (const path of filesToDelete) {
         try {
-            const stat = require('fs').statSync(path);
-            if (stat.isDirectory()) shell.trashItem(path);
-            else require('fs').unlinkSync(path);
+            await apiDeleteFile(path, true);
             deletedCount++;
-        } catch (err) {
-            console.error(`删除失败: ${path}`, err);
+        } catch (error) {
+            console.error(`删除失败: ${path}`, error);
+            errorCount++;
         }
-    });
+    }
 
     // 清空当前预览文件
     if (FileManagerState.currentPreviewFile) {
@@ -372,8 +371,13 @@ function deleteSelectedFiles() {
         }
     }
 
-    loadDirectory(FileManagerState.currentPath);
-    showToast("success", "成功", `已删除 ${deletedCount} 个项目`);
+    await loadDirectory(FileManagerState.currentPath);
+
+    if (errorCount > 0) {
+        showToast("error", "部分失败", `已删除 ${deletedCount} 个项目，失败 ${errorCount} 个`);
+    } else {
+        showToast("success", "成功", `已删除 ${deletedCount} 个项目`);
+    }
 
     // 只清空选中的文件列表（不是当前预览文件的情况）
     if (!FileManagerState.currentPreviewFile) {
@@ -384,12 +388,16 @@ function deleteSelectedFiles() {
 /**
  * 复制路径到剪贴板
  */
-function copySelectedPaths() {
+async function copySelectedPaths() {
     // 优先使用当前预览文件
     if (FileManagerState.currentPreviewFile) {
-        const { clipboard } = require('electron');
-        clipboard.writeText(FileManagerState.currentPreviewFile);
-        showToast("success", "成功", `已复制文件路径`);
+        try {
+            await navigator.clipboard.writeText(FileManagerState.currentPreviewFile);
+            showToast("success", "成功", `已复制文件路径`);
+        } catch (error) {
+            console.error("复制失败:", error);
+            showToast("error", "错误", "复制失败，请检查浏览器权限");
+        }
         return;
     }
 
@@ -399,9 +407,13 @@ function copySelectedPaths() {
         return;
     }
 
-    const { clipboard } = require('electron');
-    clipboard.writeText(FileManagerState.selectedFiles.join('\n'));
-    showToast("success", "成功", `已复制 ${FileManagerState.selectedFiles.length} 个路径`);
+    try {
+        await navigator.clipboard.writeText(FileManagerState.selectedFiles.join('\n'));
+        showToast("success", "成功", `已复制 ${FileManagerState.selectedFiles.length} 个路径`);
+    } catch (error) {
+        console.error("复制失败:", error);
+        showToast("error", "错误", "复制失败，请检查浏览器权限");
+    }
 }
 
 // ============================================
