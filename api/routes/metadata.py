@@ -18,6 +18,65 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+# ============================================================================
+# MIME 类型映射表（扩展名 -> content-type）
+# ============================================================================
+
+MIME_TYPE_MAP = {
+    # 图像格式
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.bmp': 'image/bmp',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.tiff': 'image/tiff',
+    '.tif': 'image/tiff',
+    '.avif': 'image/avif',
+    '.heic': 'image/heic',
+    '.heif': 'image/heif',
+    '.tga': 'image/x-targa',
+    '.psd': 'image/vnd.adobe.photoshop',
+    # 音频格式
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.flac': 'audio/flac',
+    '.aac': 'audio/aac',
+    '.ogg': 'audio/ogg',
+    '.wma': 'audio/x-ms-wma',
+    '.m4a': 'audio/mp4',
+    # 视频格式
+    '.mp4': 'video/mp4',
+    '.avi': 'video/x-msvideo',
+    '.mov': 'video/quicktime',
+    '.mkv': 'video/x-matroska',
+    '.webm': 'video/webm',
+    '.flv': 'video/x-flv',
+    # 文档格式
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.txt': 'text/plain',
+}
+
+
+def get_mime_type(ext: str, default: str = 'application/octet-stream') -> str:
+    """获取文件扩展名对应的 MIME 类型
+
+    Args:
+        ext: 文件扩展名（如 ".jpg"）
+        default: 未找到时的默认值
+
+    Returns:
+        MIME 类型字符串
+    """
+    return MIME_TYPE_MAP.get(ext.lower(), default)
+
+
 async def get_categories_handler(request):
     """获取支持的文件类别
 
@@ -119,40 +178,12 @@ async def preview_file_handler(request):
                     # 转换失败，回退到原始文件
                     with open(path, 'rb') as f:
                         content = f.read()
-
-                    content_type_map = {
-                        '.tiff': 'image/tiff',
-                        '.tif': 'image/tiff',
-                        '.avif': 'image/avif',
-                        '.heic': 'image/heic',
-                        '.heif': 'image/heif',
-                        '.tga': 'image/x-targa',
-                        '.psd': 'image/vnd.adobe.photoshop',
-                    }
-                    content_type = content_type_map.get(ext, 'application/octet-stream')
+                    content_type = get_mime_type(ext)
             else:
                 # 直接读取支持的格式
                 with open(path, 'rb') as f:
                     content = f.read()
-
-                # 根据扩展名设置 content type
-                content_type_map = {
-                    '.jpg': 'image/jpeg',
-                    '.jpeg': 'image/jpeg',
-                    '.png': 'image/png',
-                    '.gif': 'image/gif',
-                    '.bmp': 'image/bmp',
-                    '.webp': 'image/webp',
-                    '.svg': 'image/svg+xml',
-                    '.ico': 'image/x-icon',
-                    '.tiff': 'image/tiff',
-                    '.tif': 'image/tiff',
-                    '.avif': 'image/avif',
-                    '.heic': 'image/heic',
-                    '.heif': 'image/heif',
-                    '.tga': 'image/x-targa',
-                }
-                content_type = content_type_map.get(ext, 'application/octet-stream')
+                content_type = get_mime_type(ext)
 
             return web.Response(
                 body=content,
@@ -164,19 +195,9 @@ async def preview_file_handler(request):
             with open(path, 'rb') as f:
                 content = f.read()
 
-            content_type_map = {
-                '.mp3': 'audio/mpeg',
-                '.wav': 'audio/wav',
-                '.flac': 'audio/flac',
-                '.aac': 'audio/aac',
-                '.ogg': 'audio/ogg',
-                '.wma': 'audio/x-ms-wma',
-                '.m4a': 'audio/mp4',
-            }
-
             return web.Response(
                 body=content,
-                content_type=content_type_map.get(ext, 'audio/mpeg')
+                content_type=get_mime_type(ext, 'audio/mpeg')
             )
 
         # 视频文件：返回二进制内容
@@ -184,18 +205,9 @@ async def preview_file_handler(request):
             with open(path, 'rb') as f:
                 content = f.read()
 
-            content_type_map = {
-                '.mp4': 'video/mp4',
-                '.avi': 'video/x-msvideo',
-                '.mov': 'video/quicktime',
-                '.mkv': 'video/x-matroska',
-                '.webm': 'video/webm',
-                '.flv': 'video/x-flv',
-            }
-
             return web.Response(
                 body=content,
-                content_type=content_type_map.get(ext, 'video/mp4')
+                content_type=get_mime_type(ext, 'video/mp4')
             )
 
         # PDF 文件：返回二进制内容（浏览器原生支持）
