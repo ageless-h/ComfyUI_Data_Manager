@@ -12,6 +12,21 @@ from datetime import datetime
 from .formatters import human_readable_size
 
 
+# ============================================================================
+# 文件类别扩展名映射
+# ============================================================================
+
+FILE_CATEGORIES: Dict[str, list] = {
+    "image": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico",
+              ".tiff", ".tif", ".avif", ".heic", ".heif", ".tga", ".psd"],
+    "video": [".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv"],
+    "audio": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a"],
+    "document": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".md"],
+    "code": [".py", ".js", ".html", ".css", ".json", ".xml", ".yaml", ".yml"],
+    "archive": [".zip", ".rar", ".7z", ".tar", ".gz"],
+}
+
+
 def get_file_info(file_path: str) -> Dict[str, Any]:
     """获取文件详细信息（公共接口）
 
@@ -92,16 +107,7 @@ def get_file_category(file_path: str) -> str:
     """
     ext = Path(file_path).suffix.lower()
 
-    categories = {
-        "image": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff", ".tif", ".avif", ".heic", ".heif", ".tga", ".psd"],
-        "video": [".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv"],
-        "audio": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a"],
-        "document": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".md"],
-        "code": [".py", ".js", ".html", ".css", ".json", ".xml", ".yaml", ".yml"],
-        "archive": [".zip", ".rar", ".7z", ".tar", ".gz"],
-    }
-
-    for category, extensions in categories.items():
+    for category, extensions in FILE_CATEGORIES.items():
         if ext in extensions:
             return category
 

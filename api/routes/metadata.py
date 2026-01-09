@@ -9,6 +9,8 @@ import os
 import logging
 import io
 
+from ...utils.info import FILE_CATEGORIES
+
 try:
     from PIL import Image
     PILLOW_AVAILABLE = True
@@ -83,32 +85,23 @@ async def get_categories_handler(request):
     GET /dm/categories
     """
     try:
+        # 类别元信息（图标和颜色）
+        category_meta = {
+            "image": {"icon": "pi-image", "color": "#e74c3c"},
+            "video": {"icon": "pi-video", "color": "#9b59b6"},
+            "audio": {"icon": "pi-volume-up", "color": "#3498db"},
+            "document": {"icon": "pi-file", "color": "#95a5a6"},
+            "code": {"icon": "pi-code", "color": "#1abc9c"},
+        }
+
+        # 合并扩展名和元信息
         categories = {
-            "image": {
-                "extensions": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff", ".tif", ".avif", ".heic", ".heif", ".tga", ".psd"],
-                "icon": "pi-image",
-                "color": "#e74c3c"
-            },
-            "video": {
-                "extensions": [".mp4", ".avi", ".mov", ".mkv", ".webm", ".flv"],
-                "icon": "pi-video",
-                "color": "#9b59b6"
-            },
-            "audio": {
-                "extensions": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a"],
-                "icon": "pi-volume-up",
-                "color": "#3498db"
-            },
-            "document": {
-                "extensions": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".md"],
-                "icon": "pi-file",
-                "color": "#95a5a6"
-            },
-            "code": {
-                "extensions": [".py", ".js", ".html", ".css", ".json", ".xml"],
-                "icon": "pi-code",
-                "color": "#1abc9c"
+            category: {
+                "extensions": FILE_CATEGORIES[category],
+                **meta
             }
+            for category, meta in category_meta.items()
+            if category in FILE_CATEGORIES
         }
 
         return web.json_response({
