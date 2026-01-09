@@ -6,11 +6,14 @@
 
 import os
 import shutil
+import logging
 from pathlib import Path
 from typing import Dict, Any, List
 from datetime import datetime
 
 from .info import _get_file_info, _matches_pattern
+
+logger = logging.getLogger(__name__)
 
 
 def save_file(source: Any, target_dir: str, filename: str = None, prefix: str = "", add_timestamp: bool = False) -> str:
@@ -199,13 +202,9 @@ def delete_file(file_path: str, use_trash: bool = True) -> bool:
             return True
         except ImportError:
             # 如果 send2trash 不可用，记录警告并使用永久删除
-            import logging
-            logger = logging.getLogger(__name__)
             logger.warning("[DataManager] send2trash not available, using permanent delete")
         except Exception as e:
             # send2trash 调用失败，记录错误并使用永久删除
-            import logging
-            logger = logging.getLogger(__name__)
             logger.warning(f"[DataManager] send2trash failed: {e}, using permanent delete")
 
     # 永久删除
