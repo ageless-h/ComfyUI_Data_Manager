@@ -11,6 +11,11 @@ import { updateDock } from './floating-dock.js';
 import { previewFloatingWindows } from './core-state.js';
 import { applyComfyTheme, getComfyTheme, addThemeListener } from './utils-theme.js';
 
+// ==================== 局部常量定义 ====================
+const DEFAULT_IMAGE_SCALE = 1;
+const DEFAULT_DOC_FONT_SIZE = 13;
+const DEFAULT_CODE_FONT_SIZE = 12;
+
 /**
  * 创建浮动预览窗口工具栏按钮
  */
@@ -230,7 +235,7 @@ function createPreviewContent(path, ext, isImage) {
         position: relative;
     `;
 
-    let imageScale = 1;
+    let imageScale = DEFAULT_IMAGE_SCALE;
     let imageTranslateX = 0;
     let imageTranslateY = 0;
 
@@ -365,7 +370,7 @@ function createToolbarSeparator() {
  * 添加图像缩放控制
  */
 function addImageZoomControls(toolbarLeft, content) {
-    let imageScale = 1;
+    let imageScale = DEFAULT_IMAGE_SCALE;
     let imageTranslateX = 0;
     let imageTranslateY = 0;
     let isDraggingImage = false;
@@ -397,7 +402,7 @@ function addImageZoomControls(toolbarLeft, content) {
     toolbarLeft.appendChild(zoomInBtn);
 
     const resetBtn = createToolbarButton("pi-refresh", "重置", () => {
-        imageScale = 1;
+        imageScale = DEFAULT_IMAGE_SCALE;
         imageTranslateX = 0;
         imageTranslateY = 0;
         updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
@@ -807,7 +812,7 @@ function addDocumentFontSizeControls(toolbarLeft, content, ext) {
     toolbarLeft.appendChild(fontSizeUp);
 
     const resetFont = createToolbarButton("pi-refresh", "重置字号", () => {
-        fontSize = 13;
+        fontSize = DEFAULT_DOC_FONT_SIZE;
         updateFontSize();
     });
     toolbarLeft.appendChild(resetFont);
@@ -858,7 +863,7 @@ function addCodeFontSizeControls(toolbarLeft, content, ext) {
     toolbarLeft.appendChild(fontSizeUp);
 
     const resetFont = createToolbarButton("pi-refresh", "重置字号", () => {
-        fontSize = 12;
+        fontSize = DEFAULT_CODE_FONT_SIZE;
         updateFontSize();
     });
     toolbarLeft.appendChild(resetFont);

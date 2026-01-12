@@ -33,13 +33,16 @@ import { applyComfyTheme, initThemeSystem, getComfyTheme } from './utils-theme.j
 // 导入状态管理函数
 import { saveLastPath, getLastPath, saveViewMode, getViewMode } from './core-state.js';
 
+// ==================== 常量定义 ====================
+const MIN_NODE_VERSION = 2;
+
 // 检测 Node 版本（安全检测，防止访问 undefined/null 属性）
 const IS_NODE_V3 = typeof app.ui !== 'undefined' &&
                     app.ui !== null &&
                     app.ui.version &&
                     typeof app.ui.version === 'object' &&
                     app.ui.version.major &&
-                    app.ui.version.major >= 2;
+                    app.ui.version.major >= MIN_NODE_VERSION;
 
 console.log(`[DataManager] Extension loading, Node V${IS_NODE_V3 ? '3' : '1'} detected`);
 

@@ -4,6 +4,9 @@
 
 import { createFormatSelector } from './ui-format-selector.js';
 
+// ==================== 常量定义 ====================
+const DEFAULT_DETECTED_TYPE = "IMAGE";
+
 /**
  * 检查节点连接状态并更新格式选择器
  */
@@ -84,7 +87,7 @@ function detectTypeFromSourceNode(node) {
         }
     }
 
-    return "IMAGE"; // 默认返回 IMAGE
+    return DEFAULT_DETECTED_TYPE; // 默认返回
 }
 
 /**

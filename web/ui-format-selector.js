@@ -265,10 +265,3 @@ function detectFormatFromFilename(filename) {
     // 去掉点号
     return ext.replace(/^\./, '');
 }
-
-/**
- * 根据格式推断类型
- * @param {string} format - 格式
- * @returns {string} 类型
- */
-// 未使用的函数已删除
