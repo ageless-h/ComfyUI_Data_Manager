@@ -2,17 +2,15 @@
  * ui-preview-actions.js - 预览功能
  */
 
-import { FILE_TYPES } from './core-constants.js';
+import { FILE_TYPES, LIMITS } from './core-constants.js';
 import { getTypeByExt } from './utils-file-type.js';
 import { getPreviewUrl, getFileInfo } from './api-index.js';
-import { escapeHtml } from './utils-format.js';
+import { escapeHtml, formatSize } from './utils-format.js';
 import { updateStatus, getFileName, getExt } from './utils-helpers.js';
 import { openFloatingPreview } from './floating-window.js';
 import { FileManagerState } from './core-state.js';
-import { loadScript } from './utils-script.js';
-import { parseCSV } from './utils-csv.js';
 import { highlightCode, highlightJSON, highlightPython, highlightJavaScript, highlightHTML, highlightCSS, highlightYAML, highlightXML, highlightGeneric } from './utils-syntax-highlight.js';
-import { createTableHTML, setupTableControls } from './utils-table.js';
+import { createTableHTML, setupTableControls, createEmptyTableHTML, createUnsupportedTableHTML, createTableErrorHTML, parseSpreadsheet } from './utils-table.js';
 
 /**
  * 预览文件
@@ -237,7 +235,7 @@ function formatTime(seconds) {
  * 创建代码预览 HTML
  */
 function createCodePreviewHTML(text, ext = '') {
-    const maxLength = 50000;
+    const maxLength = LIMITS.MAX_CODE_LENGTH;
     const displayText = text.length > maxLength ? text.substring(0, maxLength) + '\n\n... (文件过大，已截断)' : text;
 
     // 使用通用语法高亮函数
@@ -391,7 +389,7 @@ async function updateFileInfo(path) {
     try {
         const info = await getFileInfo(path);
         const fileName = path.split(/[/\\]/).pop();
-        const size = formatFileSize(info.size || 0);
+        const size = formatSize(info.size || 0);
         const date = formatDate(info.mtime || info.ctime || Date.now());
 
         infoSection.innerHTML = `
@@ -417,19 +415,6 @@ async function updateFileInfo(path) {
 }
 
 /**
- * 格式化文件大小
- * @param {number} bytes - 字节大小
- * @returns {string} 格式化后的大小字符串
- */
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-/**
  * 格式化日期
  * @param {number} timestamp - 时间戳
  * @returns {string} 格式化后的日期字符串
@@ -449,81 +434,25 @@ function formatDate(timestamp) {
  */
 async function createSpreadsheetPreviewHTML(path, ext) {
     const fileUrl = getPreviewUrl(path);
+    const fileName = path.split(/[/\\]/).pop();
+
+    // 支持的表格格式
+    const supportedExts = ['.csv', '.xls', '.xlsx'];
+    if (!supportedExts.includes(ext)) {
+        return createUnsupportedTableHTML(fileName);
+    }
 
     try {
-        // CSV 文件直接解析
-        if (ext === '.csv') {
-            const response = await fetch(fileUrl);
-            if (!response.ok) throw new Error('Failed to load CSV');
+        const { rows } = await parseSpreadsheet(fileUrl, ext);
 
-            const text = await response.text();
-            const rows = parseCSV(text);
-
-            if (rows.length === 0) {
-                return `
-                    <div class="dm-panel-empty-table" style="text-align: center; padding: 40px;">
-                        <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                        <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
-                    </div>
-                `;
-            }
-
-            return createTableHTML(rows, { type: 'panel', maxRows: 100 });
+        if (rows.length === 0) {
+            return createEmptyTableHTML(fileName);
         }
 
-        // Excel 文件使用 SheetJS 解析
-        if (ext === '.xls' || ext === '.xlsx') {
-            // 检查 xlsx 库是否已加载
-            if (typeof XLSX === 'undefined') {
-                await loadScript('https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js');
-            }
-
-            const response = await fetch(fileUrl);
-            if (!response.ok) throw new Error('Failed to load Excel');
-
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-
-            // 读取第一个工作表
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-
-            // 转换为二维数组
-            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-            if (rows.length === 0) {
-                return `
-                    <div class="dm-panel-empty-table" style="text-align: center; padding: 40px;">
-                        <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                        <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
-                    </div>
-                `;
-            }
-
-            return createTableHTML(rows, { type: 'panel', maxRows: 100 });
-        }
-
-        // 其他表格格式不支持预览
-        return `
-            <div class="dm-panel-unsupported-table" style="text-align: center; padding: 40px;">
-                <i class="pi pi-table dm-unsupported-table-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-                <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">此格式暂不支持预览</div>
-            </div>
-        `;
-
+        return createTableHTML(rows, { type: 'panel', maxRows: LIMITS.MAX_PREVIEW_ROWS });
     } catch (error) {
         console.error('[DataManager] Spreadsheet preview error:', error);
-        return `
-            <div class="dm-panel-preview-error" style="text-align: center; padding: 40px;">
-                <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
-                <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
-                <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
-                <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${error.message}</div>
-            </div>
-        `;
+        return createTableErrorHTML(fileName, error.message);
     }
 }
 

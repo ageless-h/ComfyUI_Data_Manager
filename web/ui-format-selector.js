@@ -31,11 +31,11 @@ export const TYPE_FORMATS = {
 };
 
 /**
- * 获取类型支持的格式列表
+ * 获取类型支持的格式列表（内部使用）
  * @param {string} type - 数据类型
  * @returns {string[]} 格式列表
  */
-export function getFormatsForType(type) {
+function getFormatsForType(type) {
     const typeKey = type.toUpperCase();
     return TYPE_FORMATS[typeKey] || ["json"];
 }
@@ -255,11 +255,11 @@ function getTypeColor(type) {
 }
 
 /**
- * 从文件名检测格式
+ * 从文件名检测格式（内部使用）
  * @param {string} filename - 文件名
  * @returns {string} 格式
  */
-export function detectFormatFromFilename(filename) {
+function detectFormatFromFilename(filename) {
     if (!filename) return "png";
     const ext = filename.split('.').pop().toLowerCase();
     // 去掉点号

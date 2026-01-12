@@ -2,7 +2,42 @@
  * core-constants.js - 常量配置
  */
 
-// 文件类型配置
+// ==================== API 端点 ====================
+export const API_ENDPOINTS = {
+    LIST: "/dm/list",
+    PREVIEW: "/dm/preview",
+    INFO: "/dm/info",
+    CREATE_FILE: "/dm/create/file",
+    CREATE_DIRECTORY: "/dm/create/directory",
+    DELETE: "/dm/delete"
+};
+
+// ==================== 限制常量 ====================
+export const LIMITS = {
+    // 表格
+    MAX_PREVIEW_ROWS: 100,
+
+    // 代码预览
+    MAX_CODE_LENGTH: 50000,
+
+    // 缩放
+    MIN_ZOOM: 0.1,
+    MAX_ZOOM: 5,
+    DEFAULT_ZOOM_STEP: 25,
+    MIN_ZOOM_DISPLAY: 25,
+    MAX_ZOOM_DISPLAY: 300,
+
+    // 字体大小
+    MIN_FONT_SIZE: 8,
+    MAX_FONT_SIZE: 32,
+
+    // 窗口
+    DEFAULT_WINDOW_WIDTH: 1200,
+    DEFAULT_WINDOW_HEIGHT: 700,
+    FLOATING_Z_INDEX: 10001
+};
+
+// ==================== 文件类型配置 ====================
 export const FILE_TYPES = {
     image: {
         exts: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico', '.tiff', '.tif', '.avif', '.heic', '.heif', '.tga'],

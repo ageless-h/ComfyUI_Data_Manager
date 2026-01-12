@@ -2,7 +2,7 @@
  * floating-window.js - 浮动预览窗口
  */
 
-import { FILE_TYPES } from './core-constants.js';
+import { FILE_TYPES, LIMITS } from './core-constants.js';
 import { getFileType } from './utils-file-type.js';
 import { setupWindowDrag } from './utils-drag.js';
 import { updateStatus, getExt } from './utils-helpers.js';
@@ -79,7 +79,7 @@ export function openFloatingPreview(path, fileName) {
         border: 1px solid #3a3a3a;
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        z-index: 10001;
+        z-index: ${LIMITS.FLOATING_Z_INDEX};
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -377,7 +377,7 @@ function addImageZoomControls(toolbarLeft, content) {
     toolbarLeft.appendChild(createToolbarSeparator());
 
     const zoomOutBtn = createToolbarButton("pi-search-minus", "缩小", () => {
-        imageScale = Math.max(0.1, imageScale - 0.1);
+        imageScale = Math.max(LIMITS.MIN_ZOOM, imageScale - 0.1);
         updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
         updateZoomDisplay();
     });
@@ -390,7 +390,7 @@ function addImageZoomControls(toolbarLeft, content) {
     toolbarLeft.appendChild(zoomDisplay);
 
     const zoomInBtn = createToolbarButton("pi-search-plus", "放大", () => {
-        imageScale = Math.min(5, imageScale + 0.1);
+        imageScale = Math.min(LIMITS.MAX_ZOOM, imageScale + 0.1);
         updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
         updateZoomDisplay();
     });
@@ -413,7 +413,7 @@ function addImageZoomControls(toolbarLeft, content) {
     content.addEventListener("wheel", (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        imageScale = Math.max(0.1, Math.min(5, imageScale + delta));
+        imageScale = Math.max(LIMITS.MIN_ZOOM, Math.min(LIMITS.MAX_ZOOM, imageScale + delta));
         updateImageScale(imageContainer, imageScale, imageTranslateX, imageTranslateY);
         updateZoomDisplay();
     }, { passive: false });
@@ -789,7 +789,7 @@ function addDocumentFontSizeControls(toolbarLeft, content, ext) {
     toolbarLeft.appendChild(createToolbarSeparator());
 
     const fontSizeDown = createToolbarButton("pi-minus", "减小字号", () => {
-        fontSize = Math.max(8, fontSize - 1);
+        fontSize = Math.max(LIMITS.MIN_FONT_SIZE, fontSize - 1);
         updateFontSize();
     });
     toolbarLeft.appendChild(fontSizeDown);
@@ -801,7 +801,7 @@ function addDocumentFontSizeControls(toolbarLeft, content, ext) {
     toolbarLeft.appendChild(fontSizeDisplay);
 
     const fontSizeUp = createToolbarButton("pi-plus", "增大字号", () => {
-        fontSize = Math.min(32, fontSize + 1);
+        fontSize = Math.min(LIMITS.MAX_FONT_SIZE, fontSize + 1);
         updateFontSize();
     });
     toolbarLeft.appendChild(fontSizeUp);
@@ -840,7 +840,7 @@ function addCodeFontSizeControls(toolbarLeft, content, ext) {
     toolbarLeft.appendChild(createToolbarSeparator());
 
     const fontSizeDown = createToolbarButton("pi-minus", "减小字号", () => {
-        fontSize = Math.max(8, fontSize - 1);
+        fontSize = Math.max(LIMITS.MIN_FONT_SIZE, fontSize - 1);
         updateFontSize();
     });
     toolbarLeft.appendChild(fontSizeDown);
@@ -852,7 +852,7 @@ function addCodeFontSizeControls(toolbarLeft, content, ext) {
     toolbarLeft.appendChild(fontSizeDisplay);
 
     const fontSizeUp = createToolbarButton("pi-plus", "增大字号", () => {
-        fontSize = Math.min(32, fontSize + 1);
+        fontSize = Math.min(LIMITS.MAX_FONT_SIZE, fontSize + 1);
         updateFontSize();
     });
     toolbarLeft.appendChild(fontSizeUp);

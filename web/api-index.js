@@ -2,13 +2,15 @@
  * api-index.js - 后端 API 调用
  */
 
+import { API_ENDPOINTS } from './core-constants.js';
+
 /**
  * 列出目录内容
  * @param {string} path - 目录路径
  * @returns {Promise<object>} 目录数据
  */
 export async function listDirectory(path) {
-    const response = await fetch("/dm/list", {
+    const response = await fetch(API_ENDPOINTS.LIST, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: path })
@@ -28,7 +30,7 @@ export async function listDirectory(path) {
  * @returns {string} 预览 URL
  */
 export function getPreviewUrl(path) {
-    return `/dm/preview?path=${encodeURIComponent(path)}`;
+    return `${API_ENDPOINTS.PREVIEW}?path=${encodeURIComponent(path)}`;
 }
 
 /**
@@ -37,7 +39,7 @@ export function getPreviewUrl(path) {
  * @returns {Promise<object>} 文件信息对象
  */
 export async function getFileInfo(path) {
-    const response = await fetch("/dm/info", {
+    const response = await fetch(API_ENDPOINTS.INFO, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: path })
@@ -60,7 +62,7 @@ export async function getFileInfo(path) {
  * @returns {Promise<object>} 创建结果
  */
 export async function createFile(directory, filename, content = "") {
-    const response = await fetch("/dm/create/file", {
+    const response = await fetch(API_ENDPOINTS.CREATE_FILE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ directory, filename, content })
@@ -80,7 +82,7 @@ export async function createFile(directory, filename, content = "") {
  * @returns {Promise<object>} 创建结果
  */
 export async function createDirectory(directory, dirname) {
-    const response = await fetch("/dm/create/directory", {
+    const response = await fetch(API_ENDPOINTS.CREATE_DIRECTORY, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ directory, dirname })
@@ -100,7 +102,7 @@ export async function createDirectory(directory, dirname) {
  * @returns {Promise<object>} 删除结果
  */
 export async function deleteFile(path, useTrash = true) {
-    const response = await fetch("/dm/delete", {
+    const response = await fetch(API_ENDPOINTS.DELETE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path, use_trash: useTrash })

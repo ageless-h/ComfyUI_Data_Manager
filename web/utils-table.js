@@ -5,6 +5,9 @@
  */
 
 import { escapeHtml } from './utils-format.js';
+import { loadScript } from './utils-script.js';
+import { parseCSV } from './utils-csv.js';
+import { LIMITS } from './core-constants.js';
 
 /**
  * 表格模式类型
@@ -18,7 +21,7 @@ import { escapeHtml } from './utils-format.js';
  */
 const DEFAULT_OPTIONS = {
     type: 'floating',
-    maxRows: 100,
+    maxRows: LIMITS.MAX_PREVIEW_ROWS,
     height: null  // null 表示自动高度（浮动窗口）或固定 400px（面板）
 };
 
@@ -169,14 +172,14 @@ export function setupTableControls(tableId, modeType = 'floating') {
 
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
-            zoom = Math.min(zoom + 25, 300);
+            zoom = Math.min(zoom + LIMITS.DEFAULT_ZOOM_STEP, LIMITS.MAX_ZOOM_DISPLAY);
             updateZoom();
         });
     }
 
     if (zoomOutBtn) {
         zoomOutBtn.addEventListener('click', () => {
-            zoom = Math.max(zoom - 25, 25);
+            zoom = Math.max(zoom - LIMITS.DEFAULT_ZOOM_STEP, LIMITS.MIN_ZOOM_DISPLAY);
             updateZoom();
         });
     }
@@ -186,7 +189,7 @@ export function setupTableControls(tableId, modeType = 'floating') {
             const containerWidth = wrapper?.clientWidth || 400;
             const tableWidth = table.scrollWidth;
             const newZoom = Math.min(Math.floor((containerWidth / tableWidth) * 100), 100);
-            zoom = Math.max(newZoom, 25);
+            zoom = Math.max(newZoom, LIMITS.MIN_ZOOM_DISPLAY);
             updateZoom();
         });
     }
@@ -211,4 +214,90 @@ export function setupTableControls(tableId, modeType = 'floating') {
             }
         });
     }
+}
+
+/**
+ * 创建空表格预览 HTML
+ * @param {string} fileName - 文件名
+ * @returns {string} HTML 字符串
+ */
+export function createEmptyTableHTML(fileName) {
+    const displayName = escapeHtml(fileName);
+    return `
+        <div class="dm-empty-table" style="text-align: center; padding: 40px;">
+            <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
+            <div class="dm-preview-filename" style="font-size: 14px;">${displayName}</div>
+            <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
+        </div>
+    `;
+}
+
+/**
+ * 创建不支持格式预览 HTML
+ * @param {string} fileName - 文件名
+ * @returns {string} HTML 字符串
+ */
+export function createUnsupportedTableHTML(fileName) {
+    const displayName = escapeHtml(fileName);
+    return `
+        <div class="dm-unsupported-table" style="text-align: center; padding: 40px;">
+            <i class="pi pi-table dm-unsupported-table-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
+            <div class="dm-preview-filename" style="font-size: 14px;">${displayName}</div>
+            <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">此格式暂不支持预览</div>
+        </div>
+    `;
+}
+
+/**
+ * 创建表格预览错误 HTML
+ * @param {string} fileName - 文件名
+ * @param {string} errorMessage - 错误信息
+ * @returns {string} HTML 字符串
+ */
+export function createTableErrorHTML(fileName, errorMessage) {
+    const displayName = escapeHtml(fileName);
+    return `
+        <div class="dm-preview-error" style="text-align: center; padding: 40px;">
+            <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
+            <div class="dm-preview-filename" style="margin-top: 15px;">${displayName}</div>
+            <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
+            <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${escapeHtml(errorMessage)}</div>
+        </div>
+    `;
+}
+
+/**
+ * 解析表格文件（CSV/Excel）并返回数据
+ * @param {string} fileUrl - 文件 URL
+ * @param {string} ext - 文件扩展名
+ * @returns {Promise<{rows: Array, fileName: string}>}
+ */
+export async function parseSpreadsheet(fileUrl, ext) {
+    if (ext === '.csv') {
+        const response = await fetch(fileUrl);
+        if (!response.ok) throw new Error('Failed to load CSV');
+        const text = await response.text();
+        const rows = parseCSV(text);
+        return { rows };
+    }
+
+    if (ext === '.xls' || ext === '.xlsx') {
+        if (typeof XLSX === 'undefined') {
+            await loadScript('https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js');
+        }
+
+        const response = await fetch(fileUrl);
+        if (!response.ok) throw new Error('Failed to load Excel');
+
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        return { rows };
+    }
+
+    throw new Error('Unsupported format');
 }

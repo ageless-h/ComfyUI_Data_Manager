@@ -2,13 +2,11 @@
  * preview-content.js - 浮动窗口预览内容加载
  */
 
-import { FILE_TYPES } from './core-constants.js';
+import { FILE_TYPES, LIMITS } from './core-constants.js';
 import { getFileType } from './utils-file-type.js';
 import { escapeHtml } from './utils-format.js';
-import { loadScript } from './utils-script.js';
-import { parseCSV } from './utils-csv.js';
 import { highlightCode, highlightJSON, highlightPython, highlightJavaScript, highlightHTML, highlightCSS, highlightYAML, highlightXML, highlightGeneric } from './utils-syntax-highlight.js';
-import { createTableHTML, setupTableControls } from './utils-table.js';
+import { createTableHTML, setupTableControls, createEmptyTableHTML, createUnsupportedTableHTML, createTableErrorHTML, parseSpreadsheet } from './utils-table.js';
 
 /**
  * 加载预览内容
@@ -285,84 +283,25 @@ function createUnavailablePreviewHTML(path) {
  */
 async function createSpreadsheetPreviewHTML(path, ext) {
     const fileUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
+    const fileName = path.split(/[/\\]/).pop();
+
+    // 支持的表格格式
+    const supportedExts = ['.csv', '.xls', '.xlsx'];
+    if (!supportedExts.includes(ext)) {
+        return createUnsupportedTableHTML(fileName);
+    }
 
     try {
-        // CSV 文件直接解析
-        if (ext === '.csv') {
-            const response = await fetch(fileUrl);
-            if (!response.ok) throw new Error('Failed to load CSV');
+        const { rows } = await parseSpreadsheet(fileUrl, ext);
 
-            const text = await response.text();
-            const rows = parseCSV(text);
-            const displayName = escapeHtml(path.split(/[/\\]/).pop());
-
-            if (rows.length === 0) {
-                return `
-                    <div class="dm-empty-table" style="text-align: center; padding: 40px;">
-                        <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div class="dm-preview-filename" style="font-size: 14px;">${displayName}</div>
-                        <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
-                    </div>
-                `;
-            }
-
-            return createTableHTML(rows, { type: 'floating', maxRows: 100 });
+        if (rows.length === 0) {
+            return createEmptyTableHTML(fileName);
         }
 
-        // Excel 文件使用 SheetJS 解析
-        if (ext === '.xls' || ext === '.xlsx') {
-            // 检查 xlsx 库是否已加载
-            if (typeof XLSX === 'undefined') {
-                await loadScript('https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js');
-            }
-
-            const response = await fetch(fileUrl);
-            if (!response.ok) throw new Error('Failed to load Excel');
-
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-
-            // 读取第一个工作表
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-
-            // 转换为二维数组
-            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-            const displayName = escapeHtml(path.split(/[/\\]/).pop());
-
-            if (rows.length === 0) {
-                return `
-                    <div class="dm-empty-table" style="text-align: center; padding: 40px;">
-                        <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div class="dm-preview-filename" style="font-size: 14px;">${displayName}</div>
-                        <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
-                    </div>
-                `;
-            }
-
-            return createTableHTML(rows, { type: 'floating', maxRows: 100 });
-        }
-
-        // 其他表格格式不支持预览
-        const displayName = escapeHtml(path.split(/[/\\]/).pop());
-        return `
-            <div class="dm-unsupported-table" style="text-align: center; padding: 40px;">
-                <i class="pi pi-table dm-unsupported-table-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-                <div class="dm-preview-filename" style="font-size: 14px;">${displayName}</div>
-                <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">此格式暂不支持预览</div>
-            </div>
-        `;
-
+        return createTableHTML(rows, { type: 'floating', maxRows: LIMITS.MAX_PREVIEW_ROWS });
     } catch (error) {
         console.error('[DataManager] Spreadsheet preview error:', error);
-        return `
-            <div class="dm-preview-error" style="text-align: center; padding: 40px;">
-                <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
-                <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
-                <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
-                <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${error.message}</div>
-            </div>
-        `;
+        return createTableErrorHTML(fileName, error.message);
     }
 }
 
