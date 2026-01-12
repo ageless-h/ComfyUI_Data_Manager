@@ -333,6 +333,37 @@ function openFileManager() {
             if (selected) {
                 openFloatingPreview(selected, getFileName(selected));
             }
+        },
+        // SSH 回调
+        onSshConnect: async (conn) => {
+            // 设置活动连接
+            window._remoteConnectionsState.active = conn;
+            // 保存到本地存储
+            try {
+                localStorage.setItem('comfyui_datamanager_last_connection', JSON.stringify(conn));
+            } catch (e) {}
+            // 加载远程根目录
+            await loadDirectory(conn.root_path || "/");
+            showToast("success", "已连接", `SSH: ${conn.username}@${conn.host}`);
+        },
+        onSshDisconnect: async () => {
+            const conn = window._remoteConnectionsState.active;
+            if (conn && conn.connection_id) {
+                try {
+                    const { sshDisconnect } = await import('./api-ssh.js');
+                    await sshDisconnect(conn.connection_id);
+                } catch (e) {
+                    console.log('[DataManager] SSH disconnect error:', e);
+                }
+            }
+            // 清除活动连接
+            window._remoteConnectionsState.active = null;
+            try {
+                localStorage.removeItem('comfyui_datamanager_last_connection');
+            } catch (e) {}
+            // 加载本地目录
+            await loadDirectory(".");
+            showToast("info", "已断开", "SSH 连接已断开");
         }
     };
 
