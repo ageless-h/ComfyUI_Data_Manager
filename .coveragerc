@@ -1,0 +1,13 @@
+# -*- coding: utf-8 -*-
+[run]
+source = ComfyUI_Data_Manager
+omit =
+    tests/*
+    __pycache__/*
+    *.pyc
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
