@@ -1017,7 +1017,6 @@ class InputPathConfig(io.ComfyNode):
                     os.makedirs(directory, exist_ok=True)
                     full_path = os.path.join(directory, filename)
                     if format.lower() == "json":
-                        import json
                         # 尝试解析输入为 JSON 对象，格式化保存
                         try:
                             data = json.loads(file_input)
