@@ -5,7 +5,11 @@
 """
 
 from .file_ops import save_file, list_files, create_file, create_directory, delete_file
-from .path_utils import ensure_directory, join_paths, get_parent_path
+from .path_utils import (
+    ensure_directory, join_paths, get_parent_path,
+    get_path_type, parse_unc_path, parse_ssh_url,
+    is_remote_path, normalize_remote_path, PathType
+)
 from .formatters import human_readable_size
 from .info import get_file_info, get_file_category
 
@@ -44,6 +48,12 @@ __all__ = [
     'ensure_directory',
     'join_paths',
     'get_parent_path',
+    'get_path_type',
+    'parse_unc_path',
+    'parse_ssh_url',
+    'is_remote_path',
+    'normalize_remote_path',
+    'PathType',
     # 格式化工具
     'human_readable_size',
     # SSH 远程访问
