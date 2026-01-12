@@ -25,10 +25,10 @@ import { createFile as apiCreateFile, createDirectory as apiCreateDirectory, del
 // 导入浮动窗口模块
 import { openFloatingPreview, closeFloatingPreview, toggleFullscreen, restoreFloatingPreview } from './floating-window.js';
 import { updateDock } from './floating-dock.js';
-import { openFileExternally } from './floating-actions.js';
 
 // 导入工具函数
 import { updateStatus, showToast, getParentPath, getExt, getFileName } from './utils-helpers.js';
+import { applyComfyTheme, initThemeSystem, getComfyTheme } from './utils-theme.js';
 
 // 导入状态管理函数
 import { saveLastPath, getLastPath, saveViewMode, getViewMode } from './core-state.js';
@@ -166,6 +166,9 @@ const extensionConfig = {
         }, 2000);
 
         console.log("[DataManager] Extension setup completed");
+
+        // 初始化主题系统
+        initThemeSystem();
     },
 
     async nodeCreated(node) {
@@ -327,16 +330,14 @@ function openFileManager() {
             if (selected) {
                 openFloatingPreview(selected, getFileName(selected));
             }
-        },
-        onOpenExternally: () => {
-            const selected = FileManagerState.selectedFiles[0];
-            if (selected) {
-                openFileExternally(selected);
-            }
         }
     };
 
     fileManagerWindow = createFileManagerWindow(callbacks);
+
+    // 应用 ComfyUI 主题
+    applyComfyTheme();
+
     loadDirectory(FileManagerState.currentPath);
 
     // 延迟检查节点连接状态，确保窗口已创建完成
@@ -364,6 +365,8 @@ function checkAndUpdateFormatSelector() {
  * 显示新建文件对话框
  */
 function showNewFileDialog() {
+    const theme = getComfyTheme();
+
     const modal = document.createElement("div");
     modal.style.cssText = `
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -373,29 +376,29 @@ function showNewFileDialog() {
 
     const dialog = document.createElement("div");
     dialog.style.cssText = `
-        background: #252525; border-radius: 12px; padding: 24px;
+        background: ${theme.bgSecondary}; border-radius: 12px; padding: 24px;
         width: 400px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     `;
 
     dialog.innerHTML = `
-        <h3 style="margin: 0 0 20px 0; color: #fff;">新建</h3>
+        <h3 style="margin: 0 0 20px 0; color: ${theme.textPrimary};">新建</h3>
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
             <button id="dm-new-file-btn" class="comfy-btn"
-                    style="flex: 1; padding: 15px; background: #3a3a3a; border: 1px solid #4a4a4a;
-                           border-radius: 8px; color: #fff; cursor: pointer;">
+                    style="flex: 1; padding: 15px; background: ${theme.bgTertiary}; border: 1px solid ${theme.borderColor};
+                           border-radius: 8px; color: ${theme.textPrimary}; cursor: pointer;">
                 <i class="pi pi-file" style="display: block; font-size: 24px; margin-bottom: 8px;"></i>
                 文件
             </button>
             <button id="dm-new-folder-btn" class="comfy-btn"
-                    style="flex: 1; padding: 15px; background: #3a3a3a; border: 1px solid #4a4a4a;
-                           border-radius: 8px; color: #fff; cursor: pointer;">
+                    style="flex: 1; padding: 15px; background: ${theme.bgTertiary}; border: 1px solid ${theme.borderColor};
+                           border-radius: 8px; color: ${theme.textPrimary}; cursor: pointer;">
                 <i class="pi pi-folder" style="display: block; font-size: 24px; margin-bottom: 8px;"></i>
                 文件夹
             </button>
         </div>
         <button class="comfy-btn" id="dm-cancel-new-btn"
                 style="width: 100%; padding: 10px; background: transparent;
-                       border: 1px solid #3a3a3a; border-radius: 6px; color: #888; cursor: pointer;">
+                       border: 1px solid ${theme.borderColor}; border-radius: 6px; color: ${theme.textSecondary}; cursor: pointer;">
             取消
         </button>
     `;
@@ -461,7 +464,9 @@ async function deleteSelectedFiles() {
         filesToDelete = FileManagerState.selectedFiles;
     }
 
-    if (!confirm(`确定要删除 ${filesToDelete.length} 个项目吗？`)) return;
+    // 显示确认对话框
+    const confirmed = await showDeleteConfirmDialog(filesToDelete.length);
+    if (!confirmed) return;
 
     let deletedCount = 0;
     let errorCount = 0;
@@ -508,6 +513,117 @@ async function deleteSelectedFiles() {
     if (!FileManagerState.currentPreviewFile) {
         FileManagerState.selectedFiles = [];
     }
+}
+
+/**
+ * 显示删除确认对话框
+ * @param {number} count - 要删除的项目数量
+ * @returns {Promise<boolean>} 是否确认删除
+ */
+function showDeleteConfirmDialog(count) {
+    return new Promise((resolve) => {
+        const theme = getComfyTheme();
+
+        const modal = document.createElement("div");
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7); z-index: 10001;
+            display: flex; align-items: center; justify-content: center;
+        `;
+
+        const dialog = document.createElement("div");
+        dialog.style.cssText = `
+            background: ${theme.bgSecondary}; border-radius: 12px; padding: 24px;
+            width: 400px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: dm-fade-in 0.2s ease-out;
+        `;
+
+        // 添加淡入动画
+        if (!document.getElementById('dm-dialog-animations')) {
+            const style = document.createElement('style');
+            style.id = 'dm-dialog-animations';
+            style.textContent = `
+                @keyframes dm-fade-in {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const fileText = count === 1 ? '1 个项目' : `${count} 个项目`;
+
+        dialog.innerHTML = `
+            <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px;">
+                <div style="
+                    width: 48px; height: 48px; border-radius: 50%;
+                    background: ${theme.errorColor}33; display: flex;
+                    align-items: center; justify-content: center;
+                    flex-shrink: 0;
+                ">
+                    <i class="pi pi-exclamation-triangle" style="font-size: 24px; color: ${theme.errorColor};"></i>
+                </div>
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 8px 0; color: ${theme.textPrimary}; font-size: 18px;">确认删除</h3>
+                    <p style="margin: 0; color: ${theme.textSecondary}; font-size: 14px; line-height: 1.5;">
+                        您确定要删除 ${fileText} 吗？<br>
+                        <span style="color: ${theme.errorColor};">此操作无法撤销！</span>
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="dm-cancel-delete-btn" class="comfy-btn"
+                        style="flex: 1; padding: 12px 20px; background: ${theme.bgTertiary};
+                               border: 1px solid ${theme.borderColor}; border-radius: 8px;
+                               color: ${theme.textPrimary}; cursor: pointer; font-size: 14px;">
+                    取消
+                </button>
+                <button id="dm-confirm-delete-btn" class="comfy-btn"
+                        style="flex: 1; padding: 12px 20px; background: ${theme.errorColor};
+                               border: none; border-radius: 8px;
+                               color: #fff; cursor: pointer; font-size: 14px;
+                               font-weight: 600;">
+                    删除
+                </button>
+            </div>
+        `;
+
+        modal.appendChild(dialog);
+        document.body.appendChild(modal);
+
+        // 按钮事件
+        const cancelBtn = dialog.querySelector('#dm-cancel-delete-btn');
+        const confirmBtn = dialog.querySelector('#dm-confirm-delete-btn');
+
+        cancelBtn.onclick = () => {
+            modal.remove();
+            resolve(false);
+        };
+
+        confirmBtn.onclick = () => {
+            modal.remove();
+            resolve(true);
+        };
+
+        // ESC 键取消
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', escHandler);
+                resolve(false);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // 点击背景取消
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                document.removeEventListener('keydown', escHandler);
+                resolve(false);
+            }
+        };
+    });
 }
 
 /**

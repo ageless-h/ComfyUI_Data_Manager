@@ -7,9 +7,9 @@ import { getFileType } from './utils-file-type.js';
 import { setupWindowDrag } from './utils-drag.js';
 import { updateStatus, getExt } from './utils-helpers.js';
 import { loadPreviewContent } from './preview-content.js';
-import { openFileExternally } from './floating-actions.js';
 import { updateDock } from './floating-dock.js';
 import { previewFloatingWindows } from './core-state.js';
+import { applyComfyTheme, getComfyTheme, addThemeListener } from './utils-theme.js';
 
 /**
  * 创建浮动预览窗口工具栏按钮
@@ -99,6 +99,9 @@ export function openFloatingPreview(path, fileName) {
 
     document.body.appendChild(previewWindow);
 
+    // 应用 ComfyUI 主题
+    applyComfyTheme();
+
     // 设置拖动
     setupWindowDrag(previewWindow, header);
 
@@ -119,6 +122,9 @@ export function openFloatingPreview(path, fileName) {
  * 创建预览窗口标题栏
  */
 function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, isDocument, isCode, isSpreadsheet, previewWindow, path) {
+    const theme = getComfyTheme();
+    const textColor = theme.isLight ? '#222' : '#fff';
+
     const header = document.createElement("div");
     header.className = "dm-preview-header";
     header.style.cssText = `
@@ -126,8 +132,8 @@ function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, is
         justify-content: space-between;
         align-items: center;
         padding: 12px 15px;
-        background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
-        border-bottom: 1px solid #3a3a3a;
+        background: linear-gradient(135deg, ${theme.bgSecondary} 0%, ${theme.bgPrimary} 100%);
+        border-bottom: 1px solid ${theme.borderColor};
         cursor: move;
         user-select: none;
     `;
@@ -137,24 +143,26 @@ function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, is
     trafficLights.className = "dm-traffic-lights";
     trafficLights.style.cssText = "display: flex; gap: 8px;";
 
-    // 关闭按钮（红色）
-    const closeBtn = createTrafficLightButton("pi-times", "#ff5f57", "关闭", () => closeFloatingPreview(previewWindow));
+    // 关闭按钮
+    const closeBtn = createTrafficLightButton("pi-times", textColor, "关闭", () => closeFloatingPreview(previewWindow));
     trafficLights.appendChild(closeBtn);
 
-    // 最小化按钮（黄色）
-    const minimizeBtn = createTrafficLightButton("pi-minus", "#ffbd2e", "最小化", () => minimizeFloatingPreview(previewWindow, path, fileName, fileConfig));
+    // 最小化按钮
+    const minimizeBtn = createTrafficLightButton("pi-minus", textColor, "最小化", () => minimizeFloatingPreview(previewWindow, path, fileName, fileConfig));
     trafficLights.appendChild(minimizeBtn);
 
-    // 全屏按钮（绿色）- 图像、视频、音频、文档、代码、表格文件
+    // 全屏按钮 - 图像、视频、音频、文档、代码、表格文件
     if (isImage || isVideo || isAudio || isDocument || isCode || isSpreadsheet) {
-        const fullscreenBtn = createTrafficLightButton("pi-window-maximize", "#28c940", "全屏", () => toggleFullscreen(previewWindow));
+        const fullscreenBtn = createTrafficLightButton("pi-window-maximize", textColor, "全屏", () => toggleFullscreen(previewWindow));
         trafficLights.appendChild(fullscreenBtn);
     }
 
     header.appendChild(trafficLights);
 
+    // 标题区域
     const title = document.createElement("div");
-    title.style.cssText = "display: flex; align-items: center; gap: 8px; color: #fff; font-size: 14px; font-weight: 600; flex: 1; justify-content: center;";
+    title.className = "dm-header-title-area";
+    title.style.cssText = "display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; flex: 1; justify-content: center;";
     title.innerHTML = `
         <i class="pi ${fileConfig.icon}" style="color: ${fileConfig.color};"></i>
         <span style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fileName}</span>
@@ -162,15 +170,29 @@ function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, is
 
     header.appendChild(title);
 
+    // 注册主题变化监听
+    addThemeListener((newTheme) => {
+        header.style.background = `linear-gradient(135deg, ${newTheme.bgSecondary} 0%, ${newTheme.bgPrimary} 100%)`;
+        header.style.borderColor = newTheme.borderColor;
+
+        // 更新标题区域颜色
+        title.style.color = newTheme.isLight ? '#222' : '#fff';
+
+        // 更新按钮颜色
+        const newTextColor = newTheme.isLight ? '#222' : '#fff';
+        const btns = header.querySelectorAll('.dm-traffic-btn');
+        btns.forEach(btn => { btn.style.color = newTextColor; });
+    });
+
     return header;
 }
 
 /**
  * 创建交通灯按钮
  */
-function createTrafficLightButton(icon, hoverColor, title, onClick) {
+function createTrafficLightButton(icon, textColor, title, onClick) {
     const button = document.createElement("button");
-    button.className = "comfy-btn";
+    button.className = "comfy-btn dm-traffic-btn";
     button.innerHTML = `<i class="pi ${icon}" style="font-size: 10px;"></i>`;
     button.style.cssText = `
         width: 14px;
@@ -178,7 +200,7 @@ function createTrafficLightButton(icon, hoverColor, title, onClick) {
         padding: 0;
         background: transparent;
         border: none;
-        color: #fff;
+        color: ${textColor};
         cursor: pointer;
         border-radius: 50%;
         display: flex;
@@ -187,8 +209,6 @@ function createTrafficLightButton(icon, hoverColor, title, onClick) {
         transition: all 0.15s ease;
     `;
     button.title = title;
-    button.onmouseover = () => button.style.background = hoverColor;
-    button.onmouseout = () => button.style.background = "transparent";
     button.onclick = onClick;
     return button;
 }
@@ -324,10 +344,6 @@ function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMar
         const spreadsheetFullscreenBtn = createToolbarButton("pi-arrows-alt", "全屏预览", () => toggleFullscreen(previewWindow));
         toolbarRight.appendChild(spreadsheetFullscreenBtn);
     }
-
-    // 打开按钮
-    const openBtn = createToolbarButton("pi-external-link", "打开", () => openFileExternally(path));
-    toolbarRight.appendChild(openBtn);
 
     toolbar.appendChild(toolbarLeft);
     toolbar.appendChild(toolbarCenter);

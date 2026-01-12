@@ -8,7 +8,6 @@ import { getPreviewUrl, getFileInfo } from './api-index.js';
 import { escapeHtml } from './utils-format.js';
 import { updateStatus, getFileName, getExt } from './utils-helpers.js';
 import { openFloatingPreview } from './floating-window.js';
-import { openFileExternally } from './floating-actions.js';
 import { FileManagerState } from './core-state.js';
 
 /**
@@ -21,12 +20,11 @@ export async function previewFile(path) {
 
     const content = document.getElementById("dm-preview-content");
     const floatingBtn = document.getElementById("dm-open-floating-preview-btn");
-    const openBtn = document.getElementById("dm-open-preview-btn");
 
     if (!content) return;
 
     content.innerHTML = `
-        <div style="text-align: center; padding: 20px;">
+        <div class="dm-panel-loading" style="text-align: center; padding: 20px;">
             <i class="pi pi-spin pi-spinner"></i>
         </div>
     `;
@@ -45,9 +43,10 @@ export async function previewFile(path) {
             previewHTML = `
                 <div style="text-align: center;">
                     <img src="${imageUrl}"
+                         class="dm-panel-preview-image"
                          style="max-width: 100%; max-height: 300px;
-                                border-radius: 8px; border: 1px solid #3a3a3a;"
-                         onerror="this.parentElement.innerHTML='<div style=\\'color:#e74c3c\\'>无法加载图像</div>'">
+                                border-radius: 8px; border: 1px solid;"
+                         onerror="this.parentElement.innerHTML='<div class=\\'dm-error-message\\'>无法加载图像</div>'">
                 </div>
             `;
             canOpenExternally = true;
@@ -56,9 +55,9 @@ export async function previewFile(path) {
         else if (FILE_TYPES.audio.exts.includes(ext)) {
             const audioUrl = getPreviewUrl(path);
             previewHTML = `
-                <div style="text-align: center; padding: 20px;">
-                    <i class="pi pi-volume-up" style="font-size: 64px; color: #3498db;"></i>
-                    <div style="margin-top: 15px; color: #fff;">${fileName}</div>
+                <div class="dm-panel-audio-preview" style="text-align: center; padding: 20px;">
+                    <i class="pi pi-volume-up dm-audio-icon" style="font-size: 64px;"></i>
+                    <div class="dm-preview-filename" style="margin-top: 15px;">${fileName}</div>
                     <audio controls style="width: 100%; margin-top: 15px;">
                         <source src="${audioUrl}" type="audio/mpeg">
                     </audio>
@@ -125,13 +124,6 @@ export async function previewFile(path) {
             floatingBtn.onclick = () => openFloatingPreview(path, fileName);
         }
 
-        if (openBtn) {
-            openBtn.style.display = canOpenExternally ? "block" : "none";
-            if (canOpenExternally) {
-                openBtn.onclick = () => openFileExternally(path);
-            }
-        }
-
         updateStatus(`预览: ${fileName}`);
 
         // 更新文件信息区域
@@ -153,20 +145,20 @@ export async function previewFile(path) {
 function createVideoPreviewHTML(videoId, videoUrl) {
     return `
         <div style="display: flex; flex-direction: column; gap: 0;">
-            <div style="position: relative; background: #000; border-radius: 8px; overflow: hidden;">
+            <div class="dm-panel-video-container" style="position: relative; border-radius: 8px; overflow: hidden;">
                 <video id="${videoId}" preload="metadata" style="width: 100%; max-height: 300px; display: block; object-fit: contain;">
                     <source src="${videoUrl}" type="video/mp4">
                 </video>
             </div>
-            <div id="${videoId}-controls" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #252525; border-radius: 0 0 8px 8px; margin-top: -2px;">
-                <button class="comfy-btn dm-video-play-btn" data-video-id="${videoId}" style="padding: 6px 12px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+            <div id="${videoId}-controls" class="dm-video-controls-panel" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 0 0 8px 8px; margin-top: -2px;">
+                <button class="comfy-btn dm-video-play-btn" data-video-id="${videoId}" title="播放">
                     <i class="pi pi-play"></i> 播放
                 </button>
-                <span id="${videoId}-time" style="color: #aaa; font-size: 11px; font-family: monospace; min-width: 80px; text-align: center;">0:00 / 0:00</span>
-                <button class="comfy-btn dm-video-volume-btn" data-video-id="${videoId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="音量">
+                <span id="${videoId}-time" class="dm-video-time-display">0:00 / 0:00</span>
+                <button class="comfy-btn dm-video-volume-btn" data-video-id="${videoId}" title="音量">
                     <i class="pi pi-volume-up"></i>
                 </button>
-                <button class="comfy-btn dm-video-fullscreen-btn" data-video-id="${videoId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="视频全屏">
+                <button class="comfy-btn dm-video-fullscreen-btn" data-video-id="${videoId}" title="视频全屏">
                     <i class="pi pi-arrows-alt"></i>
                 </button>
             </div>
@@ -247,10 +239,10 @@ function createCodePreviewHTML(text, ext = '') {
     const highlighted = highlightCode(displayText, ext);
 
     return `
-        <div style="background: #1e1e1e; padding: 15px;
+        <div class="dm-panel-code-preview" style="padding: 15px;
                     font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.5;
                     overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
-            <pre style="margin: 0; white-space: pre-wrap; color: #d4d4d4;">${highlighted}</pre>
+            <pre class="dm-panel-code-content" style="margin: 0; white-space: pre-wrap;">${highlighted}</pre>
         </div>
     `;
 }
@@ -274,11 +266,11 @@ async function createDocumentPreviewHTML(path, ext, docUrl) {
     } else if (ext === '.doc') {
         // 旧版 Word 文档无法预览
         return `
-            <div style="text-align: center; padding: 40px; color: #888;">
-                <i class="pi pi-file-word" style="font-size: 64px; color: #2b579a; margin-bottom: 15px;"></i>
-                <div style="margin-top: 15px; color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                <div style="margin-top: 10px; color: #888; font-size: 12px;">.doc 格式暂不支持预览</div>
-                <div style="margin-top: 5px; color: #666; font-size: 11px;">请转换为 .docx 或点击"打开"按钮</div>
+            <div class="dm-panel-doc-unsupported" style="text-align: center; padding: 40px;">
+                <i class="pi pi-file-word dm-doc-unsupported-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
+                <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">.doc 格式暂不支持预览</div>
+                <div class="dm-unsupported-sub" style="margin-top: 5px; font-size: 11px;">请转换为 .docx 或点击"打开"按钮</div>
             </div>
         `;
     } else if (ext === '.docx') {
@@ -297,11 +289,11 @@ async function createDocumentPreviewHTML(path, ext, docUrl) {
                 if (typeof mammoth !== 'undefined') {
                     const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
                     return `
-                        <div id="dm-panel-doc-content" class="dm-document-content dm-docx-content"
-                             style="width: 100%; height: 400px; background: #1e1e1e; border-radius: 8px;
+                        <div id="dm-panel-doc-content" class="dm-document-content dm-docx-content dm-panel-docx-content"
+                             style="width: 100%; height: 400px; border-radius: 8px;
                                     font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px;
                                     line-height: 1.6; overflow: auto; box-sizing: border-box;
-                                    padding: 20px; color: #d4d4d4;">
+                                    padding: 20px;">
                             <style>
                                 #dm-panel-doc-content img {
                                     max-width: 100%;
@@ -333,11 +325,11 @@ async function createDocumentPreviewHTML(path, ext, docUrl) {
         } catch (error) {
             console.error('[DataManager] DOCX preview error:', error);
             return `
-                <div style="text-align: center; padding: 40px; color: #888;">
-                    <i class="pi pi-exclamation-triangle" style="font-size: 48px; color: #e74c3c;"></i>
-                    <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
-                    <div style="margin-top: 10px; color: #e74c3c; font-size: 12px;">预览加载失败</div>
-                    <div style="margin-top: 5px; color: #666; font-size: 11px;">${error.message}</div>
+                <div class="dm-panel-preview-error" style="text-align: center; padding: 40px;">
+                    <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
+                    <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
+                    <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
+                    <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${error.message}</div>
                 </div>
             `;
         }
@@ -348,8 +340,8 @@ async function createDocumentPreviewHTML(path, ext, docUrl) {
             if (response.ok) {
                 const text = await response.text();
                 return `
-                    <div id="dm-panel-doc-content" class="dm-document-content"
-                         style="width: 100%; height: 400px; background: #1e1e1e; border-radius: 8px;
+                    <div id="dm-panel-doc-content" class="dm-document-content dm-panel-text-content"
+                         style="width: 100%; height: 400px; border-radius: 8px;
                                 font-family: 'Consolas', 'Monaco', monospace; font-size: 13px;
                                 line-height: 1.6; overflow: auto; box-sizing: border-box;
                                 word-break: break-word; white-space: pre-wrap; padding: 15px;">${escapeHtml(text)}</div>
@@ -359,10 +351,10 @@ async function createDocumentPreviewHTML(path, ext, docUrl) {
             console.error('[DataManager] 加载文档失败:', e);
         }
         return `
-            <div style="text-align: center; padding: 30px; color: #666;">
-                <i class="pi pi-file" style="font-size: 48px;"></i>
-                <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
-                <div style="margin-top: 8px; font-size: 12px;">点击"打开"按钮查看文件</div>
+            <div class="dm-panel-unavailable" style="text-align: center; padding: 30px;">
+                <i class="pi pi-file dm-unavailable-icon" style="font-size: 48px;"></i>
+                <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
+                <div class="dm-unavailable-message" style="margin-top: 8px; font-size: 12px;">点击"打开"按钮查看文件</div>
             </div>
         `;
     }
@@ -597,10 +589,10 @@ function syntaxHighlight(json) {
 function createUnavailablePreview(fileName, type) {
     const icons = { document: 'pi-file-pdf', code: 'pi-code', default: 'pi-file' };
     return `
-        <div style="text-align: center; padding: 30px;">
-            <i class="pi ${icons[type] || icons.default}" style="font-size: 64px; color: #e74c3c;"></i>
-            <div style="margin-top: 15px; color: #fff; font-size: 14px;">${fileName}</div>
-            <div style="margin-top: 8px; color: #888; font-size: 12px;">双击"打开"按钮查看文件</div>
+        <div class="dm-panel-unavailable-preview" style="text-align: center; padding: 30px;">
+            <i class="pi ${icons[type] || icons.default} dm-unavailable-icon" style="font-size: 64px;"></i>
+            <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${fileName}</div>
+            <div class="dm-unavailable-message" style="margin-top: 8px; font-size: 12px;">双击"打开"按钮查看文件</div>
         </div>
     `;
 }
@@ -622,9 +614,9 @@ async function updateFileInfo(path) {
         infoSection.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 6px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: #fff; font-weight: 500; word-break: break-all;">${fileName}</span>
+                    <span class="dm-info-filename" style="font-weight: 500; word-break: break-all;">${fileName}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #888;">
+                <div class="dm-info-details" style="display: flex; justify-content: space-between; font-size: 11px;">
                     <span><i class="pi pi-database" style="margin-right: 4px;"></i>${size}</span>
                     <span><i class="pi pi-clock" style="margin-right: 4px;"></i>${date}</span>
                 </div>
@@ -634,7 +626,7 @@ async function updateFileInfo(path) {
         console.error('[DataManager] updateFileInfo error:', error);
         const fileName = path.split(/[/\\]/).pop();
         infoSection.innerHTML = `
-            <div style="text-align: center; color: #888; font-size: 12px;">
+            <div class="dm-info-error" style="text-align: center; font-size: 12px;">
                 ${fileName}
             </div>
         `;
@@ -686,10 +678,10 @@ async function createSpreadsheetPreviewHTML(path, ext) {
 
             if (rows.length === 0) {
                 return `
-                    <div style="text-align: center; padding: 40px; color: #888;">
-                        <i class="pi pi-table" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                        <div style="margin-top: 10px; color: #888; font-size: 12px;">空表格文件</div>
+                    <div class="dm-panel-empty-table" style="text-align: center; padding: 40px;">
+                        <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
                     </div>
                 `;
             }
@@ -719,10 +711,10 @@ async function createSpreadsheetPreviewHTML(path, ext) {
 
             if (rows.length === 0) {
                 return `
-                    <div style="text-align: center; padding: 40px; color: #888;">
-                        <i class="pi pi-table" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                        <div style="margin-top: 10px; color: #888; font-size: 12px;">空表格文件</div>
+                    <div class="dm-panel-empty-table" style="text-align: center; padding: 40px;">
+                        <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
                     </div>
                 `;
             }
@@ -732,21 +724,21 @@ async function createSpreadsheetPreviewHTML(path, ext) {
 
         // 其他表格格式不支持预览
         return `
-            <div style="text-align: center; padding: 40px; color: #888;">
-                <i class="pi pi-table" style="font-size: 64px; color: #27ae60; margin-bottom: 15px;"></i>
-                <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                <div style="margin-top: 10px; color: #888; font-size: 12px;">此格式暂不支持预览</div>
+            <div class="dm-panel-unsupported-table" style="text-align: center; padding: 40px;">
+                <i class="pi pi-table dm-unsupported-table-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
+                <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">此格式暂不支持预览</div>
             </div>
         `;
 
     } catch (error) {
         console.error('[DataManager] Spreadsheet preview error:', error);
         return `
-            <div style="text-align: center; padding: 40px; color: #888;">
-                <i class="pi pi-exclamation-triangle" style="font-size: 48px; color: #e74c3c;"></i>
-                <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
-                <div style="margin-top: 10px; color: #e74c3c; font-size: 12px;">预览加载失败</div>
-                <div style="margin-top: 5px; color: #666; font-size: 11px;">${error.message}</div>
+            <div class="dm-panel-preview-error" style="text-align: center; padding: 40px;">
+                <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
+                <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
+                <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
+                <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${error.message}</div>
             </div>
         `;
     }
@@ -823,11 +815,11 @@ function createTableHTML(rows, maxRows = 100) {
 
     let tableHTML = `
         <div style="display: flex; flex-direction: column; gap: 0;">
-            <div style="position: relative; background: #1e1e1e; border-radius: 8px; overflow: hidden;">
+            <div class="dm-panel-table-container" style="position: relative; border-radius: 8px; overflow: hidden;">
                 <div id="${tableId}-wrapper" class="dm-table-wrapper"
                      style="width: 100%; height: 400px; overflow: auto; padding: 15px;">
                     <table id="${tableId}" class="dm-data-table"
-                           style="width: 100%; border-collapse: collapse; font-size: 12px; color: #d4d4d4; transform-origin: top left;">
+                           style="width: 100%; border-collapse: collapse; font-size: 12px; transform-origin: top left;">
     `;
 
     displayRows.forEach((row, rowIndex) => {
@@ -837,9 +829,9 @@ function createTableHTML(rows, maxRows = 100) {
         row.forEach(cell => {
             const cellContent = escapeHtml(String(cell || ''));
             if (isHeader) {
-                tableHTML += `<th style="background: #2d2d2d; border: 1px solid #3a3a3a; padding: 8px 12px; text-align: left; font-weight: 600; color: #fff;">${cellContent}</th>`;
+                tableHTML += `<th class="dm-table-header">${cellContent}</th>`;
             } else {
-                tableHTML += `<td style="border: 1px solid #3a3a3a; padding: 8px 12px;">${cellContent}</td>`;
+                tableHTML += `<td class="dm-table-cell">${cellContent}</td>`;
             }
         });
 
@@ -850,18 +842,18 @@ function createTableHTML(rows, maxRows = 100) {
                     </table>
                 </div>
             </div>
-            <div id="${tableId}-controls" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #252525; border-radius: 0 0 8px 8px; margin-top: -2px;">
-                <button class="comfy-btn dm-table-zoom-out-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="缩小">
+            <div id="${tableId}-controls" class="dm-table-controls-panel" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 0 0 8px 8px; margin-top: -2px;">
+                <button class="comfy-btn dm-table-zoom-out-btn" data-table-id="${tableId}" title="缩小">
                     <i class="pi pi-search-minus"></i>
                 </button>
-                <span id="${tableId}-zoom" style="color: #aaa; font-size: 11px; min-width: 45px; text-align: center;">100%</span>
-                <button class="comfy-btn dm-table-zoom-in-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="放大">
+                <span id="${tableId}-zoom" class="dm-table-zoom-display">100%</span>
+                <button class="comfy-btn dm-table-zoom-in-btn" data-table-id="${tableId}" title="放大">
                     <i class="pi pi-search-plus"></i>
                 </button>
-                <button class="comfy-btn dm-table-fit-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="自动缩放">
+                <button class="comfy-btn dm-table-fit-btn" data-table-id="${tableId}" title="自动缩放">
                     <i class="pi pi-arrows-alt"></i>
                 </button>
-                <button class="comfy-btn dm-table-fullscreen-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="全屏">
+                <button class="comfy-btn dm-table-fullscreen-btn" data-table-id="${tableId}" title="全屏">
                     <i class="pi pi-window-maximize"></i>
                 </button>
             </div>
@@ -869,7 +861,7 @@ function createTableHTML(rows, maxRows = 100) {
     `;
 
     if (isTruncated) {
-        tableHTML = tableHTML.replace(`</div>`, `<div style="text-align: center; padding: 10px; color: #888; font-size: 11px;">... (仅显示前 ${maxRows} 行，共 ${rows.length} 行)</div></div>`);
+        tableHTML = tableHTML.replace(`</div>`, `<div class="dm-table-truncated" style="text-align: center; padding: 10px; font-size: 11px;">... (仅显示前 ${maxRows} 行，共 ${rows.length} 行)</div></div>`);
     }
 
     // 存储缩放状态

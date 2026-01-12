@@ -17,12 +17,12 @@ export function createToolbar(callbacks) {
     } = callbacks;
 
     const toolbar = document.createElement("div");
+    toolbar.className = "dm-toolbar";
     toolbar.style.cssText = `
         display: flex;
         align-items: center;
         padding: 10px 15px;
-        background: #222;
-        border-bottom: 1px solid #2a2a2a;
+        border-bottom: 1px solid;
         gap: 10px;
         flex-wrap: wrap;
     `;
@@ -34,16 +34,15 @@ export function createToolbar(callbacks) {
     // 路径输入框
     const pathInput = document.createElement("input");
     pathInput.id = "dm-path-input";
+    pathInput.className = "dm-input";
     pathInput.type = "text";
     pathInput.placeholder = "输入路径...";
     pathInput.style.cssText = `
         flex: 1;
         min-width: 200px;
         padding: 8px 12px;
-        background: #2a2a2a;
-        border: 1px solid #3a3a3a;
+        border: 1px solid;
         border-radius: 6px;
-        color: #fff;
         font-size: 13px;
     `;
     pathInput.addEventListener("keypress", (e) => {
@@ -56,12 +55,11 @@ export function createToolbar(callbacks) {
     // 排序选择
     const sortSelect = document.createElement("select");
     sortSelect.id = "dm-sort-select";
+    sortSelect.className = "dm-select";
     sortSelect.style.cssText = `
         padding: 8px 12px;
-        background: #2a2a2a;
-        border: 1px solid #3a3a3a;
+        border: 1px solid;
         border-radius: 6px;
-        color: #fff;
         font-size: 13px;
         cursor: pointer;
     `;

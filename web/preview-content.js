@@ -16,7 +16,7 @@ import { openFileExternally } from './floating-actions.js';
  */
 export async function loadPreviewContent(content, path, ext, scale = 1) {
     content.innerHTML = `
-        <div style="text-align: center; padding: 20px; color: #888;">
+        <div class="dm-loading" style="text-align: center; padding: 20px;">
             <i class="pi pi-spin pi-spinner" style="font-size: 24px;"></i>
             <div style="margin-top: 10px;">正在加载...</div>
         </div>
@@ -30,12 +30,12 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
             const imageUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             previewHTML = `
                 <img src="${imageUrl}"
-                     class="dm-zoomable-image"
+                     class="dm-zoomable-image dm-preview-image"
                      style="max-width: 100%; max-height: 400px;
-                            border-radius: 8px; border: 1px solid #3a3a3a;
+                            border-radius: 8px; border: 1px solid;
                             transform-origin: center center;
                             will-change: transform;"
-                     onerror="this.parentElement.innerHTML='<div style=\\'color:#e74c3c; padding: 20px;\\'>无法加载图像</div>'"
+                     onerror="this.parentElement.innerHTML='<div class=\\'dm-error-message\\' style=\\'padding: 20px;\\'>无法加载图像</div>'"
                      onload="this.style.opacity=1; this.style.display='block';">
             `;
         }
@@ -44,9 +44,9 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
             const audioUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             const audioId = `dm-preview-audio-${Date.now()}`;
             previewHTML = `
-                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
-                    <i class="pi pi-volume-up" style="font-size: 64px; color: #3498db; margin-bottom: 15px;"></i>
-                    <div style="color: #fff; margin-bottom: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                <div class="dm-audio-preview" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+                    <i class="pi pi-volume-up dm-audio-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
+                    <div class="dm-preview-filename" style="margin-bottom: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
                     <audio id="${audioId}" preload="metadata" style="width: 100%; max-width: 400px;">
                         <source src="${audioUrl}">
                         您的浏览器不支持音频播放
@@ -59,7 +59,7 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
             const videoUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             const videoId = `dm-preview-video-${Date.now()}`;
             previewHTML = `
-                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000;">
+                <div class="dm-video-preview" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
                     <video id="${videoId}"
                            preload="metadata"
                            style="width: 100%; height: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">
@@ -73,15 +73,15 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
         else if (FILE_TYPES.videoExternal && FILE_TYPES.videoExternal.exts.includes(ext)) {
             const extUpper = ext.toUpperCase().replace('.', '');
             previewHTML = `
-                <div style="text-align: center; padding: 40px; color: #888;">
-                    <i class="pi pi-video" style="font-size: 64px; color: #8e44ad; margin-bottom: 15px;"></i>
-                    <div style="color: #fff; font-size: 16px; margin-bottom: 8px;">${path.split(/[\\/]/).pop()}</div>
-                    <div style="color: #8e44ad; font-size: 14px; font-weight: 600; margin-bottom: 15px;">${extUpper} 格式</div>
-                    <div style="margin-top: 10px; color: #666; font-size: 12px; max-width: 300px; margin-left: auto; margin-right: auto;">
+                <div class="dm-external-video" style="text-align: center; padding: 40px;">
+                    <i class="pi pi-video dm-external-video-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
+                    <div class="dm-preview-filename" style="font-size: 16px; margin-bottom: 8px;">${path.split(/[\\/]/).pop()}</div>
+                    <div class="dm-external-video-type" style="font-size: 14px; font-weight: 600; margin-bottom: 15px;">${extUpper} 格式</div>
+                    <div class="dm-external-video-desc" style="margin-top: 10px; font-size: 12px; max-width: 300px; margin-left: auto; margin-right: auto;">
                         此格式需要使用外部播放器打开<br>
-                        <span style="color: #888;">（VLC、Windows Media Player 等）</span>
+                        <span class="dm-external-video-sub">（VLC、Windows Media Player 等）</span>
                     </div>
-                    <div style="margin-top: 15px; padding: 10px; background: #2a2a2a; border-radius: 6px; font-size: 11px; color: #aaa;">
+                    <div class="dm-external-video-tip" style="margin-top: 15px; padding: 10px; border-radius: 6px; font-size: 11px;">
                         提示：点击下方"打开"按钮可用外部播放器播放
                     </div>
                 </div>
@@ -94,10 +94,10 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                 const text = await response.text();
                 const highlighted = highlightCode(text, ext);
                 previewHTML = `
-                    <div style="width: 100%; background: #1e1e1e; padding: 15px;
+                    <div class="dm-code-preview" style="width: 100%; padding: 15px;
                                 font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.5;
                                 overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
-                        <pre style="margin: 0; white-space: pre-wrap; color: #d4d4d4;">${highlighted}</pre>
+                        <pre class="dm-code-content" style="margin: 0; white-space: pre-wrap;">${highlighted}</pre>
                     </div>
                 `;
             } else {
@@ -115,11 +115,11 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
             if (isDoc) {
                 // 旧版 Word 文档无法预览，显示提示
                 previewHTML = `
-                    <div style="text-align: center; padding: 40px; color: #888;">
-                        <i class="pi pi-file-word" style="font-size: 64px; color: #2b579a; margin-bottom: 15px;"></i>
-                        <div style="margin-top: 15px; color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                        <div style="margin-top: 10px; color: #888; font-size: 12px;">.doc 格式暂不支持预览</div>
-                        <div style="margin-top: 5px; color: #666; font-size: 11px;">请转换为 .docx 或点击"打开"按钮</div>
+                    <div class="dm-doc-unsupported" style="text-align: center; padding: 40px;">
+                        <i class="pi pi-file-word dm-doc-unsupported-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
+                        <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">.doc 格式暂不支持预览</div>
+                        <div class="dm-unsupported-sub" style="margin-top: 5px; font-size: 11px;">请转换为 .docx 或点击"打开"按钮</div>
                     </div>
                 `;
             } else if (isDocx) {
@@ -140,14 +140,13 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                             const contentId = `dm-doc-content-${Date.now()}`;
                             previewHTML = `
                                 <div id="${contentId}" class="dm-document-content dm-docx-content"
-                                     style="width: 100%; height: 100%; background: #1e1e1e;
+                                     style="width: 100%; height: 100%;
                                             font-family: 'Segoe UI', Arial, sans-serif;
                                             font-size: 13px;
                                             line-height: 1.6;
                                             overflow: auto;
                                             box-sizing: border-box;
-                                            padding: 20px;
-                                            color: #d4d4d4;">
+                                            padding: 20px;">
                                     <style>
                                         #${contentId} img {
                                             max-width: 100%;
@@ -179,11 +178,11 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                 } catch (error) {
                     console.error('[DataManager] DOCX preview error:', error);
                     previewHTML = `
-                        <div style="text-align: center; padding: 40px; color: #888;">
-                            <i class="pi pi-exclamation-triangle" style="font-size: 48px; color: #e74c3c;"></i>
-                            <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
-                            <div style="margin-top: 10px; color: #e74c3c; font-size: 12px;">预览加载失败</div>
-                            <div style="margin-top: 5px; color: #666; font-size: 11px;">${error.message}</div>
+                        <div class="dm-preview-error" style="text-align: center; padding: 40px;">
+                            <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
+                            <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
+                            <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
+                            <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${error.message}</div>
                         </div>
                     `;
                 }
@@ -208,8 +207,8 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                         const text = await response.text();
                         const contentId = `dm-doc-content-${Date.now()}`;
                         previewHTML = `
-                            <div id="${contentId}" class="dm-document-content"
-                                 style="width: 100%; height: 100%; background: #1e1e1e;
+                            <div id="${contentId}" class="dm-document-content dm-text-content"
+                                 style="width: 100%; height: 100%;
                                         font-family: 'Consolas', 'Monaco', monospace;
                                         font-size: 13px;
                                         line-height: 1.6;
@@ -236,10 +235,10 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
             const icon = FILE_TYPES[getFileType({ name: path })]?.icon || FILE_TYPES.unknown.icon;
             const color = FILE_TYPES[getFileType({ name: path })]?.color || FILE_TYPES.unknown.color;
             previewHTML = `
-                <div style="text-align: center; padding: 30px;">
-                    <i class="pi ${icon}" style="font-size: 64px; color: ${color};"></i>
-                    <div style="margin-top: 15px; color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                    <div style="margin-top: 8px; color: #888; font-size: 12px;">此文件类型不支持预览</div>
+                <div class="dm-unknown-file" style="text-align: center; padding: 30px;">
+                    <i class="pi ${icon} dm-unknown-file-icon" style="font-size: 64px;"></i>
+                    <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                    <div class="dm-unknown-message" style="margin-top: 8px; font-size: 12px;">此文件类型不支持预览</div>
                 </div>
             `;
         }
@@ -248,10 +247,10 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
 
     } catch (error) {
         content.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #e74c3c;">
-                <i class="pi pi-exclamation-triangle" style="font-size: 32px;"></i>
+            <div class="dm-preview-error" style="text-align: center; padding: 20px;">
+                <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 32px;"></i>
                 <div style="margin-top: 10px;">加载预览失败</div>
-                <div style="margin-top: 5px; color: #888; font-size: 12px;">${error.message}</div>
+                <div class="dm-error-detail" style="margin-top: 5px; font-size: 12px;">${error.message}</div>
             </div>
         `;
     }
@@ -262,10 +261,10 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
  */
 function createUnavailablePreviewHTML(path) {
     return `
-        <div style="text-align: center; padding: 30px;">
-            <i class="pi pi-file" style="font-size: 64px; color: #e74c3c;"></i>
-            <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
-            <div style="margin-top: 8px; color: #888; font-size: 12px;">无法加载文件</div>
+        <div class="dm-unavailable-preview" style="text-align: center; padding: 30px;">
+            <i class="pi pi-file dm-unavailable-icon" style="font-size: 64px;"></i>
+            <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
+            <div class="dm-unavailable-message" style="margin-top: 8px; font-size: 12px;">无法加载文件</div>
         </div>
     `;
 }
@@ -417,10 +416,10 @@ async function createSpreadsheetPreviewHTML(path, ext) {
 
             if (rows.length === 0) {
                 return `
-                    <div style="text-align: center; padding: 40px; color: #888;">
-                        <i class="pi pi-table" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                        <div style="margin-top: 10px; color: #888; font-size: 12px;">空表格文件</div>
+                    <div class="dm-empty-table" style="text-align: center; padding: 40px;">
+                        <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
                     </div>
                 `;
             }
@@ -450,10 +449,10 @@ async function createSpreadsheetPreviewHTML(path, ext) {
 
             if (rows.length === 0) {
                 return `
-                    <div style="text-align: center; padding: 40px; color: #888;">
-                        <i class="pi pi-table" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                        <div style="margin-top: 10px; color: #888; font-size: 12px;">空表格文件</div>
+                    <div class="dm-empty-table" style="text-align: center; padding: 40px;">
+                        <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
                     </div>
                 `;
             }
@@ -463,21 +462,21 @@ async function createSpreadsheetPreviewHTML(path, ext) {
 
         // 其他表格格式不支持预览
         return `
-            <div style="text-align: center; padding: 40px; color: #888;">
-                <i class="pi pi-table" style="font-size: 64px; color: #27ae60; margin-bottom: 15px;"></i>
-                <div style="color: #fff; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
-                <div style="margin-top: 10px; color: #888; font-size: 12px;">此格式暂不支持预览</div>
+            <div class="dm-unsupported-table" style="text-align: center; padding: 40px;">
+                <i class="pi pi-table dm-unsupported-table-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
+                <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">此格式暂不支持预览</div>
             </div>
         `;
 
     } catch (error) {
         console.error('[DataManager] Spreadsheet preview error:', error);
         return `
-            <div style="text-align: center; padding: 40px; color: #888;">
-                <i class="pi pi-exclamation-triangle" style="font-size: 48px; color: #e74c3c;"></i>
-                <div style="margin-top: 15px; color: #fff;">${path.split(/[/\\]/).pop()}</div>
-                <div style="margin-top: 10px; color: #e74c3c; font-size: 12px;">预览加载失败</div>
-                <div style="margin-top: 5px; color: #666; font-size: 11px;">${error.message}</div>
+            <div class="dm-preview-error" style="text-align: center; padding: 40px;">
+                <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
+                <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
+                <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
+                <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${error.message}</div>
             </div>
         `;
     }
@@ -548,11 +547,11 @@ function createTableHTML(rows, maxRows = 100) {
 
     let tableHTML = `
         <div style="display: flex; flex-direction: column; gap: 0; height: 100%;">
-            <div style="position: relative; background: #1e1e1e; flex: 1; overflow: hidden;">
+            <div class="dm-table-container" style="position: relative; flex: 1; overflow: hidden;">
                 <div id="${tableId}-wrapper" class="dm-table-wrapper"
                      style="width: 100%; height: 100%; overflow: auto; padding: 15px;">
                     <table id="${tableId}" class="dm-data-table"
-                           style="width: 100%; border-collapse: collapse; font-size: 12px; color: #d4d4d4; transform-origin: top left;">
+                           style="width: 100%; border-collapse: collapse; font-size: 12px; transform-origin: top left;">
     `;
 
     displayRows.forEach((row, rowIndex) => {
@@ -562,9 +561,9 @@ function createTableHTML(rows, maxRows = 100) {
         row.forEach(cell => {
             const cellContent = escapeHtml(String(cell || ''));
             if (isHeader) {
-                tableHTML += `<th style="background: #2d2d2d; border: 1px solid #3a3a3a; padding: 8px 12px; text-align: left; font-weight: 600; color: #fff;">${cellContent}</th>`;
+                tableHTML += `<th class="dm-table-header">${cellContent}</th>`;
             } else {
-                tableHTML += `<td style="border: 1px solid #3a3a3a; padding: 8px 12px;">${cellContent}</td>`;
+                tableHTML += `<td class="dm-table-cell">${cellContent}</td>`;
             }
         });
 
@@ -575,15 +574,15 @@ function createTableHTML(rows, maxRows = 100) {
                     </table>
                 </div>
             </div>
-            <div id="${tableId}-controls" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: #252525; flex-shrink: 0;">
-                <button class="comfy-btn dm-table-zoom-out-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="缩小">
+            <div id="${tableId}-controls" class="dm-table-controls" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; flex-shrink: 0;">
+                <button class="comfy-btn dm-table-zoom-out-btn" data-table-id="${tableId}" title="缩小">
                     <i class="pi pi-search-minus"></i>
                 </button>
-                <span id="${tableId}-zoom" style="color: #aaa; font-size: 11px; min-width: 45px; text-align: center;">100%</span>
-                <button class="comfy-btn dm-table-zoom-in-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="放大">
+                <span id="${tableId}-zoom" class="dm-table-zoom-display">100%</span>
+                <button class="comfy-btn dm-table-zoom-in-btn" data-table-id="${tableId}" title="放大">
                     <i class="pi pi-search-plus"></i>
                 </button>
-                <button class="comfy-btn dm-table-fit-btn" data-table-id="${tableId}" style="padding: 6px 10px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; color: #fff; cursor: pointer;" title="自动缩放">
+                <button class="comfy-btn dm-table-fit-btn" data-table-id="${tableId}" title="自动缩放">
                     <i class="pi pi-arrows-alt"></i>
                 </button>
             </div>
@@ -591,7 +590,7 @@ function createTableHTML(rows, maxRows = 100) {
     `;
 
     if (isTruncated) {
-        tableHTML = tableHTML.replace(`</div>`, `<div style="text-align: center; padding: 10px; color: #888; font-size: 11px;">... (仅显示前 ${maxRows} 行，共 ${rows.length} 行)</div></div>`);
+        tableHTML = tableHTML.replace(`</div>`, `<div class="dm-table-truncated" style="text-align: center; padding: 10px; font-size: 11px;">... (仅显示前 ${maxRows} 行，共 ${rows.length} 行)</div></div>`);
     }
 
     // 延迟设置控件

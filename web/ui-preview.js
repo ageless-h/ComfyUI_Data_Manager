@@ -93,7 +93,7 @@ function detectTypeFromSourceNode(node) {
  * @returns {HTMLElement} 面板元素
  */
 export function createPreviewPanel(callbacks) {
-    const { onOpenFloating, onOpenExternally, onCopyPath, onDelete } = callbacks;
+    const { onOpenFloating, onCopyPath, onDelete } = callbacks;
 
     const panel = document.createElement("div");
     panel.id = "dm-preview-panel";
@@ -101,36 +101,32 @@ export function createPreviewPanel(callbacks) {
         flex: 0 0 400px;
         display: flex;
         flex-direction: column;
-        background: #1f1f1f;
         overflow: hidden;
     `;
 
     const header = document.createElement("div");
+    header.className = "dm-preview-header";
     header.style.cssText = `
         padding: 15px;
-        background: #252525;
-        border-bottom: 1px solid #2a2a2a;
+        border-bottom: 1px solid;
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 10px;
     `;
     header.innerHTML = `
-        <h3 style="margin: 0; color: #fff; font-size: 14px;">
+        <h3 class="dm-title" style="margin: 0; font-size: 14px;">
             <i class="pi pi-eye"></i> 预览
         </h3>
         <div style="display: flex; gap: 5px;">
-            <button id="dm-copy-path-btn" class="comfy-btn" style="padding: 6px 12px; font-size: 12px;">
+            <button id="dm-copy-path-btn" class="comfy-btn dm-icon-btn" style="padding: 6px 12px; font-size: 12px;">
                 <i class="pi pi-copy"></i>
             </button>
-            <button id="dm-delete-file-btn" class="comfy-btn" style="padding: 6px 12px; font-size: 12px;">
+            <button id="dm-delete-file-btn" class="comfy-btn dm-icon-btn" style="padding: 6px 12px; font-size: 12px;">
                 <i class="pi pi-trash"></i>
             </button>
-            <button id="dm-open-floating-preview-btn" class="comfy-btn" style="display: none; padding: 6px 12px; font-size: 12px;">
+            <button id="dm-open-floating-preview-btn" class="comfy-btn dm-icon-btn" style="display: none; padding: 6px 12px; font-size: 12px;">
                 <i class="pi pi-window-maximize"></i>
-            </button>
-            <button id="dm-open-preview-btn" class="comfy-btn" style="display: none; padding: 6px 12px; font-size: 12px;">
-                <i class="pi pi-external-link"></i>
             </button>
         </div>
     `;
@@ -186,15 +182,11 @@ export function createPreviewPanel(callbacks) {
 
     // 绑定按钮事件
     const floatingBtn = header.querySelector('#dm-open-floating-preview-btn');
-    const openBtn = header.querySelector('#dm-open-preview-btn');
     const copyPathBtn = header.querySelector('#dm-copy-path-btn');
     const deleteBtn = header.querySelector('#dm-delete-file-btn');
 
     if (floatingBtn && onOpenFloating) {
         floatingBtn.onclick = onOpenFloating;
-    }
-    if (openBtn && onOpenExternally) {
-        openBtn.onclick = onOpenExternally;
     }
     if (copyPathBtn && onCopyPath) {
         copyPathBtn.onclick = onCopyPath;

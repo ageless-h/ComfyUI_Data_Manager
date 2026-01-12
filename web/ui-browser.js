@@ -14,11 +14,12 @@ import { formatDate, formatSize } from './utils-format.js';
 export function createBrowserPanel(viewMode = 'list') {
     const panel = document.createElement("div");
     panel.id = "dm-browser-panel";
+    panel.className = "dm-browser-panel";
     panel.style.cssText = `
         flex: 1;
         display: flex;
         flex-direction: column;
-        border-right: 1px solid #2a2a2a;
+        border-right: 1px solid;
         overflow: hidden;
     `;
 
@@ -47,7 +48,7 @@ export function createBrowserPanel(viewMode = 'list') {
         `;
     }
     content.innerHTML = `
-        <div style="text-align: center; padding: 40px; color: #666;">
+        <div class="dm-browser-loading" style="text-align: center; padding: 40px;">
             <i class="pi pi-spin pi-spinner" style="font-size: 24px;"></i>
         </div>
     `;
@@ -66,11 +67,9 @@ function createListHeader() {
     header.style.cssText = `
         display: flex;
         padding: 10px 15px;
-        background: #252525;
-        border-bottom: 1px solid #2a2a2a;
+        border-bottom: 1px solid;
         font-size: 12px;
         font-weight: 600;
-        color: #888;
     `;
 
     const createHeaderCell = (sortKey, label, width) => {
@@ -109,14 +108,14 @@ export function createFileListItem(file, isParent) {
     return `
         <div class="dm-file-item" data-path="${file.path || file.name}" data-is-dir="${file.is_dir || false}"
              style="display: flex; align-items: center; padding: 10px 15px;
-                    border-bottom: 1px solid #2a2a2a; cursor: pointer;
+                    border-bottom: 1px solid; cursor: pointer;
                     transition: background 0.2s;">
             <div style="flex: 1; display: flex; align-items: center; gap: 10px; overflow: hidden;">
-                <i class="pi ${icon}" style="color: ${color}; font-size: 16px;"></i>
-                <span style="color: #fff; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
+                <i class="pi ${icon} dm-file-icon" style="color: ${color}; font-size: 16px;"></i>
+                <span class="dm-file-name" style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
             </div>
-            <div style="flex: 0 0 100px; color: #888; font-size: 12px;">${size}</div>
-            <div style="flex: 0 0 150px; color: #888; font-size: 12px;">${modified}</div>
+            <div class="dm-file-size" style="flex: 0 0 100px; font-size: 12px;">${size}</div>
+            <div class="dm-file-modified" style="flex: 0 0 150px; font-size: 12px;">${modified}</div>
         </div>
     `;
 }
@@ -131,14 +130,14 @@ export function createFileGridItem(file, isParent) {
     // 父目录使用特殊样式
     if (isParent) {
         return `
-            <div class="dm-grid-item" data-path="${file.path}" data-is-dir="true"
+            <div class="dm-grid-item dm-grid-item-parent" data-path="${file.path}" data-is-dir="true"
                  data-name=".."
                  style="display: flex; flex-direction: column; align-items: center; justify-content: center;
                         padding: 12px 8px; height: 90px;
-                        background: #2a2a2a; border-radius: 8px; cursor: pointer;
-                        transition: all 0.2s; border: 2px dashed #444; box-sizing: border-box;">
-                <i class="pi pi-folder-open" style="color: #888; font-size: 40px;"></i>
-                <span style="color: #888; font-size: 11px; text-align: center;
+                        border-radius: 8px; cursor: pointer;
+                        transition: all 0.2s; border: 2px dashed; box-sizing: border-box;">
+                <i class="pi pi-folder-open dm-parent-icon" style="font-size: 40px;"></i>
+                <span class="dm-parent-text" style="font-size: 11px; text-align: center;
                               overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
                               width: 100%; margin-top: 8px;">返回上级</span>
             </div>
@@ -154,10 +153,10 @@ export function createFileGridItem(file, isParent) {
              data-name="${file.name}"
              style="display: flex; flex-direction: column; align-items: center; justify-content: center;
                     padding: 12px 8px; height: 90px;
-                    background: #252525; border-radius: 8px; cursor: pointer;
-                    transition: all 0.2s; border: 2px solid transparent; box-sizing: border-box;">
-            <i class="pi ${icon}" style="color: ${color}; font-size: 40px;"></i>
-            <span style="color: #ccc; font-size: 11px; text-align: center;
+                    border-radius: 8px; cursor: pointer;
+                    transition: all 0.2s; border: 2px solid; box-sizing: border-box;">
+            <i class="pi ${icon} dm-grid-icon" style="color: ${color}; font-size: 40px;"></i>
+            <span class="dm-grid-filename" style="font-size: 11px; text-align: center;
                           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
                           width: 100%; margin-top: 8px;">${file.name}</span>
         </div>

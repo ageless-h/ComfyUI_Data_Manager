@@ -41,7 +41,12 @@ export function createFileManagerWindow(callbacks) {
     `;
 
     // 组装窗口
-    window.appendChild(createHeader(callbacks.onRefresh, callbacks.onClose));
+    window.appendChild(createHeader({
+        title: 'Data Manager',
+        icon: 'pi-folder-open',
+        onClose: callbacks.onClose,
+        onRefresh: callbacks.onRefresh
+    }));
     window.appendChild(createToolbar(callbacks));
     window.appendChild(createMainContent(callbacks));
     window.appendChild(createStatusBar());
@@ -95,7 +100,6 @@ function createMainContent(callbacks) {
 
     const previewPanel = createPreviewPanel({
         onOpenFloating: () => callbacks.onOpenFloating && callbacks.onOpenFloating(),
-        onOpenExternally: () => callbacks.onOpenExternally && callbacks.onOpenExternally(),
         onCopyPath: () => callbacks.onCopyPath && callbacks.onCopyPath(),
         onDelete: () => callbacks.onDelete && callbacks.onDelete()
     });
