@@ -13,6 +13,13 @@ import { previewFile } from './ui-preview-actions.js';
  * @param {string} path - 目录路径
  */
 export async function loadDirectory(path) {
+    // 检查是否有活动 SSH 连接
+    const remoteConn = window._remoteConnectionsState.active;
+    if (remoteConn && remoteConn.connection_id) {
+        await loadRemoteDirectory(path, remoteConn);
+        return;
+    }
+
     updateStatus(`正在加载: ${path}...`);
 
     try {
@@ -41,6 +48,32 @@ export async function loadDirectory(path) {
         console.error("Load directory error:", error);
         updateStatus("加载错误");
         showToast("error", "错误", "网络请求失败");
+    }
+}
+
+/**
+ * 加载远程 SSH 目录
+ */
+async function loadRemoteDirectory(path, conn) {
+    updateStatus(`正在加载远程: ${path}...`);
+
+    try {
+        const { sshList } = await import('./api-ssh.js');
+        const data = await sshList(conn.connection_id, path || conn.root_path || "/");
+
+        FileManagerState.files = data.files || [];
+        FileManagerState.currentPath = data.path || path;
+
+        const pathInput = document.getElementById("dm-path-input");
+        if (pathInput) pathInput.value = `[SSH] ${data.path}`;
+
+        renderFileListUI();
+        updateStatus(`${FileManagerState.files.length} 个项目 (远程)`);
+
+    } catch (error) {
+        console.error("Load remote directory error:", error);
+        updateStatus("加载错误");
+        showToast("error", "错误", `远程加载失败: ${error.message}`);
     }
 }
 
