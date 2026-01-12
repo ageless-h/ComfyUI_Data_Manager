@@ -3,6 +3,109 @@
  */
 
 /**
+ * 动态导入设置面板
+ */
+async function getSettingsModule() {
+    const module = await import('./ui-settings.js');
+    return {
+        openSettingsPanel: module.openSettingsPanel
+    };
+}
+
+/**
+ * 动态导入 SSH API
+ */
+async function getSshApi() {
+    const module = await import('./api-ssh.js');
+    return {
+        sshDisconnect: module.sshDisconnect
+    };
+}
+
+/**
+ * 创建设置按钮（类似排序选择器样式）
+ * @param {object} callbacks - 回调函数
+ * @returns {HTMLElement} 设置按钮容器
+ */
+function createSettingsButton(callbacks) {
+    const { onSshConnect, onSshDisconnect } = callbacks;
+
+    const container = document.createElement("div");
+    container.style.cssText = "display: flex; align-items: center; gap: 5px;";
+
+    const button = document.createElement("button");
+    button.className = "comfy-btn";
+    button.id = "dm-settings-btn";
+    button.innerHTML = '<i class="pi pi-cog"></i>';
+    button.style.cssText = `
+        padding: 8px 12px;
+        border: 1px solid #444;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        background: transparent;
+        color: #ccc;
+    `;
+    button.title = "设置（SSH 连接管理）";
+
+    button.onclick = async () => {
+        const { openSettingsPanel } = await getSettingsModule();
+        openSettingsPanel({
+            onConnect: (result) => {
+                window._remoteConnectionsState.active = result;
+                try {
+                    localStorage.setItem('comfyui_datamanager_last_connection',
+                        JSON.stringify(result));
+                } catch (err) {}
+                updateConnectionStatus();
+                if (onSshConnect) onSshConnect(result);
+            },
+            onDisconnect: async () => {
+                const conn = window._remoteConnectionsState.active;
+                if (conn && conn.connection_id) {
+                    try {
+                        const { sshDisconnect } = await getSshApi();
+                        await sshDisconnect(conn.connection_id);
+                    } catch (e) {
+                        console.log('[DataManager] SSH disconnect error:', e);
+                    }
+                }
+                window._remoteConnectionsState.active = null;
+                try {
+                    localStorage.removeItem('comfyui_datamanager_last_connection');
+                } catch (err) {}
+                updateConnectionStatus();
+                if (onSshDisconnect) onSshDisconnect();
+            }
+        });
+    };
+
+    container.appendChild(button);
+
+    return container;
+}
+
+/**
+ * 更新连接状态指示器
+ */
+function updateConnectionStatus() {
+    const indicator = document.getElementById("dm-connection-indicator");
+    const statusText = document.getElementById("dm-connection-status");
+    const active = window._remoteConnectionsState.active;
+
+    if (indicator) {
+        indicator.style.background = active ? '#27ae60' : '#666';
+    }
+    if (statusText) {
+        if (active) {
+            statusText.textContent = `SSH: ${active.username}@${active.host}`;
+        } else {
+            statusText.textContent = "";
+        }
+    }
+}
+
+/**
  * 创建工具栏
  * @param {object} callbacks - 回调函数对象
  * @returns {HTMLElement} 工具栏元素
@@ -33,15 +136,15 @@ export function createToolbar(callbacks) {
     toolbar.appendChild(createToolButton("pi-arrow-left", "上级", onNavigateUp));
     toolbar.appendChild(createToolButton("pi-home", "根目录", onNavigateHome));
 
-    // 远程连接选择器
-    toolbar.appendChild(createRemoteSelector({ onSshConnect, onSshDisconnect }));
+    // 设置按钮（SSH 管理）
+    toolbar.appendChild(createSettingsButton({ onSshConnect, onSshDisconnect }));
 
     // 路径输入框
     const pathInput = document.createElement("input");
     pathInput.id = "dm-path-input";
     pathInput.className = "dm-input";
     pathInput.type = "text";
-    pathInput.placeholder = "输入路径或 UNC 路径...";
+    pathInput.placeholder = "输入路径...";
     pathInput.style.cssText = `
         flex: 1;
         min-width: 200px;
@@ -98,179 +201,10 @@ export function createToolbar(callbacks) {
     actionGroup.appendChild(createToolButton("pi-plus", "新建", onNewFile));
     toolbar.appendChild(actionGroup);
 
+    // 延迟更新连接状态
+    setTimeout(updateConnectionStatus, 100);
+
     return toolbar;
-}
-
-/**
- * 创建远程连接选择器
- */
-function createRemoteSelector(callbacks) {
-    const { onSshConnect, onSshDisconnect } = callbacks;
-
-    const container = document.createElement("div");
-    container.style.cssText = "display: flex; align-items: center; gap: 5px;";
-
-    // 连接选择器
-    const select = document.createElement("select");
-    select.id = "dm-remote-select";
-    select.style.cssText = `
-        padding: 6px 10px;
-        border: 1px solid #444;
-        border-radius: 4px;
-        font-size: 12px;
-        max-width: 150px;
-    `;
-
-    // 初始化选项
-    updateRemoteOptions(select);
-
-    select.onchange = async (e) => {
-        const value = e.target.value;
-
-        if (value === '__new__') {
-            const { createSshDialog } = await import('./ui-ssh-dialog.js');
-            const dialog = createSshDialog({
-                onConnect: (result) => {
-                    window._remoteConnectionsState.active = result;
-                    try {
-                        localStorage.setItem('comfyui_datamanager_last_connection',
-                            JSON.stringify(result));
-                    } catch (err) {}
-                    updateRemoteOptions(select);
-                    if (onSshConnect) onSshConnect(result);
-                }
-            });
-            document.body.appendChild(dialog);
-            e.target.value = "";
-        } else if (value === '__local__') {
-            window._remoteConnectionsState.active = null;
-            try {
-                localStorage.removeItem('comfyui_datamanager_last_connection');
-            } catch (err) {}
-            updateRemoteOptions(select);
-            if (onSshDisconnect) onSshDisconnect();
-        } else if (value.startsWith('conn_')) {
-            const connId = value.substring(5);
-            const savedConn = window._remoteConnectionsState.saved.find(c => c.id === connId);
-            if (savedConn) {
-                try {
-                    select.disabled = true;
-                    select.innerHTML = '<option>连接中...</option>';
-                    if (onSshConnect) onSshConnect({
-                        connection_id: connId,
-                        host: savedConn.host,
-                        port: savedConn.port,
-                        username: savedConn.username,
-                        password: atob(savedConn.password)
-                    });
-                } catch (err) {
-                    alert("连接失败: " + err.message);
-                    updateRemoteOptions(select);
-                }
-            }
-            e.target.value = "";
-        }
-    };
-
-    container.appendChild(select);
-
-    // 添加按钮
-    const addBtn = document.createElement("button");
-    addBtn.className = "comfy-btn";
-    addBtn.innerHTML = '<i class="pi pi-plus"></i>';
-    addBtn.style.cssText = "padding: 6px 10px;";
-    addBtn.title = "添加 SSH 连接";
-    addBtn.onclick = async () => {
-        const { createSshDialog } = await import('./ui-ssh-dialog.js');
-        const dialog = createSshDialog({
-            onConnect: (result) => {
-                window._remoteConnectionsState.active = result;
-                try {
-                    localStorage.setItem('comfyui_datamanager_last_connection',
-                        JSON.stringify(result));
-                } catch (err) {}
-                updateRemoteOptions(select);
-                if (onSshConnect) onSshConnect(result);
-            }
-        });
-        document.body.appendChild(dialog);
-    };
-    container.appendChild(addBtn);
-
-    // 状态指示器
-    const status = document.createElement("span");
-    status.id = "dm-ssh-status";
-    status.style.cssText = "width: 8px; height: 8px; border-radius: 50%; background: #666;";
-    container.appendChild(status);
-
-    return container;
-}
-
-/**
- * 更新远程选择器选项
- */
-function updateRemoteOptions(select) {
-    const active = window._remoteConnectionsState.active;
-
-    select.innerHTML = "";
-
-    const defaultOpt = document.createElement("option");
-    defaultOpt.value = "";
-    defaultOpt.textContent = "本地";
-    select.appendChild(defaultOpt);
-
-    if (active) {
-        const opt = document.createElement("option");
-        opt.value = `active_${active.connection_id}`;
-        opt.textContent = `${active.username}@${active.host}`;
-        opt.style.color = "#27ae60";
-        select.appendChild(opt);
-
-        const status = document.getElementById("dm-ssh-status");
-        if (status) {
-            status.style.background = "#27ae60";
-        }
-    } else {
-        const status = document.getElementById("dm-ssh-status");
-        if (status) {
-            status.style.background = "#666";
-        }
-    }
-
-    // 已保存的连接
-    if (window._remoteConnectionsState.saved.length > 0) {
-        const divider = document.createElement("option");
-        divider.disabled = true;
-        divider.textContent = "── 已保存 ──";
-        select.appendChild(divider);
-
-        window._remoteConnectionsState.saved.forEach(conn => {
-            const opt = document.createElement("option");
-            opt.value = `conn_${conn.id}`;
-            opt.textContent = conn.name || `${conn.username}@${conn.host}`;
-            select.appendChild(opt);
-        });
-    }
-
-    // 操作选项
-    const divider2 = document.createElement("option");
-    divider2.disabled = true;
-    divider2.textContent = "── 操作 ──";
-    select.appendChild(divider2);
-
-    const newOpt = document.createElement("option");
-    newOpt.value = "__new__";
-    newOpt.textContent = "+ 新建 SSH";
-    newOpt.style.color = "#3498db";
-    select.appendChild(newOpt);
-
-    if (active) {
-        const discOpt = document.createElement("option");
-        discOpt.value = "__local__";
-        discOpt.textContent = "断开连接";
-        discOpt.style.color = "#e74c3c";
-        select.appendChild(discOpt);
-    }
 }
 
 /**
@@ -288,4 +222,11 @@ export function createToolButton(icon, title, onClick) {
     button.title = title;
     button.onclick = onClick;
     return button;
+}
+
+/**
+ * 更新连接状态显示
+ */
+export function refreshConnectionUI() {
+    updateConnectionStatus();
 }
