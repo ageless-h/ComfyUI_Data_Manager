@@ -8,6 +8,7 @@ import { escapeHtml } from './utils-format.js';
 import { loadScript } from './utils-script.js';
 import { parseCSV } from './utils-csv.js';
 import { highlightCode, highlightJSON, highlightPython, highlightJavaScript, highlightHTML, highlightCSS, highlightYAML, highlightXML, highlightGeneric } from './utils-syntax-highlight.js';
+import { createTableHTML, setupTableControls } from './utils-table.js';
 
 /**
  * 加载预览内容
@@ -305,7 +306,7 @@ async function createSpreadsheetPreviewHTML(path, ext) {
                 `;
             }
 
-            return createTableHTML(rows, 100);
+            return createTableHTML(rows, { type: 'floating', maxRows: 100 });
         }
 
         // Excel 文件使用 SheetJS 解析
@@ -339,7 +340,7 @@ async function createSpreadsheetPreviewHTML(path, ext) {
                 `;
             }
 
-            return createTableHTML(rows, 100);
+            return createTableHTML(rows, { type: 'floating', maxRows: 100 });
         }
 
         // 其他表格格式不支持预览
@@ -365,113 +366,3 @@ async function createSpreadsheetPreviewHTML(path, ext) {
     }
 }
 
-/**
- * 创建表格 HTML
- */
-function createTableHTML(rows, maxRows = 100) {
-    const displayRows = rows.slice(0, maxRows);
-    const isTruncated = rows.length > maxRows;
-    const tableId = `dm-floating-table-${Date.now()}`;
-
-    let tableHTML = `
-        <div style="display: flex; flex-direction: column; gap: 0; height: 100%;">
-            <div class="dm-table-container" style="position: relative; flex: 1; overflow: hidden;">
-                <div id="${tableId}-wrapper" class="dm-table-wrapper"
-                     style="width: 100%; height: 100%; overflow: auto; padding: 15px;">
-                    <table id="${tableId}" class="dm-data-table"
-                           style="width: 100%; border-collapse: collapse; font-size: 12px; transform-origin: top left;">
-    `;
-
-    displayRows.forEach((row, rowIndex) => {
-        const isHeader = rowIndex === 0;
-        tableHTML += '<tr>';
-
-        row.forEach(cell => {
-            const cellContent = escapeHtml(String(cell || ''));
-            if (isHeader) {
-                tableHTML += `<th class="dm-table-header">${cellContent}</th>`;
-            } else {
-                tableHTML += `<td class="dm-table-cell">${cellContent}</td>`;
-            }
-        });
-
-        tableHTML += '</tr>';
-    });
-
-    tableHTML += `
-                    </table>
-                </div>
-            </div>
-            <div id="${tableId}-controls" class="dm-table-controls" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; flex-shrink: 0;">
-                <button class="comfy-btn dm-table-zoom-out-btn" data-table-id="${tableId}" title="缩小">
-                    <i class="pi pi-search-minus"></i>
-                </button>
-                <span id="${tableId}-zoom" class="dm-table-zoom-display">100%</span>
-                <button class="comfy-btn dm-table-zoom-in-btn" data-table-id="${tableId}" title="放大">
-                    <i class="pi pi-search-plus"></i>
-                </button>
-                <button class="comfy-btn dm-table-fit-btn" data-table-id="${tableId}" title="自动缩放">
-                    <i class="pi pi-arrows-alt"></i>
-                </button>
-            </div>
-        </div>
-    `;
-
-    if (isTruncated) {
-        tableHTML = tableHTML.replace(`</div>`, `<div class="dm-table-truncated" style="text-align: center; padding: 10px; font-size: 11px;">... (仅显示前 ${maxRows} 行，共 ${rows.length} 行)</div></div>`);
-    }
-
-    // 延迟设置控件
-    setTimeout(() => setupFloatingTableControls(tableId), 0);
-
-    return tableHTML;
-}
-
-/**
- * 设置浮动窗口表格控件
- */
-function setupFloatingTableControls(tableId) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-
-    let zoom = 100;
-    const wrapper = document.getElementById(`${tableId}-wrapper`);
-    const zoomDisplay = document.getElementById(`${tableId}-zoom`);
-    const zoomInBtn = document.querySelector(`.dm-table-zoom-in-btn[data-table-id="${tableId}"]`);
-    const zoomOutBtn = document.querySelector(`.dm-table-zoom-out-btn[data-table-id="${tableId}"]`);
-    const fitBtn = document.querySelector(`.dm-table-fit-btn[data-table-id="${tableId}"]`);
-
-    function updateZoom() {
-        table.style.transform = `scale(${zoom / 100})`;
-        if (zoomDisplay) zoomDisplay.textContent = `${zoom}%`;
-        // 调整 wrapper 宽度以适应缩放
-        if (wrapper) {
-            wrapper.style.width = zoom > 100 ? `${zoom}%` : '100%';
-        }
-    }
-
-    if (zoomInBtn) {
-        zoomInBtn.addEventListener('click', () => {
-            zoom = Math.min(zoom + 25, 300);
-            updateZoom();
-        });
-    }
-
-    if (zoomOutBtn) {
-        zoomOutBtn.addEventListener('click', () => {
-            zoom = Math.max(zoom - 25, 25);
-            updateZoom();
-        });
-    }
-
-    if (fitBtn) {
-        fitBtn.addEventListener('click', () => {
-            // 自动缩放以适应容器
-            const containerWidth = wrapper?.clientWidth || 400;
-            const tableWidth = table.scrollWidth;
-            const newZoom = Math.min(Math.floor((containerWidth / tableWidth) * 100), 100);
-            zoom = Math.max(newZoom, 25);
-            updateZoom();
-        });
-    }
-}
