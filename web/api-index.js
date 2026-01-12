@@ -17,7 +17,9 @@ export async function listDirectory(path) {
     if (response && response.ok) {
         return await response.json();
     }
-    throw new Error('Failed to list directory');
+    const errorData = await response.json().catch(() => ({}));
+    const errorMsg = errorData.error || errorData.message || `HTTP ${response.status}`;
+    throw new Error(`Failed to list directory: ${errorMsg}`);
 }
 
 /**
@@ -45,7 +47,9 @@ export async function getFileInfo(path) {
         const data = await response.json();
         return data.info;
     }
-    throw new Error('Failed to get file info');
+    const errorData = await response.json().catch(() => ({}));
+    const errorMsg = errorData.error || errorData.message || `HTTP ${response.status}`;
+    throw new Error(`Failed to get file info: ${errorMsg}`);
 }
 
 /**

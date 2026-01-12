@@ -60,7 +60,7 @@ export async function previewFile(path) {
             previewHTML = `
                 <div class="dm-panel-audio-preview" style="text-align: center; padding: 20px;">
                     <i class="pi pi-volume-up dm-audio-icon" style="font-size: 64px;"></i>
-                    <div class="dm-preview-filename" style="margin-top: 15px;">${fileName}</div>
+                    <div class="dm-preview-filename" style="margin-top: 15px;">${escapeHtml(fileName)}</div>
                     <audio controls style="width: 100%; margin-top: 15px;">
                         <source src="${audioUrl}" type="audio/mpeg">
                     </audio>
@@ -86,7 +86,8 @@ export async function previewFile(path) {
                 } else {
                     throw new Error('Failed to load file');
                 }
-            } catch {
+            } catch (error) {
+                console.error('[DataManager] Code preview error:', error);
                 previewHTML = createUnavailablePreview(fileName, 'code');
             }
         }
@@ -108,7 +109,7 @@ export async function previewFile(path) {
             previewHTML = `
                 <div style="text-align: center; padding: 30px;">
                     <i class="pi ${icon}" style="font-size: 64px; color: ${color};"></i>
-                    <div style="margin-top: 15px; color: #fff; font-size: 14px;">${fileName}</div>
+                    <div style="margin-top: 15px; color: #fff; font-size: 14px;">${escapeHtml(fileName)}</div>
                     <div style="margin-top: 8px; color: #888; font-size: 12px;">此文件类型不支持预览</div>
                 </div>
             `;
@@ -372,7 +373,7 @@ function createUnavailablePreview(fileName, type) {
     return `
         <div class="dm-panel-unavailable-preview" style="text-align: center; padding: 30px;">
             <i class="pi ${icons[type] || icons.default} dm-unavailable-icon" style="font-size: 64px;"></i>
-            <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${fileName}</div>
+            <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${escapeHtml(fileName)}</div>
             <div class="dm-unavailable-message" style="margin-top: 8px; font-size: 12px;">双击"打开"按钮查看文件</div>
         </div>
     `;
@@ -395,7 +396,7 @@ async function updateFileInfo(path) {
         infoSection.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 6px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="dm-info-filename" style="font-weight: 500; word-break: break-all;">${fileName}</span>
+                    <span class="dm-info-filename" style="font-weight: 500; word-break: break-all;">${escapeHtml(fileName)}</span>
                 </div>
                 <div class="dm-info-details" style="display: flex; justify-content: space-between; font-size: 11px;">
                     <span><i class="pi pi-database" style="margin-right: 4px;"></i>${size}</span>
@@ -408,7 +409,7 @@ async function updateFileInfo(path) {
         const fileName = path.split(/[/\\]/).pop();
         infoSection.innerHTML = `
             <div class="dm-info-error" style="text-align: center; font-size: 12px;">
-                ${fileName}
+                ${escapeHtml(fileName)}
             </div>
         `;
     }

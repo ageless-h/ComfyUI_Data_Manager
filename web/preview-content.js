@@ -45,10 +45,11 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
         else if (FILE_TYPES.audio.exts.includes(ext)) {
             const audioUrl = `/dm/preview?path=${encodeURIComponent(path)}`;
             const audioId = `dm-preview-audio-${Date.now()}`;
+            const displayName = escapeHtml(path.split(/[/\\]/).pop());
             previewHTML = `
                 <div class="dm-audio-preview" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
                     <i class="pi pi-volume-up dm-audio-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-                    <div class="dm-preview-filename" style="margin-bottom: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                    <div class="dm-preview-filename" style="margin-bottom: 15px; font-size: 14px;">${displayName}</div>
                     <audio id="${audioId}" preload="metadata" style="width: 100%; max-width: 400px;">
                         <source src="${audioUrl}">
                         您的浏览器不支持音频播放
@@ -74,10 +75,11 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
         // 外部视频格式预览（需要外部播放器）
         else if (FILE_TYPES.videoExternal && FILE_TYPES.videoExternal.exts.includes(ext)) {
             const extUpper = ext.toUpperCase().replace('.', '');
+            const displayName = escapeHtml(path.split(/[\\/]/).pop());
             previewHTML = `
                 <div class="dm-external-video" style="text-align: center; padding: 40px;">
                     <i class="pi pi-video dm-external-video-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-                    <div class="dm-preview-filename" style="font-size: 16px; margin-bottom: 8px;">${path.split(/[\\/]/).pop()}</div>
+                    <div class="dm-preview-filename" style="font-size: 16px; margin-bottom: 8px;">${displayName}</div>
                     <div class="dm-external-video-type" style="font-size: 14px; font-weight: 600; margin-bottom: 15px;">${extUpper} 格式</div>
                     <div class="dm-external-video-desc" style="margin-top: 10px; font-size: 12px; max-width: 300px; margin-left: auto; margin-right: auto;">
                         此格式需要使用外部播放器打开<br>
@@ -116,10 +118,11 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
 
             if (isDoc) {
                 // 旧版 Word 文档无法预览，显示提示
+                const displayName = escapeHtml(path.split(/[/\\]/).pop());
                 previewHTML = `
                     <div class="dm-doc-unsupported" style="text-align: center; padding: 40px;">
                         <i class="pi pi-file-word dm-doc-unsupported-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-                        <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${displayName}</div>
                         <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">.doc 格式暂不支持预览</div>
                         <div class="dm-unsupported-sub" style="margin-top: 5px; font-size: 11px;">请转换为 .docx 或点击"打开"按钮</div>
                     </div>
@@ -179,12 +182,13 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                     }
                 } catch (error) {
                     console.error('[DataManager] DOCX preview error:', error);
+                    const displayName = escapeHtml(path.split(/[/\\]/).pop());
                     previewHTML = `
                         <div class="dm-preview-error" style="text-align: center; padding: 40px;">
                             <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
-                            <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
+                            <div class="dm-preview-filename" style="margin-top: 15px;">${displayName}</div>
                             <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
-                            <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${error.message}</div>
+                            <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${escapeHtml(error.message)}</div>
                         </div>
                     `;
                 }
@@ -223,7 +227,8 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
                     } else {
                         throw new Error('Failed to load file');
                     }
-                } catch {
+                } catch (error) {
+                    console.error('[DataManager] Document preview error:', error);
                     previewHTML = createUnavailablePreviewHTML(path);
                 }
             }
@@ -236,10 +241,11 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
         else {
             const icon = FILE_TYPES[getFileType({ name: path })]?.icon || FILE_TYPES.unknown.icon;
             const color = FILE_TYPES[getFileType({ name: path })]?.color || FILE_TYPES.unknown.color;
+            const displayName = escapeHtml(path.split(/[/\\]/).pop());
             previewHTML = `
                 <div class="dm-unknown-file" style="text-align: center; padding: 30px;">
                     <i class="pi ${icon} dm-unknown-file-icon" style="font-size: 64px;"></i>
-                    <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                    <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${displayName}</div>
                     <div class="dm-unknown-message" style="margin-top: 8px; font-size: 12px;">此文件类型不支持预览</div>
                 </div>
             `;
@@ -252,7 +258,7 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
             <div class="dm-preview-error" style="text-align: center; padding: 20px;">
                 <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 32px;"></i>
                 <div style="margin-top: 10px;">加载预览失败</div>
-                <div class="dm-error-detail" style="margin-top: 5px; font-size: 12px;">${error.message}</div>
+                <div class="dm-error-detail" style="margin-top: 5px; font-size: 12px;">${escapeHtml(error.message)}</div>
             </div>
         `;
     }
@@ -262,10 +268,11 @@ export async function loadPreviewContent(content, path, ext, scale = 1) {
  * 创建不可用预览 HTML
  */
 function createUnavailablePreviewHTML(path) {
+    const displayName = escapeHtml(path.split(/[/\\]/).pop());
     return `
         <div class="dm-unavailable-preview" style="text-align: center; padding: 30px;">
             <i class="pi pi-file dm-unavailable-icon" style="font-size: 64px;"></i>
-            <div class="dm-preview-filename" style="margin-top: 15px;">${path.split(/[/\\]/).pop()}</div>
+            <div class="dm-preview-filename" style="margin-top: 15px;">${displayName}</div>
             <div class="dm-unavailable-message" style="margin-top: 8px; font-size: 12px;">无法加载文件</div>
         </div>
     `;
@@ -286,12 +293,13 @@ async function createSpreadsheetPreviewHTML(path, ext) {
 
             const text = await response.text();
             const rows = parseCSV(text);
+            const displayName = escapeHtml(path.split(/[/\\]/).pop());
 
             if (rows.length === 0) {
                 return `
                     <div class="dm-empty-table" style="text-align: center; padding: 40px;">
                         <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div class="dm-preview-filename" style="font-size: 14px;">${displayName}</div>
                         <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
                     </div>
                 `;
@@ -319,12 +327,13 @@ async function createSpreadsheetPreviewHTML(path, ext) {
 
             // 转换为二维数组
             const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            const displayName = escapeHtml(path.split(/[/\\]/).pop());
 
             if (rows.length === 0) {
                 return `
                     <div class="dm-empty-table" style="text-align: center; padding: 40px;">
                         <i class="pi pi-table dm-empty-table-icon" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                        <div class="dm-preview-filename" style="font-size: 14px;">${displayName}</div>
                         <div class="dm-empty-table-message" style="margin-top: 10px; font-size: 12px;">空表格文件</div>
                     </div>
                 `;
@@ -334,10 +343,11 @@ async function createSpreadsheetPreviewHTML(path, ext) {
         }
 
         // 其他表格格式不支持预览
+        const displayName = escapeHtml(path.split(/[/\\]/).pop());
         return `
             <div class="dm-unsupported-table" style="text-align: center; padding: 40px;">
                 <i class="pi pi-table dm-unsupported-table-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-                <div class="dm-preview-filename" style="font-size: 14px;">${path.split(/[/\\]/).pop()}</div>
+                <div class="dm-preview-filename" style="font-size: 14px;">${displayName}</div>
                 <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">此格式暂不支持预览</div>
             </div>
         `;

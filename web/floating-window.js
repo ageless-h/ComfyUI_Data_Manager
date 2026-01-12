@@ -599,8 +599,8 @@ export function toggleFullscreen(window) {
                 imageContainer.dataset.originalJustifyContent = imageContainer.style.justifyContent;
 
                 tableWrapper.dataset.originalWidth = tableWrapper.style.width;
-                table.datasetOriginalWidth = table.style.width;
-                table.datasetOriginalTransform = table.style.transform;
+                table.dataset.originalWidth = table.style.width;
+                table.dataset.originalTransform = table.style.transform;
 
                 // 全屏时适配：从 content 开始调整
                 content.dataset.originalOverflow = content.style.overflow;
@@ -711,14 +711,14 @@ export function toggleFullscreen(window) {
                 // 恢复表格样式
                 tableWrapper.style.width = tableWrapper.dataset.originalWidth || "100%";
                 tableWrapper.style.maxWidth = "";
-                table.style.width = table.datasetOriginalWidth || "100%";
-                table.style.transform = table.datasetOriginalTransform || "scale(1)";
+                table.style.width = table.dataset.originalWidth || "100%";
+                table.style.transform = table.dataset.originalTransform || "scale(1)";
                 table.style.tableLayout = "";
 
                 // 清除保存的数据
                 delete tableWrapper.dataset.originalWidth;
-                delete table.datasetOriginalWidth;
-                delete table.datasetOriginalTransform;
+                delete table.dataset.originalWidth;
+                delete table.dataset.originalTransform;
             }
         }
 

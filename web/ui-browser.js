@@ -4,7 +4,7 @@
 
 import { FILE_TYPES } from './core-constants.js';
 import { getFileType } from './utils-file-type.js';
-import { formatDate, formatSize } from './utils-format.js';
+import { formatDate, formatSize, escapeHtml } from './utils-format.js';
 
 /**
  * 创建文件浏览器面板
@@ -106,13 +106,13 @@ export function createFileListItem(file, isParent) {
     const modified = file.modified ? formatDate(file.modified) : "";
 
     return `
-        <div class="dm-file-item" data-path="${file.path || file.name}" data-is-dir="${file.is_dir || false}"
+        <div class="dm-file-item" data-path="${escapeHtml(file.path || file.name)}" data-is-dir="${file.is_dir || false}"
              style="display: flex; align-items: center; padding: 10px 15px;
                     border-bottom: 1px solid; cursor: pointer;
                     transition: background 0.2s;">
             <div style="flex: 1; display: flex; align-items: center; gap: 10px; overflow: hidden;">
                 <i class="pi ${icon} dm-file-icon" style="color: ${color}; font-size: 16px;"></i>
-                <span class="dm-file-name" style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
+                <span class="dm-file-name" style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(file.name)}</span>
             </div>
             <div class="dm-file-size" style="flex: 0 0 100px; font-size: 12px;">${size}</div>
             <div class="dm-file-modified" style="flex: 0 0 150px; font-size: 12px;">${modified}</div>
@@ -149,8 +149,8 @@ export function createFileGridItem(file, isParent) {
     const color = FILE_TYPES[fileType]?.color || FILE_TYPES.unknown.color;
 
     return `
-        <div class="dm-grid-item" data-path="${file.path || file.name}" data-is-dir="${file.is_dir || false}"
-             data-name="${file.name}"
+        <div class="dm-grid-item" data-path="${escapeHtml(file.path || file.name)}" data-is-dir="${file.is_dir || false}"
+             data-name="${escapeHtml(file.name)}"
              style="display: flex; flex-direction: column; align-items: center; justify-content: center;
                     padding: 12px 8px; height: 90px;
                     border-radius: 8px; cursor: pointer;
@@ -158,7 +158,7 @@ export function createFileGridItem(file, isParent) {
             <i class="pi ${icon} dm-grid-icon" style="color: ${color}; font-size: 40px;"></i>
             <span class="dm-grid-filename" style="font-size: 11px; text-align: center;
                           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                          width: 100%; margin-top: 8px;">${file.name}</span>
+                          width: 100%; margin-top: 8px;">${escapeHtml(file.name)}</span>
         </div>
     `;
 }
