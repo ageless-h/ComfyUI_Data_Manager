@@ -271,7 +271,4 @@ export function detectFormatFromFilename(filename) {
  * @param {string} format - 格式
  * @returns {string} 类型
  */
-export function getTypeFromFormat(format) {
-    const info = FORMAT_TYPE_MAP[format];
-    return info ? info.type : "DATA";
-}
+// 未使用的函数已删除

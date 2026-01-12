@@ -5,19 +5,6 @@
 import { getComfyTheme, addThemeListener } from './utils-theme.js';
 
 /**
- * 主题变化监听回调
- */
-let themeChangeCallback = null;
-
-/**
- * 设置主题变化监听回调
- * @param {Function} callback - 主题变化时的回调
- */
-export function setThemeChangeCallback(callback) {
-    themeChangeCallback = callback;
-}
-
-/**
  * 应用主题到头部
  * @param {HTMLElement} header - 头部元素
  * @param {Object} theme - 主题对象

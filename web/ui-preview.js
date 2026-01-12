@@ -2,7 +2,7 @@
  * ui-preview.js - 右侧预览面板
  */
 
-import { createFormatSelector, getFormatsForType, detectFormatFromFilename } from './ui-format-selector.js';
+import { createFormatSelector } from './ui-format-selector.js';
 
 /**
  * 检查节点连接状态并更新格式选择器

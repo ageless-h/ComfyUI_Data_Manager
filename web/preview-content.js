@@ -5,7 +5,9 @@
 import { FILE_TYPES } from './core-constants.js';
 import { getFileType } from './utils-file-type.js';
 import { escapeHtml } from './utils-format.js';
-import { openFileExternally } from './floating-actions.js';
+import { loadScript } from './utils-script.js';
+import { parseCSV } from './utils-csv.js';
+import { highlightCode, highlightJSON, highlightPython, highlightJavaScript, highlightHTML, highlightCSS, highlightYAML, highlightXML, highlightGeneric } from './utils-syntax-highlight.js';
 
 /**
  * 加载预览内容
@@ -269,135 +271,6 @@ function createUnavailablePreviewHTML(path) {
     `;
 }
 
-/**
- * 动态加载脚本
- */
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
-        }
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
-
-// 语法高亮颜色主题（VS Code Dark 风格）
-const CODE_COLORS = {
-    keyword: '#569cd6',      // 关键字 (blue)
-    string: '#ce9178',       // 字符串 (orange)
-    number: '#b5cea8',       // 数字 (light green)
-    boolean: '#569cd6',      // 布尔值 (blue)
-    null: '#569cd6',         // null (blue)
-    comment: '#6a9955',      // 注释 (green)
-    function: '#dcdcaa',     // 函数 (yellow)
-    class: '#4ec9b0',        // 类 (cyan)
-    tag: '#569cd6',          // HTML 标签
-    attrName: '#9cdcfe',     // 属性名
-    attrValue: '#ce9178',    // 属性值
-};
-
-/**
- * 通用语法高亮函数
- */
-function highlightCode(code, ext) {
-    let result = code
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
-    switch (ext) {
-        case '.json': result = highlightJSON(result); break;
-        case '.py': result = highlightPython(result); break;
-        case '.js': case '.ts': case '.jsx': case '.tsx': result = highlightJavaScript(result); break;
-        case '.html': case '.htm': result = highlightHTML(result); break;
-        case '.css': result = highlightCSS(result); break;
-        case '.yaml': case '.yml': result = highlightYAML(result); break;
-        case '.xml': result = highlightXML(result); break;
-        default: result = highlightGeneric(result);
-    }
-    return result;
-}
-
-function highlightJSON(code) {
-    return code.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        let color = CODE_COLORS.number;
-        if (/^"/.test(match)) color = /:$/.test(match) ? CODE_COLORS.attrName : CODE_COLORS.string;
-        else if (/true|false|null/.test(match)) color = CODE_COLORS.boolean;
-        return `<span style="color: ${color};">${match}</span>`;
-    });
-}
-
-function highlightPython(code) {
-    const keywords = /\b(def|class|import|from|if|elif|else|while|for|in|try|except|finally|with|as|return|yield|raise|pass|break|continue|and|or|not|is|lambda|True|False|None|async|await)\b/g;
-    const decorators = /@[\w.]+/g;
-    const strings = /("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g;
-    const comments = /#.*$/gm;
-    const numbers = /\b(\d+\.?\d*)\b/g;
-    const functions = /\b([a-zA-Z_]\w*)\s*(?=\()/g;
-    return code.replace(comments, `<span style="color: ${CODE_COLORS.comment};">$&</span>`)
-        .replace(strings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
-        .replace(keywords, `<span style="color: ${CODE_COLORS.keyword};">$&</span>`)
-        .replace(decorators, `<span style="color: ${CODE_COLORS.function};">$&</span>`)
-        .replace(functions, `<span style="color: ${CODE_COLORS.function};">$1</span>(`)
-        .replace(numbers, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
-}
-
-function highlightJavaScript(code) {
-    const keywords = /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|class|extends|import|export|from|async|await|try|catch|finally|throw|null|undefined|true|false|in|instanceof|typeof|void)\b/g;
-    const templateStrings = /`(?:[^`\\]|\\.)*`/g;
-    const strings = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g;
-    const comments = /(\/\/.*$|\/\*[\s\S]*?\*\/)/gm;
-    const numbers = /\b(\d+\.?\d*)\b/g;
-    const functions = /\b([a-zA-Z_]\w*)\s*(?=\()/g;
-    const arrowFunc = /(&gt;|=>)/g;
-    return code.replace(comments, `<span style="color: ${CODE_COLORS.comment};">$&</span>`)
-        .replace(templateStrings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
-        .replace(strings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
-        .replace(keywords, `<span style="color: ${CODE_COLORS.keyword};">$&</span>`)
-        .replace(functions, `<span style="color: ${CODE_COLORS.function};">$1</span>(`)
-        .replace(arrowFunc, `<span style="color: ${CODE_COLORS.keyword};">$&</span>`)
-        .replace(numbers, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
-}
-
-function highlightHTML(code) {
-    return code.replace(/(&lt;\/?)([\w-]+)/g, `$1<span style="color: ${CODE_COLORS.tag};">$2</span>`)
-        .replace(/([\w-]+)(=)/g, `<span style="color: ${CODE_COLORS.attrName};">$1</span>$2`)
-        .replace(/(=)("(?:[^"\\]|\\.)*")/g, `$1<span style="color: ${CODE_COLORS.attrValue};">$2</span>`);
-}
-
-function highlightCSS(code) {
-    return code.replace(/(\/\*[\s\S]*?\*\/)/g, `<span style="color: ${CODE_COLORS.comment};">$1</span>`)
-        .replace(/^([\s]*)([.#@][\w-]+|[\w]+|::?[\w-]+)/gm, `$1<span style="color: ${CODE_COLORS.class};">$2</span>`)
-        .replace(/([\w-]+)(?=\s*:)/g, `<span style="color: ${CODE_COLORS.attrName};">$1</span>`)
-        .replace(/:\s*([^;{]+)/g, `: <span style="color: ${CODE_COLORS.attrValue};">$1</span>`);
-}
-
-function highlightYAML(code) {
-    return code.replace(/^(\s*)([\w-]+)(?=\s*:)/gm, `$1<span style="color: ${CODE_COLORS.attrName};">$2</span>:`)
-        .replace(/: ['"]([^'"]+)['"]/g, `: <span style="color: ${CODE_COLORS.string};">'$1'</span>`)
-        .replace(/\b(true|false|yes|no|on|off)\b/gi, `<span style="color: ${CODE_COLORS.boolean};">$&</span>`)
-        .replace(/\b(\d+\.?\d*)\b/g, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
-}
-
-function highlightXML(code) {
-    return code.replace(/(&lt;\/?)([\w-:]+)/g, `$1<span style="color: ${CODE_COLORS.tag};">$2</span>`)
-        .replace(/([\w-:]+)(=)/g, `<span style="color: ${CODE_COLORS.attrName};">$1</span>$2`)
-        .replace(/(=)("(?:[^"\\]|\\.)*")/g, `$1<span style="color: ${CODE_COLORS.attrValue};">$2</span>`);
-}
-
-function highlightGeneric(code) {
-    const strings = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g;
-    const numbers = /\b(\d+\.?\d*)\b/g;
-    const comments = /(#|\/\/).*$/gm;
-    return code.replace(comments, `<span style="color: ${CODE_COLORS.comment};">$&</span>`)
-        .replace(strings, `<span style="color: ${CODE_COLORS.string};">$&</span>`)
-        .replace(numbers, `<span style="color: ${CODE_COLORS.number};">$1</span>`);
-}
 
 /**
  * 创建表格预览 HTML（CSV/Excel）
@@ -480,61 +353,6 @@ async function createSpreadsheetPreviewHTML(path, ext) {
             </div>
         `;
     }
-}
-
-/**
- * 解析 CSV 文本
- */
-function parseCSV(text) {
-    const rows = [];
-    let currentRow = [];
-    let currentCell = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const nextChar = text[i + 1];
-
-        if (inQuotes) {
-            if (char === '"') {
-                if (nextChar === '"') {
-                    currentCell += '"';
-                    i++;
-                } else {
-                    inQuotes = false;
-                }
-            } else {
-                currentCell += char;
-            }
-        } else {
-            if (char === '"') {
-                inQuotes = true;
-            } else if (char === ',') {
-                currentRow.push(currentCell);
-                currentCell = '';
-            } else if (char === '\r' && nextChar === '\n') {
-                currentRow.push(currentCell);
-                rows.push(currentRow);
-                currentRow = [];
-                currentCell = '';
-                i++;
-            } else if (char === '\n') {
-                currentRow.push(currentCell);
-                rows.push(currentRow);
-                currentRow = [];
-                currentCell = '';
-            } else if (char !== '\r') {
-                currentCell += char;
-            }
-        }
-    }
-
-    currentRow.push(currentCell);
-    if (currentRow.length > 0 || rows.length > 0) {
-        rows.push(currentRow);
-    }
-
-    return rows;
 }
 
 /**

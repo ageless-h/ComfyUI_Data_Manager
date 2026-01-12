@@ -29,7 +29,7 @@ function createToolbarButton(icon, title, onClick) {
 /**
  * 更新图像缩放
  */
-export function updateImageScale(container, scale, translateX, translateY) {
+function updateImageScale(container, scale, translateX, translateY) {
     const img = container.querySelector("img");
     if (img) {
         img.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
