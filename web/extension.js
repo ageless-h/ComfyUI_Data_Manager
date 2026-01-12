@@ -102,7 +102,7 @@ const extensionConfig = {
                 b.getAttribute('aria-label') === 'Expand job queue'
             );
 
-            if (!dmBtn || !queueBtn) return;
+            if (!dmBtn || !queueBtn) return false;
 
             const queueParent = queueBtn.parentElement;
             const prevSibling = queueBtn.previousElementSibling;
@@ -110,34 +110,57 @@ const extensionConfig = {
             // 只有当按钮不在正确位置时才移动
             if (prevSibling !== dmBtn || dmBtn.parentElement !== queueParent) {
                 queueParent.insertBefore(dmBtn, queueBtn);
+                console.log('[DataManager] Button position fixed');
+                return true;
             }
+            return false;
         };
 
-        // 使用轻量的 MutationObserver，只监听 actionbar-container
+        // 使用更全面的监听策略
         let lastCall = 0;
-        const observer = new MutationObserver(() => {
+        const observer = new MutationObserver((mutations) => {
             const now = Date.now();
-            if (now - lastCall < 50) return; // 50ms 节流
+            if (now - lastCall < 100) return;
             lastCall = now;
-            requestAnimationFrame(fixPosition);
+
+            // 检查是否有相关的 DOM 变化
+            const hasRelevantChange = mutations.some(m => {
+                // 检查按钮相关的变化
+                if (m.type === 'childList') {
+                    for (const node of m.addedNodes) {
+                        if (node.nodeType === 1) {
+                            // 检查是否是 actionbar 相关的元素
+                            if (node.classList?.contains('actionbar-container') ||
+                                node.classList?.contains('dm-actionbar-btn') ||
+                                node.querySelector?.('.dm-actionbar-btn') ||
+                                node.querySelector?.('[aria-label="Expand job queue"]')) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                // 检查 actionbar-container 内的变化
+                if (m.target.closest?.('.actionbar-container')) {
+                    return true;
+                }
+                return false;
+            });
+
+            if (hasRelevantChange) {
+                requestAnimationFrame(fixPosition);
+            }
         });
 
-        // 等待 actionbar-container 出现后开始监听
-        const startObserving = () => {
-            const actionBar = document.querySelector('.actionbar-container');
-            if (actionBar && !document.querySelector('.dm-position-observer-active')) {
-                observer.observe(actionBar, { childList: true, subtree: true });
-                document.body.classList.add('dm-position-observer-active');
-                console.log('[DataManager] Position observer started');
-            }
-        };
+        // 监听整个 body（因为侧边栏变化可能影响全局布局）
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
 
-        // 初始修正
-        setTimeout(fixPosition, 100);
-        setTimeout(fixPosition, 300);
-
-        // 启动监听
-        setTimeout(startObserving, 500);
+        // 定期检查位置（作为兜底）
+        setInterval(() => {
+            fixPosition();
+        }, 2000);
 
         console.log("[DataManager] Extension setup completed");
     },
