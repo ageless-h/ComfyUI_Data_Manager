@@ -32,3 +32,4 @@ tmp/
 # 覆盖率数据
 .coverage
 htmlcov/
+tmpclaude-*-cwd
