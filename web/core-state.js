@@ -2,6 +2,13 @@
  * core-state.js - 全局状态管理
  */
 
+// 存储键名
+const STORAGE_KEYS = {
+    LAST_PATH: 'comfyui_datamanager_last_path',
+    VIEW_MODE: 'comfyui_datamanager_view_mode',
+    SORT_BY: 'comfyui_datamanager_sort_by'
+};
+
 // 文件管理器状态
 export const FileManagerState = {
     currentPath: '',
@@ -14,6 +21,61 @@ export const FileManagerState = {
     history: [],
     historyIndex: -1,
 };
+
+/**
+ * 保存状态到 localStorage
+ */
+export function saveState(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+        console.warn('[DataManager] Failed to save state:', e);
+    }
+}
+
+/**
+ * 从 localStorage 加载状态
+ */
+export function loadState(key, defaultValue = null) {
+    try {
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : defaultValue;
+    } catch (e) {
+        console.warn('[DataManager] Failed to load state:', e);
+        return defaultValue;
+    }
+}
+
+/**
+ * 保存最后访问的路径
+ */
+export function saveLastPath(path) {
+    saveState(STORAGE_KEYS.LAST_PATH, path);
+}
+
+/**
+ * 获取最后访问的路径
+ */
+export function getLastPath() {
+    return loadState(STORAGE_KEYS.LAST_PATH, '.');
+}
+
+/**
+ * 保存视图模式
+ */
+export function saveViewMode(mode) {
+    saveState(STORAGE_KEYS.VIEW_MODE, mode);
+}
+
+/**
+ * 获取视图模式
+ */
+export function getViewMode() {
+    return loadState(STORAGE_KEYS.VIEW_MODE, 'list');
+}
+
+// 导出存储键供外部使用
+export { STORAGE_KEYS };
 
 // 全局变量
 export let fileManagerWindow = null;

@@ -15,7 +15,7 @@ import { FILE_TYPES } from './core-constants.js';
 import { FileManagerState } from './core-state.js';
 
 // 导入 UI 模块
-import { createFileManagerWindow } from './ui-window.js';
+import { createFileManagerWindow, destroyFileManagerWindow } from './ui-window.js';
 import { loadDirectory, toggleSort, navigateUp, navigateHome } from './ui-actions.js';
 import { checkNodeConnectionAndUpdateFormat } from './ui-preview.js';
 
@@ -29,6 +29,9 @@ import { openFileExternally } from './floating-actions.js';
 
 // 导入工具函数
 import { updateStatus, showToast, getParentPath, getExt, getFileName } from './utils-helpers.js';
+
+// 导入状态管理函数
+import { saveLastPath, getLastPath, saveViewMode, getViewMode } from './core-state.js';
 
 // 检测 Node 版本（安全检测，防止访问 undefined/null 属性）
 const IS_NODE_V3 = typeof app.ui !== 'undefined' &&
@@ -256,13 +259,17 @@ const extensionConfig = {
  * 打开文件管理器
  */
 function openFileManager() {
-    if (fileManagerWindow && fileManagerWindow.parentNode) {
-        fileManagerWindow.remove();
-        fileManagerWindow = null;
+    // 如果窗口已存在，先销毁（清理事件监听）
+    if (fileManagerWindow) {
+        destroyFileManagerWindow();
     }
 
-    // 设置初始路径
-    if (!FileManagerState.currentPath) {
+    // 恢复上次访问的路径，如果没有则使用默认路径
+    const lastPath = getLastPath();
+    if (lastPath && lastPath !== '.') {
+        FileManagerState.currentPath = lastPath;
+        console.log('[DataManager] Restored last path:', lastPath);
+    } else {
         FileManagerState.currentPath = ".";
     }
 
@@ -270,10 +277,7 @@ function openFileManager() {
     const callbacks = {
         onRefresh: () => loadDirectory(FileManagerState.currentPath),
         onClose: () => {
-            if (fileManagerWindow) {
-                fileManagerWindow.remove();
-                fileManagerWindow = null;
-            }
+            destroyFileManagerWindow();
         },
         onNavigateUp: () => navigateUp(),
         onNavigateHome: () => navigateHome(),

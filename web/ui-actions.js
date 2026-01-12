@@ -3,7 +3,7 @@
  */
 
 import { listDirectory } from './api-index.js';
-import { FileManagerState } from './core-state.js';
+import { FileManagerState, saveLastPath } from './core-state.js';
 import { updateStatus, showToast, getParentPath } from './utils-helpers.js';
 import { createFileListItem, createFileGridItem } from './ui-browser.js';
 import { previewFile } from './ui-preview-actions.js';
@@ -19,6 +19,9 @@ export async function loadDirectory(path) {
         const data = await listDirectory(path);
         FileManagerState.files = data.files || [];
         FileManagerState.currentPath = data.path;
+
+        // 保存最后访问的路径
+        saveLastPath(data.path);
 
         // 保存到历史记录
         if (FileManagerState.historyIndex === -1 ||

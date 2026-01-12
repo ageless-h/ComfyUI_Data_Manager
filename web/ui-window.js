@@ -10,6 +10,9 @@ import { loadDirectory } from './ui-actions.js';
 import { setupWindowDrag } from './utils-drag.js';
 import { FileManagerState } from './core-state.js';
 
+// 键盘事件处理器引用
+let keydownHandler = null;
+
 /**
  * 创建文件管理器窗口
  * @param {object} callbacks - 回调函数对象
@@ -48,7 +51,34 @@ export function createFileManagerWindow(callbacks) {
     // 设置拖动
     setupWindowDrag(window, window.querySelector('.dm-header'));
 
+    // 添加键盘事件监听（ESC 关闭）
+    keydownHandler = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            callbacks.onClose();
+        }
+    };
+    document.addEventListener('keydown', keydownHandler, { capture: true });
+
     return window;
+}
+
+/**
+ * 销毁窗口（清理事件监听）
+ */
+export function destroyFileManagerWindow() {
+    // 移除键盘事件监听
+    if (keydownHandler) {
+        document.removeEventListener('keydown', keydownHandler, { capture: true });
+        keydownHandler = null;
+    }
+
+    // 移除窗口元素
+    const window = document.getElementById('dm-file-manager');
+    if (window) {
+        window.remove();
+    }
 }
 
 /**
