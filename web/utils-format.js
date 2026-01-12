@@ -24,7 +24,7 @@ export function formatSize(bytes) {
 export function formatDate(dateStr) {
     if (!dateStr) return "";
     const date = new Date(dateStr);
-    return date.toLocaleString('zh-CN', {
+    return date.toLocaleString("zh-CN", {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',

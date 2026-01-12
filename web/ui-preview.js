@@ -180,7 +180,7 @@ export function createPreviewPanel(callbacks) {
         font-size: 12px;
         color: #888;
     `;
-    infoSection.innerHTML = '<div style="text-align: center;">未选择文件</div>';
+    infoSection.innerHTML = '<div style="text-align: center;">No file selected</div>';
     panel.appendChild(infoSection);
 
     // 绑定按钮事件

@@ -18,6 +18,10 @@ const DEFAULT_CODE_FONT_SIZE = 12;
 
 /**
  * 创建浮动预览窗口工具栏按钮
+ * @param {string} icon - 图标类名
+ * @param {string} title - 按钮标题
+ * @param {Function} onClick - 点击事件处理函数
+ * @returns {HTMLButtonElement} 按钮元素
  */
 function createToolbarButton(icon, title, onClick) {
     const button = document.createElement("button");
@@ -33,6 +37,10 @@ function createToolbarButton(icon, title, onClick) {
 
 /**
  * 更新图像缩放
+ * @param {HTMLElement} container - 容器元素
+ * @param {number} scale - 缩放比例
+ * @param {number} translateX - X 偏移
+ * @param {number} translateY - Y 偏移
  */
 function updateImageScale(container, scale, translateX, translateY) {
     const img = container.querySelector("img");
@@ -193,7 +201,12 @@ function createPreviewHeader(fileName, fileConfig, isImage, isVideo, isAudio, is
 }
 
 /**
- * 创建交通灯按钮
+ * 创建交通灯按钮（macOS 风格窗口控制）
+ * @param {string} icon - 图标类名
+ * @param {string} textColor - 文字颜色
+ * @param {string} title - 按钮标题
+ * @param {Function} onClick - 点击事件处理函数
+ * @returns {HTMLButtonElement} 按钮元素
  */
 function createTrafficLightButton(icon, textColor, title, onClick) {
     const button = document.createElement("button");
@@ -359,6 +372,7 @@ function createPreviewToolbar(path, ext, isImage, isVideo, isAudio, isPDF, isMar
 
 /**
  * 创建工具栏分隔符
+ * @returns {HTMLDivElement} 分隔符元素
  */
 function createToolbarSeparator() {
     const separator = document.createElement("div");

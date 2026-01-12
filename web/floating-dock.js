@@ -65,3 +65,11 @@ export function updateDock() {
         dock.appendChild(thumbnail);
     });
 }
+
+/**
+ * 恢复最小化的浮动预览窗口
+ * @param {HTMLElement} window - 浮动窗口元素
+ */
+export function restoreFloatingPreview(window) {
+    // 窗口恢复逻辑在 floating-window.js 中实现
+}

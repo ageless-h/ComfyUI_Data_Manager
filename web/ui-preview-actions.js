@@ -144,6 +144,9 @@ export async function previewFile(path) {
 
 /**
  * 创建视频预览 HTML
+ * @param {string} videoId - 视频元素 ID
+ * @param {string} videoUrl - 视频 URL
+ * @returns {string} HTML 字符串
  */
 function createVideoPreviewHTML(videoId, videoUrl) {
     return `
@@ -224,6 +227,11 @@ function setupVideoControls(content) {
     });
 }
 
+/**
+ * 格式化时间显示
+ * @param {number} seconds - 秒数
+ * @returns {string} 格式化后的时间字符串 (如 "1:30")
+ */
 function formatTime(seconds) {
     if (isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -233,6 +241,9 @@ function formatTime(seconds) {
 
 /**
  * 创建代码预览 HTML
+ * @param {string} text - 代码文本
+ * @param {string} ext - 文件扩展名
+ * @returns {string} HTML 字符串
  */
 function createCodePreviewHTML(text, ext = '') {
     const maxLength = LIMITS.MAX_CODE_LENGTH;
@@ -252,6 +263,10 @@ function createCodePreviewHTML(text, ext = '') {
 
 /**
  * 创建文档预览 HTML（异步获取内容）
+ * @param {string} path - 文件路径
+ * @param {string} ext - 文件扩展名
+ * @param {string} docUrl - 文档 URL
+ * @returns {Promise<string>} HTML 字符串
  */
 async function createDocumentPreviewHTML(path, ext, docUrl) {
     if (ext === '.pdf') {
@@ -366,6 +381,9 @@ async function createDocumentPreviewHTML(path, ext, docUrl) {
 
 /**
  * 创建不可用预览
+ * @param {string} fileName - 文件名
+ * @param {string} type - 预览类型
+ * @returns {string} HTML 字符串
  */
 function createUnavailablePreview(fileName, type) {
     const icons = { document: 'pi-file-pdf', code: 'pi-code', default: 'pi-file' };
