@@ -11,3 +11,4 @@ playwright>=1.40.0
 # 可选依赖（用于增强功能）
 mammoth>=1.6.0  # Word 文档 (.doc/.docx) 预览支持
 openpyxl>=3.0.0  # Excel 表格 (.xlsx) 预览支持
+paramiko>=2.12.0  # SSH/SFTP 远程文件访问支持
