@@ -62,11 +62,83 @@ const extensionConfig = {
         { combo: { key: "d", ctrl: true, shift: true }, commandId: "data-manager.open" }
     ],
 
-    menuCommands: [
-        { path: ["Data Manager"], commands: ["data-manager.open"] }
+    // 顶部操作栏按钮
+    actionBarButtons: [
+        {
+            icon: "pi pi-folder",
+            tooltip: "文件管理器 (Ctrl+Shift+D)",
+            class: "dm-actionbar-btn",
+            onClick: () => openFileManager()
+        }
     ],
 
     async setup() {
+        // 注入官方风格的按钮样式
+        const style = document.createElement("style");
+        style.textContent = `
+            .dm-actionbar-btn {
+                width: 32px !important;
+                height: 32px !important;
+                border: none !important;
+                border-radius: 6px !important;
+                background: rgba(255, 255, 255, 0.05) !important;
+                color: rgba(255, 255, 255, 0.9) !important;
+                margin-right: 0.5rem !important;
+                transition: all 0.2s ease !important;
+            }
+            .dm-actionbar-btn:hover {
+                background: rgba(255, 255, 255, 0.15) !important;
+            }
+            .dm-actionbar-btn i {
+                color: rgba(255, 255, 255, 0.9) !important;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 简化的位置修正函数
+        const fixPosition = () => {
+            const dmBtn = document.querySelector('.dm-actionbar-btn');
+            const queueBtn = Array.from(document.querySelectorAll('button')).find(b =>
+                b.getAttribute('aria-label') === 'Expand job queue'
+            );
+
+            if (!dmBtn || !queueBtn) return;
+
+            const queueParent = queueBtn.parentElement;
+            const prevSibling = queueBtn.previousElementSibling;
+
+            // 只有当按钮不在正确位置时才移动
+            if (prevSibling !== dmBtn || dmBtn.parentElement !== queueParent) {
+                queueParent.insertBefore(dmBtn, queueBtn);
+            }
+        };
+
+        // 使用轻量的 MutationObserver，只监听 actionbar-container
+        let lastCall = 0;
+        const observer = new MutationObserver(() => {
+            const now = Date.now();
+            if (now - lastCall < 50) return; // 50ms 节流
+            lastCall = now;
+            requestAnimationFrame(fixPosition);
+        });
+
+        // 等待 actionbar-container 出现后开始监听
+        const startObserving = () => {
+            const actionBar = document.querySelector('.actionbar-container');
+            if (actionBar && !document.querySelector('.dm-position-observer-active')) {
+                observer.observe(actionBar, { childList: true, subtree: true });
+                document.body.classList.add('dm-position-observer-active');
+                console.log('[DataManager] Position observer started');
+            }
+        };
+
+        // 初始修正
+        setTimeout(fixPosition, 100);
+        setTimeout(fixPosition, 300);
+
+        // 启动监听
+        setTimeout(startObserving, 500);
+
         console.log("[DataManager] Extension setup completed");
     },
 
