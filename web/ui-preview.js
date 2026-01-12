@@ -281,51 +281,21 @@ export function createStatusBar() {
     // 创建状态栏
     const bar = document.createElement("div");
     bar.id = "dm-status-bar";
-    bar.style.cssText = `
-        padding: 8px 15px;
-        background: #222;
-        border-top: 1px solid #2a2a2a;
-        font-size: 11px;
-        color: #888;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    bar.innerHTML = `
+        <div id="dm-connection-status" style="color: #27ae60;"></div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="dm-status-ready">就绪</span>
+            <div id="dm-connection-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: #666; transition: background 0.3s ease;"></div>
+        </div>
     `;
-
-    // 左侧状态文本
-    const statusText = document.createElement("span");
-    statusText.id = "dm-connection-status";
-    statusText.style.cssText = "color: #27ae60;";
-    bar.appendChild(statusText);
-
-    // 右侧：就绪文本 + 连接状态指示器
-    const rightContent = document.createElement("div");
-    rightContent.style.cssText = "display: flex; align-items: center; gap: 10px;";
-
-    const readyText = document.createElement("span");
-    readyText.textContent = "就绪";
-    readyText.id = "dm-status-ready";
-    rightContent.appendChild(readyText);
-
-    // 连接状态指示器（信号灯）
-    const indicator = document.createElement("div");
-    indicator.id = "dm-connection-indicator";
-    indicator.style.cssText = `
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #666;
-        transition: background 0.3s ease;
-    `;
-    rightContent.appendChild(indicator);
-
-    bar.appendChild(rightContent);
 
     bottomArea.appendChild(dock);
     bottomArea.appendChild(bar);
 
     // 延迟更新连接状态
     setTimeout(() => {
+        const indicator = document.getElementById("dm-connection-indicator");
+        const statusText = document.getElementById("dm-connection-status");
         const active = window._remoteConnectionsState.active;
         if (indicator) {
             indicator.style.background = active ? '#27ae60' : '#666';

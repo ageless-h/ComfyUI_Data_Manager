@@ -23,15 +23,111 @@ async function getSshApi() {
 }
 
 /**
- * 创建设置按钮（类似排序选择器样式）
+ * 创建远程设备选择框
  * @param {object} callbacks - 回调函数
- * @returns {HTMLElement} 设置按钮容器
+ * @returns {HTMLElement} 选择框容器
  */
-function createSettingsButton(callbacks) {
+function createRemoteSelector(callbacks) {
     const { onSshConnect, onSshDisconnect } = callbacks;
 
     const container = document.createElement("div");
     container.style.cssText = "display: flex; align-items: center; gap: 5px;";
+
+    // 设备选择下拉框
+    const select = document.createElement("select");
+    select.id = "dm-remote-select";
+    select.style.cssText = `
+        padding: 8px 12px;
+        border: 1px solid #444;
+        border-radius: 6px;
+        font-size: 13px;
+        min-width: 150px;
+        cursor: pointer;
+    `;
+
+    // 初始化选项
+    updateRemoteOptions(select, onSshConnect, onSshDisconnect);
+
+    select.onchange = async (e) => {
+        const value = e.target.value;
+
+        if (value === '__local__') {
+            // 切换到本地
+            window._remoteConnectionsState.active = null;
+            try {
+                localStorage.removeItem('comfyui_datamanager_last_connection');
+            } catch (err) {}
+            updateRemoteOptions(select, onSshConnect, onSshDisconnect);
+            updateConnectionStatus();
+            if (onSshDisconnect) onSshDisconnect();
+        } else if (value.startsWith('conn_')) {
+            // 连接已保存的设备
+            const connId = value.substring(5);
+            const savedConn = window._remoteConnectionsState.saved.find(c => c.id === connId);
+            if (savedConn) {
+                try {
+                    select.disabled = true;
+                    const opt = document.createElement("option");
+                    opt.textContent = "连接中...";
+                    select.innerHTML = "";
+                    select.appendChild(opt);
+
+                    if (onSshConnect) onSshConnect({
+                        connection_id: connId,
+                        host: savedConn.host,
+                        port: savedConn.port,
+                        username: savedConn.username,
+                        password: atob(savedConn.password)
+                    });
+                } catch (err) {
+                    alert("连接失败: " + err.message);
+                    updateRemoteOptions(select, onSshConnect, onSshDisconnect);
+                }
+            }
+        }
+        e.target.value = "";
+    };
+
+    container.appendChild(select);
+
+    return container;
+}
+
+/**
+ * 更新远程选择框选项
+ */
+function updateRemoteOptions(select, onSshConnect, onSshDisconnect) {
+    const active = window._remoteConnectionsState.active;
+
+    select.innerHTML = "";
+
+    // 本地选项
+    const localOpt = document.createElement("option");
+    localOpt.value = "__local__";
+    localOpt.textContent = "本地";
+    select.appendChild(localOpt);
+
+    // 已保存的连接
+    if (window._remoteConnectionsState.saved.length > 0) {
+        window._remoteConnectionsState.saved.forEach(conn => {
+            const opt = document.createElement("option");
+            opt.value = `conn_${conn.id}`;
+            opt.textContent = conn.name || `${conn.username}@${conn.host}`;
+            if (active && active.connection_id === conn.id) {
+                opt.style.color = "#27ae60";
+            }
+            select.appendChild(opt);
+        });
+    }
+}
+
+/**
+ * 创建设置按钮
+ * @param {object} callbacks - 回调函数
+ * @returns {HTMLElement} 按钮
+ */
+function createSettingsButton(callbacks) {
+    const { onSshConnect, onSshDisconnect } = callbacks;
 
     const button = document.createElement("button");
     button.className = "comfy-btn";
@@ -41,12 +137,11 @@ function createSettingsButton(callbacks) {
         padding: 8px 12px;
         border: 1px solid #444;
         border-radius: 6px;
-        font-size: 13px;
         cursor: pointer;
         background: transparent;
         color: #ccc;
     `;
-    button.title = "设置（SSH 连接管理）";
+    button.title = "连接管理";
 
     button.onclick = async () => {
         const { openSettingsPanel } = await getSettingsModule();
@@ -80,9 +175,7 @@ function createSettingsButton(callbacks) {
         });
     };
 
-    container.appendChild(button);
-
-    return container;
+    return button;
 }
 
 /**
@@ -136,8 +229,8 @@ export function createToolbar(callbacks) {
     toolbar.appendChild(createToolButton("pi-arrow-left", "上级", onNavigateUp));
     toolbar.appendChild(createToolButton("pi-home", "根目录", onNavigateHome));
 
-    // 设置按钮（SSH 管理）
-    toolbar.appendChild(createSettingsButton({ onSshConnect, onSshDisconnect }));
+    // 远程设备选择框
+    toolbar.appendChild(createRemoteSelector({ onSshConnect, onSshDisconnect }));
 
     // 路径输入框
     const pathInput = document.createElement("input");
@@ -195,9 +288,10 @@ export function createToolbar(callbacks) {
     viewToggle.onclick = onViewToggle;
     toolbar.appendChild(viewToggle);
 
-    // 操作按钮组
+    // 操作按钮组（右侧）
     const actionGroup = document.createElement("div");
     actionGroup.style.cssText = "display: flex; gap: 5px; margin-left: auto;";
+    actionGroup.appendChild(createSettingsButton({ onSshConnect, onSshDisconnect }));
     actionGroup.appendChild(createToolButton("pi-plus", "新建", onNewFile));
     toolbar.appendChild(actionGroup);
 

@@ -37,6 +37,7 @@ export function openSettingsPanel(options = {}) {
     const { onConnect, onDisconnect } = options;
 
     const overlay = document.createElement("div");
+    overlay.id = "dm-settings-panel-overlay";
     overlay.className = "dm-modal-overlay";
     overlay.style.cssText = `
         position: fixed;
@@ -59,7 +60,7 @@ export function openSettingsPanel(options = {}) {
         border: 1px solid ${colors.borderColor};
         border-radius: 12px;
         padding: 20px;
-        width: 450px;
+        width: 400px;
         max-width: calc(100vw - 40px);
         max-height: calc(100vh - 100px);
         overflow-y: auto;
@@ -67,6 +68,7 @@ export function openSettingsPanel(options = {}) {
 
     // 标题
     const title = document.createElement("div");
+    title.id = "dm-settings-title";
     title.style.cssText = `
         font-size: 16px;
         font-weight: 600;
@@ -76,20 +78,19 @@ export function openSettingsPanel(options = {}) {
         align-items: center;
     `;
     title.innerHTML = `
-        <span>设置</span>
+        <span>SSH 连接</span>
         <button id="dm-settings-close" class="comfy-btn" style="padding: 4px 8px;">
             <i class="pi pi-times"></i>
         </button>
     `;
     panel.appendChild(title);
 
-    // 创建 SSH 连接表单
-    const sshSection = createSshSection();
-    panel.appendChild(sshSection);
+    // 容器：用于切换列表和表单
+    const container = document.createElement("div");
+    panel.appendChild(container);
 
-    // 已保存的连接列表
-    const savedSection = createSavedConnectionsSection(onConnect, onDisconnect);
-    panel.appendChild(savedSection);
+    // 显示连接列表
+    showConnectionList(container, onConnect, onDisconnect);
 
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
@@ -102,17 +103,12 @@ export function openSettingsPanel(options = {}) {
 }
 
 /**
- * 创建 SSH 连接表单部分
+ * 显示连接列表页面
  */
-function createSshSection() {
+function showConnectionList(container, onConnect, onDisconnect) {
     const colors = getThemeColors();
 
-    const section = document.createElement("div");
-    section.style.cssText = `
-        margin-bottom: 24px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid ${colors.borderColor};
-    `;
+    container.innerHTML = "";
 
     const title = document.createElement("div");
     title.style.cssText = `
@@ -121,8 +117,55 @@ function createSshSection() {
         margin-bottom: 12px;
         color: ${colors.textPrimary};
     `;
-    title.textContent = "新建 SSH 连接";
-    section.appendChild(title);
+    title.textContent = "已保存的连接";
+    container.appendChild(title);
+
+    const list = document.createElement("div");
+    list.id = "dm-saved-connections-list";
+    list.style.cssText = "display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;";
+
+    renderSavedConnectionsList(list, onConnect, onDisconnect, container, onConnect, onDisconnect);
+
+    container.appendChild(list);
+
+    // 新建按钮
+    const newBtn = document.createElement("button");
+    newBtn.className = "comfy-btn";
+    newBtn.innerHTML = '<i class="pi pi-plus"></i> 新建连接';
+    newBtn.style.cssText = "width: 100%; padding: 10px;";
+    newBtn.onclick = () => {
+        showConnectionForm(container, onConnect, onDisconnect);
+    };
+    container.appendChild(newBtn);
+}
+
+/**
+ * 显示连接表单页面
+ */
+function showConnectionForm(container, onConnect, onDisconnect) {
+    const colors = getThemeColors();
+
+    container.innerHTML = "";
+
+    // 返回按钮
+    const backBtn = document.createElement("button");
+    backBtn.className = "comfy-btn";
+    backBtn.innerHTML = '<i class="pi pi-arrow-left"></i> 返回';
+    backBtn.style.cssText = "padding: 6px 12px; margin-bottom: 15px; font-size: 12px;";
+    backBtn.onclick = () => {
+        showConnectionList(container, onConnect, onDisconnect);
+    };
+    container.appendChild(backBtn);
+
+    const formTitle = document.createElement("div");
+    formTitle.style.cssText = `
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: ${colors.textPrimary};
+    `;
+    formTitle.textContent = "新建 SSH 连接";
+    container.appendChild(formTitle);
 
     const form = document.createElement("div");
     form.style.cssText = "display: flex; flex-direction: column; gap: 10px;";
@@ -152,7 +195,7 @@ function createSshSection() {
     btnRow.appendChild(connectBtn);
     form.appendChild(btnRow);
 
-    section.appendChild(form);
+    container.appendChild(form);
 
     // 连接按钮事件
     connectBtn.onclick = async () => {
@@ -207,43 +250,12 @@ function createSshSection() {
             connectBtn.textContent = "连接";
         }
     };
-
-    return section;
-}
-
-/**
- * 创建已保存连接列表部分
- */
-function createSavedConnectionsSection(onConnect, onDisconnect) {
-    const colors = getThemeColors();
-
-    const section = document.createElement("div");
-
-    const title = document.createElement("div");
-    title.style.cssText = `
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 12px;
-        color: ${colors.textPrimary};
-    `;
-    title.textContent = "已保存的连接";
-    section.appendChild(title);
-
-    const list = document.createElement("div");
-    list.id = "dm-saved-connections-list";
-    list.style.cssText = "display: flex; flex-direction: column; gap: 8px;";
-
-    renderSavedConnectionsList(list, onConnect, onDisconnect);
-
-    section.appendChild(list);
-
-    return section;
 }
 
 /**
  * 渲染已保存连接列表
  */
-function renderSavedConnectionsList(list, onConnect, onDisconnect) {
+function renderSavedConnectionsList(list, onConnect, onDisconnect, container, origOnConnect, origOnDisconnect) {
     const colors = getThemeColors();
     const saved = window._remoteConnectionsState.saved || [];
     const active = window._remoteConnectionsState.active;
@@ -252,7 +264,7 @@ function renderSavedConnectionsList(list, onConnect, onDisconnect) {
 
     if (saved.length === 0) {
         list.innerHTML = `
-            <div style="padding: 15px; text-align: center; color: #666; font-size: 12px; background: ${colors.bgSecondary}; border-radius: 6px;">
+            <div style="padding: 20px; text-align: center; color: #666; font-size: 12px; background: ${colors.bgSecondary}; border-radius: 6px;">
                 暂无保存的连接
             </div>
         `;
@@ -303,7 +315,7 @@ function renderSavedConnectionsList(list, onConnect, onDisconnect) {
             disconnectBtn.style.cssText = "padding: 4px 10px; font-size: 11px; background: #c0392b;";
             disconnectBtn.onclick = () => {
                 if (onDisconnect) onDisconnect();
-                renderSavedConnectionsList(list, onConnect, onDisconnect);
+                renderSavedConnectionsList(list, origOnConnect, origOnDisconnect, container, origOnConnect, origOnDisconnect);
             };
             actions.appendChild(disconnectBtn);
         } else {
@@ -318,7 +330,7 @@ function renderSavedConnectionsList(list, onConnect, onDisconnect) {
                     const { sshConnect } = await getSshApi();
                     const result = await sshConnect(conn.host, conn.port, conn.username, atob(conn.password));
                     if (onConnect) onConnect(result);
-                    renderSavedConnectionsList(list, onConnect, onDisconnect);
+                    renderSavedConnectionsList(list, origOnConnect, origOnDisconnect, container, origOnConnect, origOnDisconnect);
                 } catch (error) {
                     alert("连接失败: " + error.message);
                     connectBtn.disabled = false;
@@ -341,7 +353,7 @@ function renderSavedConnectionsList(list, onConnect, onDisconnect) {
                     localStorage.setItem('comfyui_datamanager_remote_connections',
                         JSON.stringify(window._remoteConnectionsState.saved));
                 } catch (e) {}
-                renderSavedConnectionsList(list, onConnect, onDisconnect);
+                renderSavedConnectionsList(list, origOnConnect, origOnDisconnect, container, origOnConnect, origOnDisconnect);
             }
         };
         actions.appendChild(deleteBtn);
@@ -387,6 +399,6 @@ function createSettingsInput(label, id, type, placeholder) {
 export function refreshSavedConnectionsList() {
     const list = document.getElementById("dm-saved-connections-list");
     if (list) {
-        renderSavedConnectionsList(list, null, null);
+        renderSavedConnectionsList(list, null, null, null, null, null);
     }
 }
