@@ -1,7 +1,8 @@
-# Web 目录结构规范
+# web-directory-structure Specification
 
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change restructure-web-directory. Update Purpose after archive.
+## Requirements
 ### Requirement: 目录组织结构
 
 前端代码必须 (SHALL) 按照功能模块组织在 `src/` 目录下，采用层级目录结构。
@@ -42,10 +43,10 @@
 
 | 源目录 | 输出文件 |
 |--------|----------|
-| `src/ui/` | `web/ui/ui.js` |
-| `src/core/` | `web/core/core.js` |
-| `src/api/` | `web/api/api.js` |
-| `src/utils/` | `web/utils/utils.js` |
+| `src/ui/` | `web/ui-preview-actions.js` |
+| `src/core/` | N/A (inline in extension) |
+| `src/api/` | `web/ssh.js` |
+| `src/utils/` | N/A (inline) |
 
 ### Requirement: 模块导出规范
 
@@ -66,26 +67,17 @@ import { listDirectory } from './api/index.js';
 import { showToast } from './utils/index.js';
 ```
 
-## MODIFIED Requirements
+### Requirement: TypeScript 类型支持
 
-### Requirement: 文件迁移
+项目必须 (MUST) 使用 TypeScript 进行类型检查。
 
-原有 `web/` 目录下的文件必须 (MUST) 迁移到 `src/` 对应目录。
+#### Scenario: 类型定义
 
-#### Scenario: 迁移文件到新结构
+当定义新的数据结构时，应该使用 TypeScript 接口或类型别名。
 
-当完成重构后，`web/extension.js` 应该被 `web/extension.js` (编译输出) 替代，所有原 `web/*.js` 文件应该被删除或替换。
+| 类型 | 定义位置 |
+|------|----------|
+| `FileItem` | `src/core/types.ts` |
+| `FileManagerState` | `src/core/state.ts` |
+| `ComfyTheme` | `src/utils/theme.ts` |
 
-| 原文件 | 新位置 |
-|--------|--------|
-| `web/core-constants.js` | `src/core/constants.ts` |
-| `web/core-state.js` | `src/core/state.ts` |
-| `web/api-index.js` | `src/api/endpoints/file.ts` |
-| `web/api-ssh.js` | `src/api/ssh.ts` |
-| `web/ui-browser.js` | `src/ui/browser/index.ts` |
-| `web/ui-preview.js` | `src/ui/preview/index.ts` |
-| `web/utils-theme.js` | `src/utils/theme.ts` |
-
-## REMOVED Requirements
-
-- 旧的平铺文件结构 - 重构完成后，`web/` 目录下不应 (SHALL NOT) 存在平铺的 `.js` 文件，所有编译输出应该保持 ComfyUI 兼容的目录结构。
