@@ -16,6 +16,7 @@ import shutil
 # 复制核心函数（直接从 nodes_v3.py）
 # ============================================================================
 
+
 def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     """保存 ComfyUI 图像张量到文件"""
     # 确保 file_path 有正确的扩展名
@@ -36,7 +37,7 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
         tensor = (tensor * 255).astype(np.uint8)
 
     # 转换为 PIL Image
-    img = Image.fromarray(tensor, 'RGB')
+    img = Image.fromarray(tensor, "RGB")
 
     # 保存图像
     os.makedirs(Path(file_path).parent, exist_ok=True)
@@ -61,7 +62,7 @@ def parse_target_path(target_path: str, detected_type: str, format: str) -> tupl
         directory = str(path.parent)
         filename = path.name
         name_without_ext = path.stem
-        if filename.split('.')[-1].lower() != format.lower():
+        if filename.split(".")[-1].lower() != format.lower():
             filename = f"{name_without_ext}.{format}"
     else:
         directory = str(path)
@@ -75,11 +76,12 @@ def parse_target_path(target_path: str, detected_type: str, format: str) -> tupl
 # 测试函数
 # ============================================================================
 
+
 def test_save_image():
     """测试图像保存"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试图像保存功能")
-    print("="*60)
+    print("=" * 60)
 
     # 创建测试图像
     img_array = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
@@ -98,15 +100,16 @@ def test_save_image():
     except Exception as e:
         print(f"  ✗ 失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def test_process_image_input():
     """测试完整的图像处理流程"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试完整图像处理流程")
-    print("="*60)
+    print("=" * 60)
 
     # 创建测试图像 (模拟 ComfyUI 输出的 numpy array)
     img_array = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
@@ -151,15 +154,16 @@ def test_process_image_input():
     except Exception as e:
         print(f"  ✗ 失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def test_comfyui_image_format():
     """测试 ComfyUI 图像格式的处理"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 ComfyUI 图像格式")
-    print("="*60)
+    print("=" * 60)
 
     # ComfyUI 图像可能是各种形状
     test_cases = [
@@ -185,9 +189,9 @@ def test_comfyui_image_format():
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ComfyUI Data Manager 后端简单测试")
-    print("="*60)
+    print("=" * 60)
 
     results = []
 
@@ -202,9 +206,9 @@ def main():
     results.append(("ComfyUI格式", True))
 
     # 总结
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试结果总结")
-    print("="*60)
+    print("=" * 60)
 
     for name, result in results:
         status = "✓ 通过" if result else "✗ 失败"
@@ -222,17 +226,18 @@ def main():
 
     all_passed = all(r for _, r in results)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if all_passed:
         print("✓ 所有测试通过")
     else:
         print("⚠ 部分测试失败")
-    print("="*60)
+    print("=" * 60)
 
     return all_passed
 
 
 if __name__ == "__main__":
     import sys
+
     success = main()
     sys.exit(0 if success else 1)

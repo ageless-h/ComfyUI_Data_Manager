@@ -22,11 +22,12 @@ import custom_nodes.ComfyUI_Data_Manager.utils as dm_utils
 # 测试 files.py 路由
 # ============================================================================
 
+
 def test_files_routes():
     """测试 files.py 路由处理函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 API files.py 路由")
-    print("="*60)
+    print("=" * 60)
 
     # 使用模块内的函数
     list_files = dm_utils.list_files
@@ -40,7 +41,7 @@ def test_files_routes():
 
     # 创建测试文件
     test_file = os.path.join(test_dir, "test.txt")
-    with open(test_file, 'w', encoding='utf-8') as f:
+    with open(test_file, "w", encoding="utf-8") as f:
         f.write("测试内容")
 
     test_subdir = os.path.join(test_dir, "subdir")
@@ -85,13 +86,17 @@ def test_files_routes():
 # 测试 metadata.py 路由
 # ============================================================================
 
+
 def test_metadata_routes():
     """测试 metadata.py 路由处理函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 API metadata.py 路由")
-    print("="*60)
+    print("=" * 60)
 
-    from custom_nodes.ComfyUI_Data_Manager.api.routes.metadata import get_categories_handler, preview_file_handler
+    from custom_nodes.ComfyUI_Data_Manager.api.routes.metadata import (
+        get_categories_handler,
+        preview_file_handler,
+    )
 
     # 创建测试环境
     test_dir = os.path.join(tempfile.gettempdir(), "test_data_manager", "api_metadata")
@@ -102,8 +107,9 @@ def test_metadata_routes():
     # 创建测试图像文件
     try:
         from PIL import Image
+
         test_image = os.path.join(test_dir, "test.png")
-        img = Image.new('RGB', (100, 100), color='red')
+        img = Image.new("RGB", (100, 100), color="red")
         img.save(test_image)
         has_pillow = True
     except ImportError:
@@ -112,7 +118,7 @@ def test_metadata_routes():
 
     # 创建测试文本文件
     test_txt = os.path.join(test_dir, "test.txt")
-    with open(test_txt, 'w', encoding='utf-8') as f:
+    with open(test_txt, "w", encoding="utf-8") as f:
         f.write("测试文本内容")
 
     # 测试 get_categories_handler
@@ -125,7 +131,8 @@ def test_metadata_routes():
 
         # web.json_response 返回的 Response 可以通过 text 属性获取 JSON 字符串
         import json
-        response_text = response.text if hasattr(response, 'text') and response.text else ''
+
+        response_text = response.text if hasattr(response, "text") and response.text else ""
         data = json.loads(response_text) if response_text else {}
 
         assert response.status == 200, f"状态码应为200，实际为{response.status}"
@@ -138,6 +145,7 @@ def test_metadata_routes():
         print("  ✓ get_categories_handler 测试通过")
 
     import asyncio
+
     asyncio.run(run_test())
 
     # 测试 preview_file_handler - 文本文件
@@ -184,7 +192,8 @@ def test_metadata_routes():
 
         # 错误响应是 json_response，可以通过 text 属性获取
         import json
-        response_text = response.text if hasattr(response, 'text') and response.text else ''
+
+        response_text = response.text if hasattr(response, "text") and response.text else ""
         data = json.loads(response_text) if response_text else {}
 
         assert response.status == 404, f"状态码应为404，实际为{response.status}"
@@ -204,7 +213,8 @@ def test_metadata_routes():
 
         # 错误响应是 json_response，可以通过 text 属性获取
         import json
-        response_text = response.text if hasattr(response, 'text') and response.text else ''
+
+        response_text = response.text if hasattr(response, "text") and response.text else ""
         data = json.loads(response_text) if response_text else {}
 
         assert response.status == 400, f"状态码应为400，实际为{response.status}"
@@ -224,15 +234,18 @@ def test_metadata_routes():
 # 测试 operations.py 路由
 # ============================================================================
 
+
 def test_operations_routes():
     """测试 operations.py 路由处理函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 API operations.py 路由")
-    print("="*60)
+    print("=" * 60)
 
     from custom_nodes.ComfyUI_Data_Manager.api.routes.operations import (
-        save_file_handler, create_file_handler, create_directory_handler,
-        delete_file_handler
+        save_file_handler,
+        create_file_handler,
+        create_directory_handler,
+        delete_file_handler,
     )
 
     # 创建测试环境
@@ -243,7 +256,7 @@ def test_operations_routes():
 
     # 创建测试文件
     test_file = os.path.join(test_dir, "test.txt")
-    with open(test_file, 'w', encoding='utf-8') as f:
+    with open(test_file, "w", encoding="utf-8") as f:
         f.write("原始内容")
 
     # 测试 save_file_handler
@@ -253,11 +266,9 @@ def test_operations_routes():
     os.makedirs(target_dir)
 
     mock_request = MagicMock()
-    mock_request.json = AsyncMock(return_value={
-        "source": test_file,
-        "target_dir": target_dir,
-        "filename": "saved.txt"
-    })
+    mock_request.json = AsyncMock(
+        return_value={"source": test_file, "target_dir": target_dir, "filename": "saved.txt"}
+    )
 
     async def run_test():
         response = await save_file_handler(mock_request)
@@ -265,7 +276,8 @@ def test_operations_routes():
         # 成功的 save_file_handler 返回 web.json_response
         # 可以使用 text 属性获取 JSON 字符串然后解析
         import json
-        response_text = response.text if hasattr(response, 'text') else ''
+
+        response_text = response.text if hasattr(response, "text") else ""
         data = json.loads(response_text) if response_text else {}
 
         assert response.status == 200, f"状态码应为200，实际为{response.status}"
@@ -275,23 +287,24 @@ def test_operations_routes():
         print("  ✓ save_file_handler 测试通过")
 
     import asyncio
+
     asyncio.run(run_test())
 
     # 测试 save_file_handler - 源文件不存在
     print("\n[测试 2] save_file_handler (源文件不存在)")
 
     mock_request = MagicMock()
-    mock_request.json = AsyncMock(return_value={
-        "source": "/nonexistent/file.txt",
-        "target_dir": target_dir
-    })
+    mock_request.json = AsyncMock(
+        return_value={"source": "/nonexistent/file.txt", "target_dir": target_dir}
+    )
 
     async def run_test2():
         response = await save_file_handler(mock_request)
 
         # 错误的响应也是 json_response
         import json
-        response_text = response.text if hasattr(response, 'text') else ''
+
+        response_text = response.text if hasattr(response, "text") else ""
         data = json.loads(response_text) if response_text else {}
 
         assert response.status == 404, f"状态码应为404，实际为{response.status}"
@@ -306,17 +319,16 @@ def test_operations_routes():
     new_file = os.path.join(test_dir, "new_file.txt")
 
     mock_request = MagicMock()
-    mock_request.json = AsyncMock(return_value={
-        "directory": test_dir,
-        "filename": "new_file.txt",
-        "content": "新文件内容"
-    })
+    mock_request.json = AsyncMock(
+        return_value={"directory": test_dir, "filename": "new_file.txt", "content": "新文件内容"}
+    )
 
     async def run_test3():
         response = await create_file_handler(mock_request)
 
         import json
-        response_text = response.text if hasattr(response, 'text') else ''
+
+        response_text = response.text if hasattr(response, "text") else ""
         data = json.loads(response_text) if response_text else {}
 
         assert response.status == 200, f"状态码应为200，实际为{response.status}"
@@ -333,16 +345,14 @@ def test_operations_routes():
     new_folder = os.path.join(test_dir, "new_folder")
 
     mock_request = MagicMock()
-    mock_request.json = AsyncMock(return_value={
-        "directory": test_dir,
-        "dirname": "new_folder"
-    })
+    mock_request.json = AsyncMock(return_value={"directory": test_dir, "dirname": "new_folder"})
 
     async def run_test4():
         response = await create_directory_handler(mock_request)
 
         import json
-        response_text = response.text if hasattr(response, 'text') else ''
+
+        response_text = response.text if hasattr(response, "text") else ""
         data = json.loads(response_text) if response_text else {}
 
         assert response.status == 200, f"状态码应为200，实际为{response.status}"
@@ -357,20 +367,18 @@ def test_operations_routes():
     print("\n[测试 5] delete_file_handler")
 
     file_to_delete = os.path.join(test_dir, "to_delete.txt")
-    with open(file_to_delete, 'w', encoding='utf-8') as f:
+    with open(file_to_delete, "w", encoding="utf-8") as f:
         f.write("将被删除")
 
     mock_request = MagicMock()
-    mock_request.json = AsyncMock(return_value={
-        "path": file_to_delete,
-        "use_trash": False
-    })
+    mock_request.json = AsyncMock(return_value={"path": file_to_delete, "use_trash": False})
 
     async def run_test5():
         response = await delete_file_handler(mock_request)
 
         import json
-        response_text = response.text if hasattr(response, 'text') else ''
+
+        response_text = response.text if hasattr(response, "text") else ""
         data = json.loads(response_text) if response_text else {}
 
         assert response.status == 200, f"状态码应为200，实际为{response.status}"
@@ -391,10 +399,11 @@ def test_operations_routes():
 # 主函数
 # ============================================================================
 
+
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("API 路由模块测试")
-    print("="*60)
+    print("=" * 60)
 
     results = []
 
@@ -402,9 +411,9 @@ def main():
     results.append(("metadata_routes", test_metadata_routes()))
     results.append(("operations_routes", test_operations_routes()))
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试结果总结")
-    print("="*60)
+    print("=" * 60)
 
     all_passed = True
     for name, result in results:
@@ -413,17 +422,18 @@ def main():
             all_passed = False
         print(f"  {name}: {status}")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if all_passed:
         print("✓ 所有 API 路由模块测试通过")
     else:
         print("✗ 部分测试失败")
-    print("="*60)
+    print("=" * 60)
 
     return all_passed
 
 
 if __name__ == "__main__":
     import sys
+
     success = main()
     sys.exit(0 if success else 1)

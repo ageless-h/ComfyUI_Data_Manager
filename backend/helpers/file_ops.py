@@ -14,7 +14,13 @@ from .info import _get_file_info, _matches_pattern
 from .path_utils import get_path_type, PathType
 
 
-def save_file(source: Any, target_dir: str, filename: str = None, prefix: str = "", add_timestamp: bool = False) -> str:
+def save_file(
+    source: Any,
+    target_dir: str,
+    filename: str = None,
+    prefix: str = "",
+    add_timestamp: bool = False,
+) -> str:
     """保存文件到目标目录
 
     Args:
@@ -43,14 +49,14 @@ def save_file(source: Any, target_dir: str, filename: str = None, prefix: str = 
 
         # 添加前缀
         if prefix:
-            name_without_ext = filename.rsplit('.', 1)[0] if '.' in filename else filename
-            ext = filename.rsplit('.', 1)[1] if '.' in filename else ''
+            name_without_ext = filename.rsplit(".", 1)[0] if "." in filename else filename
+            ext = filename.rsplit(".", 1)[1] if "." in filename else ""
             filename = f"{prefix}{name_without_ext}.{ext}" if ext else f"{prefix}{filename}"
 
         # 添加时间戳
         if add_timestamp:
-            name_without_ext = filename.rsplit('.', 1)[0] if '.' in filename else filename
-            ext = filename.rsplit('.', 1)[1] if '.' in filename else ''
+            name_without_ext = filename.rsplit(".", 1)[0] if "." in filename else filename
+            ext = filename.rsplit(".", 1)[1] if "." in filename else ""
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{name_without_ext}_{timestamp}.{ext}" if ext else f"{filename}_{timestamp}"
 
@@ -64,7 +70,9 @@ def save_file(source: Any, target_dir: str, filename: str = None, prefix: str = 
     return ""
 
 
-def list_files(directory: str, pattern: str = "*.*", recursive: bool = False, include_dirs: bool = True) -> List[Dict[str, Any]]:
+def list_files(
+    directory: str, pattern: str = "*.*", recursive: bool = False, include_dirs: bool = True
+) -> List[Dict[str, Any]]:
     """列出目录中的文件和子目录
 
     Args:
@@ -119,7 +127,9 @@ def list_files(directory: str, pattern: str = "*.*", recursive: bool = False, in
     return items
 
 
-def _list_unc_files(unc_path: str, pattern: str = "*.*", recursive: bool = False, include_dirs: bool = True) -> List[Dict[str, Any]]:
+def _list_unc_files(
+    unc_path: str, pattern: str = "*.*", recursive: bool = False, include_dirs: bool = True
+) -> List[Dict[str, Any]]:
     r"""列出 UNC 路径（Windows 共享文件夹）中的文件和子目录
 
     Args:
@@ -194,7 +204,7 @@ def create_file(directory: str, filename: str, content: str = "") -> str:
     if os.path.exists(file_path):
         raise FileExistsError(f"文件已存在: {file_path}")
 
-    with open(file_path, 'w', encoding='utf-8') as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
 
     return file_path
@@ -252,16 +262,19 @@ def delete_file(file_path: str, use_trash: bool = True) -> bool:
         try:
             # 使用 send2trash 模块移动到回收站
             import send2trash
+
             send2trash.send2trash(file_path)
             return True
         except ImportError:
             # 如果 send2trash 不可用，记录警告并使用永久删除
             import logging
+
             logger = logging.getLogger(__name__)
             logger.warning("[DataManager] send2trash not available, using permanent delete")
         except Exception as e:
             # send2trash 调用失败，记录错误并使用永久删除
             import logging
+
             logger = logging.getLogger(__name__)
             logger.warning(f"[DataManager] send2trash failed: {e}, using permanent delete")
 

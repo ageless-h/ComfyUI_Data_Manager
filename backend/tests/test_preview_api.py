@@ -19,6 +19,7 @@ def test_imports():
 
     try:
         from backend.helpers import file_ops, path_utils, formatters, info
+
         print("✅ utils 模块导入成功")
         print(f"  - file_ops: {file_ops}")
         print(f"  - path_utils: {path_utils}")
@@ -30,9 +31,10 @@ def test_imports():
 
     try:
         from backend.api.routes import files, operations, metadata
+
         print("✅ api.routes 模块导入成功（注意：aiohttp 依赖在 ComfyUI 环境中可用）")
     except ImportError as e:
-        if 'aiohttp' in str(e):
+        if "aiohttp" in str(e):
             print("⚠️  aiohttp 未安装（ComfyUI 环境中会自动可用）")
         else:
             print(f"❌ api.routes 模块导入失败: {e}")
@@ -74,10 +76,11 @@ def test_api_handler():
     try:
         # 导入模块（会触发 aiohttp 错误，但我们可以捕获）
         from backend.api.routes import metadata
+
         print("✅ metadata 模块导入成功")
 
         # 检查函数存在
-        if hasattr(metadata, 'preview_file_handler'):
+        if hasattr(metadata, "preview_file_handler"):
             print("✅ preview_file_handler 函数存在")
             print(f"  函数签名: {metadata.preview_file_handler.__name__}")
             print(f"  函数文档: {metadata.preview_file_handler.__doc__[:50]}...")
@@ -86,7 +89,7 @@ def test_api_handler():
             return False
 
     except ImportError as e:
-        if 'aiohttp' in str(e):
+        if "aiohttp" in str(e):
             print("⚠️  aiohttp 依赖缺失（ComfyUI 运行环境中会自动可用）")
             print("✅ 代码结构正确，只是运行时依赖缺失")
             return True
@@ -110,11 +113,11 @@ def test_javascript_syntax():
         return False
 
     # 统计代码行数
-    with open(extension_js, 'r', encoding='utf-8') as f:
+    with open(extension_js, "r", encoding="utf-8") as f:
         lines = f.readlines()
         total_lines = len(lines)
-        code_lines = len([l for l in lines if l.strip() and not l.strip().startswith('//')])
-        comment_lines = len([l for l in lines if l.strip().startswith('//')])
+        code_lines = len([l for l in lines if l.strip() and not l.strip().startswith("//")])
+        comment_lines = len([l for l in lines if l.strip().startswith("//")])
 
     print(f"✅ extension.js 文件存在")
     print(f"  - 总行数: {total_lines}")
@@ -123,21 +126,21 @@ def test_javascript_syntax():
     print(f"  - 空行: {total_lines - code_lines - comment_lines}")
 
     # 检查关键函数是否存在
-    with open(extension_js, 'r', encoding='utf-8') as f:
+    with open(extension_js, "r", encoding="utf-8") as f:
         content = f.read()
 
     key_functions = [
-        'openFloatingPreview',
-        'loadPreviewContent',
-        'closeFloatingPreview',
-        'previewFile',
-        'createPreviewPanel',
-        'openFileManager'
+        "openFloatingPreview",
+        "loadPreviewContent",
+        "closeFloatingPreview",
+        "previewFile",
+        "createPreviewPanel",
+        "openFileManager",
     ]
 
     print("\n关键函数检查:")
     for func in key_functions:
-        if f'function {func}' in content or f'{func}(' in content:
+        if f"function {func}" in content or f"{func}(" in content:
             print(f"  ✅ {func}")
         else:
             print(f"  ❌ {func} - 未找到")
@@ -167,7 +170,7 @@ def test_file_structure():
         "api/routes/files.py",
         "api/routes/operations.py",
         "api/routes/metadata.py",
-        "web/extension.js"
+        "web/extension.js",
     ]
 
     print("检查必需文件:")
@@ -204,6 +207,7 @@ def main():
         except Exception as e:
             print(f"\n❌ {test_name} 测试出错: {e}")
             import traceback
+
             traceback.print_exc()
             results.append((test_name, False))
 

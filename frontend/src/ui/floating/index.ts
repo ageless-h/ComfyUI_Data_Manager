@@ -3,10 +3,10 @@
  */
 
 // Floating window
-export * from './window.js';
+export * from './window.js'
 
 // Dock management
-export * from './dock.js';
+export * from './dock.js'
 
 // Preview content loading
-export * from './preview-content.js';
+export * from './preview-content.js'

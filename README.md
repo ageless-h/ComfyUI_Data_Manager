@@ -135,6 +135,59 @@ ComfyUI_Data_Manager/
 
 欢迎提交 Issue 和 Pull Request！
 
+### 开发环境设置
+
+1. 克隆仓库并安装依赖：
+   ```bash
+   # Python 依赖
+   pip install black isort flake8 pre-commit
+
+   # 前端依赖
+   cd frontend
+   npm install
+   ```
+
+2. 安装 pre-commit hooks：
+   ```bash
+   pre-commit install
+   ```
+
+### 代码风格
+
+本项目使用统一的代码风格工具：
+
+**Python:**
+- Black - 代码格式化（行长度 100）
+- isort - 导入排序
+- flake8 - 代码检查
+
+**TypeScript:**
+- ESLint - 代码检查
+- Prettier - 代码格式化
+
+格式化代码：
+```bash
+# Python
+black .
+isort .
+
+# TypeScript
+cd frontend
+npm run format
+```
+
+检查代码风格：
+```bash
+# Python
+black --check .
+flake8 .
+
+# TypeScript
+cd frontend
+npm run lint
+npm run format:check
+```
+
 ## 许可证
 
 MIT License

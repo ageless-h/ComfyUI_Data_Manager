@@ -12,6 +12,7 @@ import torch
 import numpy as np
 from PIL import Image, ImageOps
 
+
 def load_image(file_path: str):
     """加载图像文件为 ComfyUI Tensor 格式（复制自修复后的代码）"""
     if not os.path.exists(file_path):
@@ -23,7 +24,7 @@ def load_image(file_path: str):
     img = ImageOps.exif_transpose(img)
 
     # 转换为 RGB
-    if img.mode == 'I':
+    if img.mode == "I":
         img = img.point(lambda i: i * (1 / 255))
     image = img.convert("RGB")
 
@@ -33,12 +34,12 @@ def load_image(file_path: str):
     image = torch.from_numpy(image)[None,]  # [1, H, W, 3]
 
     # 处理 mask (alpha 通道)
-    if 'A' in img.getbands():
-        mask = np.array(img.getchannel('A')).astype(np.float32) / 255.0
-        mask = 1. - torch.from_numpy(mask)  # ComfyUI mask 是反向的
-    elif img.mode == 'P' and 'transparency' in img.info:
-        mask = np.array(img.convert('RGBA').getchannel('A')).astype(np.float32) / 255.0
-        mask = 1. - torch.from_numpy(mask)
+    if "A" in img.getbands():
+        mask = np.array(img.getchannel("A")).astype(np.float32) / 255.0
+        mask = 1.0 - torch.from_numpy(mask)  # ComfyUI mask 是反向的
+    elif img.mode == "P" and "transparency" in img.info:
+        mask = np.array(img.convert("RGBA").getchannel("A")).astype(np.float32) / 255.0
+        mask = 1.0 - torch.from_numpy(mask)
     else:
         mask = None
 
@@ -46,11 +47,12 @@ def load_image(file_path: str):
 
     return (image, mask)
 
+
 def test_load_image_returns_tensor():
     """测试 load_image 返回 torch.Tensor 而不是 numpy.ndarray"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 load_image 返回 torch.Tensor")
-    print("="*60)
+    print("=" * 60)
 
     # 创建测试图像
     test_image_path = r"C:\Users\Administrator\Downloads\test_load_image.png"
@@ -136,14 +138,16 @@ def test_load_image_returns_tensor():
     except Exception as e:
         print(f"  ✗ 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
+
 def test_with_actual_image():
     """使用实际的 Downloads 文件夹中的图像进行测试"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试使用实际图像文件")
-    print("="*60)
+    print("=" * 60)
 
     # 检查 1.jpg 是否存在
     test_file = r"C:\Users\Administrator\Downloads\1.jpg"
@@ -179,13 +183,15 @@ def test_with_actual_image():
     except Exception as e:
         print(f"  ✗ 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
+
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("load_image 修复验证测试")
-    print("="*60)
+    print("=" * 60)
 
     results = []
 
@@ -196,9 +202,9 @@ def main():
     results.append(("使用实际图像文件测试", test_with_actual_image()))
 
     # 总结
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试结果总结")
-    print("="*60)
+    print("=" * 60)
     for name, passed in results:
         status = "✓ PASS" if passed else "✗ FAIL"
         print(f"{status}: {name}")
@@ -210,6 +216,7 @@ def main():
     else:
         print("\n✗ 有测试失败")
         return False
+
 
 if __name__ == "__main__":
     success = main()

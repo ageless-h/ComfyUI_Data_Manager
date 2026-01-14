@@ -19,11 +19,12 @@ import custom_nodes.ComfyUI_Data_Manager.utils as dm_utils
 # 测试 path_utils.py
 # ============================================================================
 
+
 def test_path_utils():
     """测试 path_utils 模块"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 path_utils 模块")
-    print("="*60)
+    print("=" * 60)
 
     ensure_directory = dm_utils.ensure_directory
     join_paths = dm_utils.join_paths
@@ -55,7 +56,9 @@ def test_path_utils():
     # 测试 get_parent_path
     print("\n[测试 3] get_parent_path")
     parent = get_parent_path("C:/Users/Admin/Documents/file.txt")
-    assert "Documents" in parent or parent == "C:/Users/Admin/Documents", f"父路径应该包含Documents: {parent}"
+    assert (
+        "Documents" in parent or parent == "C:/Users/Admin/Documents"
+    ), f"父路径应该包含Documents: {parent}"
     print(f"  父路径: {parent}")
 
     parent = get_parent_path("file.txt")
@@ -85,11 +88,12 @@ def test_path_utils():
 # 测试 file_ops.py
 # ============================================================================
 
+
 def test_file_ops():
     """测试 file_ops 模块"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 file_ops 模块")
-    print("="*60)
+    print("=" * 60)
 
     save_file = dm_utils.save_file
     list_files = dm_utils.list_files
@@ -104,7 +108,7 @@ def test_file_ops():
 
     # 创建测试源文件
     source_file = os.path.join(test_base_dir, "source.txt")
-    with open(source_file, 'w', encoding='utf-8') as f:
+    with open(source_file, "w", encoding="utf-8") as f:
         f.write("测试内容")
 
     # 测试 save_file
@@ -147,7 +151,7 @@ def test_file_ops():
     print("\n[测试 6] create_file")
     new_file = create_file(test_base_dir, "new_file.txt", "新文件内容")
     assert os.path.exists(new_file), "创建的文件应该存在"
-    with open(new_file, 'r', encoding='utf-8') as f:
+    with open(new_file, "r", encoding="utf-8") as f:
         content = f.read()
     assert content == "新文件内容", "文件内容应该正确"
     print(f"  创建文件: {new_file}")
@@ -177,7 +181,7 @@ def test_file_ops():
     # 测试 delete_file - 永久删除
     print("\n[测试 10] delete_file (永久删除)")
     file_to_delete = os.path.join(test_base_dir, "permanent_delete.txt")
-    with open(file_to_delete, 'w', encoding='utf-8') as f:
+    with open(file_to_delete, "w", encoding="utf-8") as f:
         f.write("将被永久删除")
     result = delete_file(file_to_delete, use_trash=False)
     assert result == True, "delete_file 应该返回 True"
@@ -220,11 +224,12 @@ def test_file_ops():
 # 测试 info.py
 # ============================================================================
 
+
 def test_info():
     """测试 info 模块"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 info 模块")
-    print("="*60)
+    print("=" * 60)
 
     get_file_info = dm_utils.get_file_info
     get_file_category = dm_utils.get_file_category
@@ -237,7 +242,7 @@ def test_info():
 
     # 创建测试文件
     test_file = os.path.join(test_dir, "test.txt")
-    with open(test_file, 'w', encoding='utf-8') as f:
+    with open(test_file, "w", encoding="utf-8") as f:
         f.write("测试内容")
 
     # 创建测试目录
@@ -295,11 +300,12 @@ def test_info():
 # 测试 formatters.py
 # ============================================================================
 
+
 def test_formatters():
     """测试 formatters 模块"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 formatters 模块")
-    print("="*60)
+    print("=" * 60)
 
     formatters = dm_utils.formatters
 
@@ -320,10 +326,11 @@ def test_formatters():
 # 主函数
 # ============================================================================
 
+
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Utils 模块测试")
-    print("="*60)
+    print("=" * 60)
 
     results = []
 
@@ -332,9 +339,9 @@ def main():
     results.append(("info", test_info()))
     results.append(("formatters", test_formatters()))
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试结果总结")
-    print("="*60)
+    print("=" * 60)
 
     all_passed = True
     for name, result in results:
@@ -343,17 +350,18 @@ def main():
             all_passed = False
         print(f"  {name}: {status}")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if all_passed:
         print("✓ 所有 Utils 模块测试通过")
     else:
         print("✗ 部分测试失败")
-    print("="*60)
+    print("=" * 60)
 
     return all_passed
 
 
 if __name__ == "__main__":
     import sys
+
     success = main()
     sys.exit(0 if success else 1)

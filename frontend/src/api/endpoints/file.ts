@@ -2,36 +2,36 @@
  * ComfyUI Data Manager - File API Endpoints
  */
 
-import { API_ENDPOINTS } from '../../core/constants.js';
+import { API_ENDPOINTS } from '../../core/constants.js'
 
 /**
  * Directory listing response
  */
 export interface DirectoryListResponse {
-  files: unknown[];
-  path: string;
+  files: unknown[]
+  path: string
 }
 
 /**
  * File info response
  */
 export interface FileInfo {
-  path: string;
-  name: string;
-  size: number;
-  modified: number;
-  isDir: boolean;
-  type?: string;
+  path: string
+  name: string
+  size: number
+  modified: number
+  isDir: boolean
+  type?: string
 }
 
 /**
  * Create file/directory response
  */
 export interface CreateResponse {
-  success: boolean;
-  path?: string;
-  error?: string;
-  message?: string;
+  success: boolean
+  path?: string
+  error?: string
+  message?: string
 }
 
 /**
@@ -41,18 +41,19 @@ export interface CreateResponse {
  */
 export async function listDirectory(path: string): Promise<DirectoryListResponse> {
   const response = await fetch(API_ENDPOINTS.LIST, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path })
-  });
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path }),
+  })
 
   if (response?.ok) {
-    return await response.json() as DirectoryListResponse;
+    return (await response.json()) as DirectoryListResponse
   }
 
-  const errorData = await response.json().catch(() => ({})) as Record<string, unknown>;
-  const errorMsg = (errorData.error as string) || (errorData.message as string) || `HTTP ${response.status}`;
-  throw new Error(`Failed to list directory: ${errorMsg}`);
+  const errorData = (await response.json().catch(() => ({}))) as Record<string, unknown>
+  const errorMsg =
+    (errorData.error as string) || (errorData.message as string) || `HTTP ${response.status}`
+  throw new Error(`Failed to list directory: ${errorMsg}`)
 }
 
 /**
@@ -61,7 +62,7 @@ export async function listDirectory(path: string): Promise<DirectoryListResponse
  * @returns Preview URL
  */
 export function getPreviewUrl(path: string): string {
-  return `${API_ENDPOINTS.PREVIEW}?path=${encodeURIComponent(path)}`;
+  return `${API_ENDPOINTS.PREVIEW}?path=${encodeURIComponent(path)}`
 }
 
 /**
@@ -71,19 +72,20 @@ export function getPreviewUrl(path: string): string {
  */
 export async function getFileInfo(path: string): Promise<FileInfo> {
   const response = await fetch(API_ENDPOINTS.INFO, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path })
-  });
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path }),
+  })
 
   if (response?.ok) {
-    const data = await response.json() as { info: FileInfo };
-    return data.info;
+    const data = (await response.json()) as { info: FileInfo }
+    return data.info
   }
 
-  const errorData = await response.json().catch(() => ({})) as Record<string, unknown>;
-  const errorMsg = (errorData.error as string) || (errorData.message as string) || `HTTP ${response.status}`;
-  throw new Error(`Failed to get file info: ${errorMsg}`);
+  const errorData = (await response.json().catch(() => ({}))) as Record<string, unknown>
+  const errorMsg =
+    (errorData.error as string) || (errorData.message as string) || `HTTP ${response.status}`
+  throw new Error(`Failed to get file info: ${errorMsg}`)
 }
 
 /**
@@ -96,20 +98,20 @@ export async function getFileInfo(path: string): Promise<FileInfo> {
 export async function createFile(
   directory: string,
   filename: string,
-  content = ""
+  content = ''
 ): Promise<CreateResponse> {
   const response = await fetch(API_ENDPOINTS.CREATE_FILE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ directory, filename, content })
-  });
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ directory, filename, content }),
+  })
 
   if (response?.ok) {
-    return await response.json() as CreateResponse;
+    return (await response.json()) as CreateResponse
   }
 
-  const error = await response.json().catch(() => ({ error: "Unknown error" })) as CreateResponse;
-  throw new Error(error.error || error.message || 'Failed to create file');
+  const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as CreateResponse
+  throw new Error(error.error || error.message || 'Failed to create file')
 }
 
 /**
@@ -118,22 +120,19 @@ export async function createFile(
  * @param dirname - Directory name
  * @returns Creation result
  */
-export async function createDirectory(
-  directory: string,
-  dirname: string
-): Promise<CreateResponse> {
+export async function createDirectory(directory: string, dirname: string): Promise<CreateResponse> {
   const response = await fetch(API_ENDPOINTS.CREATE_DIRECTORY, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ directory, dirname })
-  });
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ directory, dirname }),
+  })
 
   if (response?.ok) {
-    return await response.json() as CreateResponse;
+    return (await response.json()) as CreateResponse
   }
 
-  const error = await response.json().catch(() => ({ error: "Unknown error" })) as CreateResponse;
-  throw new Error(error.error || error.message || 'Failed to create directory');
+  const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as CreateResponse
+  throw new Error(error.error || error.message || 'Failed to create directory')
 }
 
 /**
@@ -147,15 +146,17 @@ export async function deleteFile(
   useTrash = true
 ): Promise<{ success: boolean; error?: string }> {
   const response = await fetch(API_ENDPOINTS.DELETE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path, use_trash: useTrash })
-  });
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, use_trash: useTrash }),
+  })
 
   if (response?.ok) {
-    return await response.json() as { success: boolean };
+    return (await response.json()) as { success: boolean }
   }
 
-  const error = await response.json().catch(() => ({ error: "Unknown error" })) as { error?: string };
-  throw new Error(error.error || 'Failed to delete file');
+  const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as {
+    error?: string
+  }
+  throw new Error(error.error || 'Failed to delete file')
 }

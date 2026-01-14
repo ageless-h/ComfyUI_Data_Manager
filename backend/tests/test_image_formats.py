@@ -10,6 +10,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 
+
 # 直接复制 save_image 函数
 def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     """保存 ComfyUI 图像张量到文件"""
@@ -38,15 +39,15 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
 
     # 转换为 PIL Image
     if len(tensor.shape) == 2:
-        img = Image.fromarray(tensor, 'L')
+        img = Image.fromarray(tensor, "L")
     elif tensor.shape[2] == 1:
-        img = Image.fromarray(tensor[:, :, 0], 'L')
+        img = Image.fromarray(tensor[:, :, 0], "L")
     elif tensor.shape[2] == 2:
-        img = Image.fromarray(tensor[:, :, 0], 'L')
+        img = Image.fromarray(tensor[:, :, 0], "L")
     elif tensor.shape[2] == 3:
-        img = Image.fromarray(tensor, 'RGB')
+        img = Image.fromarray(tensor, "RGB")
     elif tensor.shape[2] == 4:
-        img = Image.fromarray(tensor, 'RGBA')
+        img = Image.fromarray(tensor, "RGBA")
     else:
         raise ValueError(f"不支持的通道数: {tensor.shape[2]}")
 
@@ -77,7 +78,7 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
 
     # JPEG 和 BMP 不支持透明通道
     if pil_format in ["JPEG", "JPG", "BMP"] and img.mode == "RGBA":
-        background = Image.new('RGB', img.size, (255, 255, 255))
+        background = Image.new("RGB", img.size, (255, 255, 255))
         background.paste(img, mask=img.split()[3])
         img = background
 
@@ -94,16 +95,17 @@ def create_test_tensor(shape, dtype=np.uint8):
             tensor = np.zeros(shape, dtype=dtype)
             tensor[:, :, 0] = 255  # R
             tensor[:, :, 1] = 128  # G
-            tensor[:, :, 2] = 0    # B
+            tensor[:, :, 2] = 0  # B
             return tensor
         elif shape[2] == 4:
             tensor = np.zeros(shape, dtype=dtype)
             tensor[:, :, 0] = 255  # R
             tensor[:, :, 1] = 128  # G
-            tensor[:, :, 2] = 0    # B
+            tensor[:, :, 2] = 0  # B
             tensor[:, :, 3] = 200  # A
             return tensor
     return np.random.randint(0, 255, shape, dtype=dtype)
+
 
 def test_format(format_name, tensor_shape, test_dir):
     """测试单个格式"""
@@ -127,10 +129,11 @@ def test_format(format_name, tensor_shape, test_dir):
         print(f"✗ 失败: {e}")
         return False
 
+
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("图像保存完整测试")
-    print("="*60)
+    print("=" * 60)
 
     test_dir = r"C:\Users\Administrator\Downloads\image_save_test"
     os.makedirs(test_dir, exist_ok=True)
@@ -197,7 +200,9 @@ def main():
 
     return failed == 0
 
+
 if __name__ == "__main__":
     import sys
+
     success = main()
     sys.exit(0 if success else 1)

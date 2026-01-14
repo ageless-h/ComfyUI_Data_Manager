@@ -12,6 +12,7 @@ import torch
 import numpy as np
 from PIL import Image, ImageOps
 
+
 def load_image(file_path: str):
     """加载图像文件为 ComfyUI Tensor 格式"""
     if not os.path.exists(file_path):
@@ -20,25 +21,26 @@ def load_image(file_path: str):
     img = Image.open(file_path)
     img = ImageOps.exif_transpose(img)
 
-    if img.mode == 'I':
+    if img.mode == "I":
         img = img.point(lambda i: i * (1 / 255))
     image = img.convert("RGB")
 
     image = np.array(image).astype(np.float32) / 255.0
     image = torch.from_numpy(image)[None,]
 
-    if 'A' in img.getbands():
-        mask = np.array(img.getchannel('A')).astype(np.float32) / 255.0
-        mask = 1. - torch.from_numpy(mask)
-    elif img.mode == 'P' and 'transparency' in img.info:
-        mask = np.array(img.convert('RGBA').getchannel('A')).astype(np.float32) / 255.0
-        mask = 1. - torch.from_numpy(mask)
+    if "A" in img.getbands():
+        mask = np.array(img.getchannel("A")).astype(np.float32) / 255.0
+        mask = 1.0 - torch.from_numpy(mask)
+    elif img.mode == "P" and "transparency" in img.info:
+        mask = np.array(img.convert("RGBA").getchannel("A")).astype(np.float32) / 255.0
+        mask = 1.0 - torch.from_numpy(mask)
     else:
         mask = None
 
     img.close()
 
     return (image, mask)
+
 
 def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     """保存 ComfyUI 图像张量到文件"""
@@ -65,13 +67,13 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
 
     # 转换为 PIL Image
     if len(tensor.shape) == 2:
-        img = Image.fromarray(tensor, 'L')
+        img = Image.fromarray(tensor, "L")
     elif tensor.shape[2] == 1:
-        img = Image.fromarray(tensor[:, :, 0], 'L')
+        img = Image.fromarray(tensor[:, :, 0], "L")
     elif tensor.shape[2] == 3:
-        img = Image.fromarray(tensor, 'RGB')
+        img = Image.fromarray(tensor, "RGB")
     elif tensor.shape[2] == 4:
-        img = Image.fromarray(tensor, 'RGBA')
+        img = Image.fromarray(tensor, "RGBA")
     else:
         raise ValueError(f"不支持的通道数: {tensor.shape[2]}")
 
@@ -96,7 +98,7 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
 
     # JPEG 和 BMP 不支持透明通道
     if pil_format in ["JPEG", "JPG", "BMP"] and img.mode == "RGBA":
-        background = Image.new('RGB', img.size, (255, 255, 255))
+        background = Image.new("RGB", img.size, (255, 255, 255))
         background.paste(img, mask=img.split()[3])
         img = background
 
@@ -108,22 +110,36 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
 def detect_type_from_extension(file_path: str) -> str:
     """根据文件扩展名检测 ComfyUI 数据类型"""
     ext_map = {
-        "png": "IMAGE", "jpg": "IMAGE", "jpeg": "IMAGE", "webp": "IMAGE",
-        "bmp": "IMAGE", "tiff": "IMAGE", "tif": "IMAGE", "gif": "IMAGE",
-        "mp4": "VIDEO", "webm": "VIDEO", "avi": "VIDEO", "mov": "VIDEO",
-        "mp3": "AUDIO", "wav": "AUDIO", "flac": "AUDIO", "ogg": "AUDIO",
-        "latent": "LATENT", "json": "CONDITIONING", "txt": "STRING",
+        "png": "IMAGE",
+        "jpg": "IMAGE",
+        "jpeg": "IMAGE",
+        "webp": "IMAGE",
+        "bmp": "IMAGE",
+        "tiff": "IMAGE",
+        "tif": "IMAGE",
+        "gif": "IMAGE",
+        "mp4": "VIDEO",
+        "webm": "VIDEO",
+        "avi": "VIDEO",
+        "mov": "VIDEO",
+        "mp3": "AUDIO",
+        "wav": "AUDIO",
+        "flac": "AUDIO",
+        "ogg": "AUDIO",
+        "latent": "LATENT",
+        "json": "CONDITIONING",
+        "txt": "STRING",
     }
     _, ext = os.path.splitext(file_path)
-    ext = ext.lstrip('.').lower()
+    ext = ext.lstrip(".").lower()
     return ext_map.get(ext, "STRING")
 
 
 def test_image_formats():
     """测试所有图像格式的加载和保存"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试图像格式 (IMAGE)")
-    print("="*60)
+    print("=" * 60)
 
     formats_to_test = ["png", "jpg", "jpeg", "webp", "bmp"]
     test_dir = r"C:\Users\Administrator\Downloads\test_formats"
@@ -183,11 +199,13 @@ def test_image_formats():
         except Exception as e:
             print(f"  ✗ 测试失败: {e}")
             import traceback
+
             traceback.print_exc()
             results.append((fmt, False))
 
     # 清理
     import shutil
+
     try:
         shutil.rmtree(test_dir)
         print(f"\n✓ 清理测试目录: {test_dir}")
@@ -205,9 +223,9 @@ def test_image_formats():
 
 def test_file_detection():
     """测试文件类型检测"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试文件类型检测")
-    print("="*60)
+    print("=" * 60)
 
     test_cases = [
         ("test.png", "IMAGE"),
@@ -235,9 +253,9 @@ def test_file_detection():
 
 def test_actual_image_file():
     """测试使用实际的图像文件"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试实际图像文件")
-    print("="*60)
+    print("=" * 60)
 
     test_file = r"C:\Users\Administrator\Downloads\1.jpg"
 
@@ -281,14 +299,15 @@ def test_actual_image_file():
     except Exception as e:
         print(f"  ✗ 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ComfyUI Data Manager - 综合格式测试")
-    print("="*60)
+    print("=" * 60)
 
     results = []
 
@@ -302,9 +321,9 @@ def main():
     results.append(("实际图像文件", test_actual_image_file()))
 
     # 总结
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("最终结果")
-    print("="*60)
+    print("=" * 60)
     for name, passed in results:
         status = "✓ PASS" if passed else "✗ FAIL"
         print(f"{status}: {name}")

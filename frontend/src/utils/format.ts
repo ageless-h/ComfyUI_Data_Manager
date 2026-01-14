@@ -8,12 +8,12 @@
  * @returns Formatted size string
  */
 export function formatSize(bytes: number): string {
-  if (!bytes) return "";
-  for (const unit of ["B", "KB", "MB", "GB"]) {
-    if (bytes < 1024) return bytes.toFixed(1) + " " + unit;
-    bytes /= 1024;
+  if (!bytes) return ''
+  for (const unit of ['B', 'KB', 'MB', 'GB']) {
+    if (bytes < 1024) return bytes.toFixed(1) + ' ' + unit
+    bytes /= 1024
   }
-  return bytes.toFixed(1) + " TB";
+  return bytes.toFixed(1) + ' TB'
 }
 
 /**
@@ -22,15 +22,15 @@ export function formatSize(bytes: number): string {
  * @returns Formatted date string
  */
 export function formatDate(dateStr: string): string {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  return date.toLocaleString("zh-CN", {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
-  });
+    minute: '2-digit',
+  })
 }
 
 /**
@@ -39,7 +39,7 @@ export function formatDate(dateStr: string): string {
  * @returns Escaped HTML string
  */
 export function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
 }

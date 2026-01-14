@@ -35,17 +35,17 @@ class DataManagerCore:
             "required": {},
             "optional": {
                 # 接收来自 InputPathConfig 的配置（路径+文件）
-                "input": ("STRING", {
-                    "forceInput": True,  # 纯连接端口，不显示文本框
-                    "tooltip": "来自 InputPathConfig 的配置（路径+文件）"
-                }),
+                "input": (
+                    "STRING",
+                    {
+                        "forceInput": True,  # 纯连接端口，不显示文本框
+                        "tooltip": "来自 InputPathConfig 的配置（路径+文件）",
+                    },
+                ),
             },
         }
 
-    def process(
-        self,
-        input: str = ""
-    ) -> Tuple[str]:
+    def process(self, input: str = "") -> Tuple[str]:
         """执行节点逻辑 - V1 API
 
         Args:
@@ -75,30 +75,22 @@ class InputPathConfig:
     def INPUT_TYPES(cls) -> Dict[str, Any]:
         return {
             "required": {
-                "target_path": ("STRING", {
-                    "default": "./output",
-                    "tooltip": "文件保存的目标目录"
-                }),
-                "file_type": (["string", "image", "audio", "video", "3d_model"], {
-                    "default": "image",
-                    "tooltip": "输入文件类型"
-                }),
+                "target_path": ("STRING", {"default": "./output", "tooltip": "文件保存的目标目录"}),
+                "file_type": (
+                    ["string", "image", "audio", "video", "3d_model"],
+                    {"default": "image", "tooltip": "输入文件类型"},
+                ),
             },
             "optional": {
                 # 可选的文件输入端口（纯连接端口）
-                "file_input": ("STRING", {
-                    "forceInput": True,  # 纯连接端口，不显示文本框
-                    "tooltip": "可选的文件输入"
-                }),
+                "file_input": (
+                    "STRING",
+                    {"forceInput": True, "tooltip": "可选的文件输入"},  # 纯连接端口，不显示文本框
+                ),
             },
         }
 
-    def process(
-        self,
-        target_path: str,
-        file_type: str = "image",
-        file_input = None
-    ) -> Tuple[str]:
+    def process(self, target_path: str, file_type: str = "image", file_input=None) -> Tuple[str]:
         """输出配置的路径信息（JSON 格式）"""
         # 处理文件输入
         input_data = None
@@ -139,30 +131,25 @@ class OutputPathConfig:
     def INPUT_TYPES(cls) -> Dict[str, Any]:
         return {
             "required": {
-                "source_path": ("STRING", {
-                    "default": "./input",
-                    "tooltip": "文件读取的源目录"
-                }),
-                "file_type": (["string", "image", "audio", "video", "3d_model"], {
-                    "default": "image",
-                    "tooltip": "输出文件类型"
-                }),
+                "source_path": ("STRING", {"default": "./input", "tooltip": "文件读取的源目录"}),
+                "file_type": (
+                    ["string", "image", "audio", "video", "3d_model"],
+                    {"default": "image", "tooltip": "输出文件类型"},
+                ),
             },
             "optional": {
                 # 来自 Core 节点的连接（纯连接端口）
-                "input": ("STRING", {
-                    "forceInput": True,  # 纯连接端口，不显示文本框
-                    "tooltip": "来自 DataManagerCore 的文件路径"
-                }),
+                "input": (
+                    "STRING",
+                    {
+                        "forceInput": True,  # 纯连接端口，不显示文本框
+                        "tooltip": "来自 DataManagerCore 的文件路径",
+                    },
+                ),
             },
         }
 
-    def process(
-        self,
-        source_path: str,
-        file_type: str = "image",
-        input: str = ""
-    ) -> Tuple[str]:
+    def process(self, source_path: str, file_type: str = "image", input: str = "") -> Tuple[str]:
         """根据文件路径加载文件并输出
 
         Args:
@@ -187,6 +174,7 @@ class OutputPathConfig:
             # 加载图像：返回 ComfyUI 图像格式
             try:
                 from nodes import LoadImageNode
+
                 loader = LoadImageNode()
                 result = loader.load_image(file_path)
                 # 返回图像数据

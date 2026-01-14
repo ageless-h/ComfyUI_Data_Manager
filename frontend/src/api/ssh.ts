@@ -3,27 +3,27 @@
  */
 
 export interface SSHConnectOptions {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
+  host: string
+  port: number
+  username: string
+  password: string
 }
 
 export interface SSHConnectResponse {
-  success?: boolean;
-  connection_id: string;
-  host?: string;
-  port?: number;
-  username?: string;
-  root_path?: string;
-  message?: string;
-  error?: string;
+  success?: boolean
+  connection_id: string
+  host?: string
+  port?: number
+  username?: string
+  root_path?: string
+  message?: string
+  error?: string
 }
 
 export interface SSHListResponse {
-  files: unknown[];
-  path: string;
-  connection_id: string;
+  files: unknown[]
+  path: string
+  connection_id: string
 }
 
 /**
@@ -40,23 +40,23 @@ export async function sshConnect(
   username: string,
   password: string
 ): Promise<SSHConnectResponse> {
-  const response = await fetch("/dm/ssh/connect", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  const response = await fetch('/dm/ssh/connect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       host,
       port: port || 22,
       username,
-      password
-    })
-  });
+      password,
+    }),
+  })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "连接失败" })) as SSHConnectResponse;
-    throw new Error(error.error || error.message || "SSH 连接失败");
+    const error = (await response.json().catch(() => ({ error: '连接失败' }))) as SSHConnectResponse
+    throw new Error(error.error || error.message || 'SSH 连接失败')
   }
 
-  return await response.json() as SSHConnectResponse;
+  return (await response.json()) as SSHConnectResponse
 }
 
 /**
@@ -67,18 +67,21 @@ export async function sshConnect(
 export async function sshDisconnect(
   connectionId: string
 ): Promise<{ success: boolean; message?: string; error?: string }> {
-  const response = await fetch("/dm/ssh/disconnect", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ connection_id: connectionId })
-  });
+  const response = await fetch('/dm/ssh/disconnect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ connection_id: connectionId }),
+  })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "断开失败" })) as Record<string, unknown>;
-    throw new Error((error.error as string) || (error.message as string) || "SSH 断开失败");
+    const error = (await response.json().catch(() => ({ error: '断开失败' }))) as Record<
+      string,
+      unknown
+    >
+    throw new Error((error.error as string) || (error.message as string) || 'SSH 断开失败')
   }
 
-  return await response.json();
+  return await response.json()
 }
 
 /**
@@ -87,23 +90,23 @@ export async function sshDisconnect(
  * @param path - Remote path
  * @returns Directory contents
  */
-export async function sshList(
-  connectionId: string,
-  path = "."
-): Promise<SSHListResponse> {
-  const response = await fetch("/dm/ssh/list", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+export async function sshList(connectionId: string, path = '.'): Promise<SSHListResponse> {
+  const response = await fetch('/dm/ssh/list', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       connection_id: connectionId,
-      path
-    })
-  });
+      path,
+    }),
+  })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "列出目录失败" })) as Record<string, unknown>;
-    throw new Error((error.error as string) || (error.message as string) || "SSH 列出目录失败");
+    const error = (await response.json().catch(() => ({ error: '列出目录失败' }))) as Record<
+      string,
+      unknown
+    >
+    throw new Error((error.error as string) || (error.message as string) || 'SSH 列出目录失败')
   }
 
-  return await response.json() as SSHListResponse;
+  return (await response.json()) as SSHListResponse
 }

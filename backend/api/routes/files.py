@@ -29,30 +29,23 @@ async def list_files_handler(request):
         if not os.path.isabs(path):
             # 相对路径，相对于 ComfyUI 根目录
             import folder_paths
+
             comfy_root = os.path.dirname(folder_paths.__file__)
             path = os.path.abspath(os.path.join(comfy_root, path))
 
         if not os.path.exists(path):
-            return web.json_response({
-                "error": "Directory not found",
-                "path": path
-            }, status=404)
+            return web.json_response({"error": "Directory not found", "path": path}, status=404)
 
         # 使用共享模块获取文件列表（包含目录）
         files = list_files(path, pattern, recursive, include_dirs=True)
 
-        return web.json_response({
-            "success": True,
-            "path": path,
-            "files": files,
-            "count": len(files)
-        })
+        return web.json_response(
+            {"success": True, "path": path, "files": files, "count": len(files)}
+        )
 
     except Exception as e:
         logger.error(f"[DataManager] list_files error: {e}")
-        return web.json_response({
-            "error": str(e)
-        }, status=500)
+        return web.json_response({"error": str(e)}, status=500)
 
 
 async def get_file_info_handler(request):
@@ -66,22 +59,15 @@ async def get_file_info_handler(request):
         path = data.get("path", "")
 
         if not path:
-            return web.json_response({
-                "error": "Path is required"
-            }, status=400)
+            return web.json_response({"error": "Path is required"}, status=400)
 
         info = get_file_info(path)
 
-        return web.json_response({
-            "success": True,
-            "info": info
-        })
+        return web.json_response({"success": True, "info": info})
 
     except Exception as e:
         logger.error(f"[DataManager] get_file_info error: {e}")
-        return web.json_response({
-            "error": str(e)
-        }, status=500)
+        return web.json_response({"error": str(e)}, status=500)
 
 
 def register_file_routes(server):
@@ -102,7 +88,7 @@ def register_file_routes(server):
 
     # 回退到 app.router 注册
     app = getattr(server, "app", None)
-    if app and hasattr(app, 'router'):
+    if app and hasattr(app, "router"):
         app.router.add_post("/dm/list", list_files_handler)
         app.router.add_post("/dm/info", get_file_info_handler)
         logger.info("[DataManager] File routes registered (app.router fallback)")

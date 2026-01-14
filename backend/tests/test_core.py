@@ -21,11 +21,12 @@ import custom_nodes.ComfyUI_Data_Manager.core.nodes_v3 as nodes_v3
 # 测试 nodes_v3.py - 图像保存功能
 # ============================================================================
 
+
 def test_save_image():
     """测试 save_image 函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 save_image 函数")
-    print("="*60)
+    print("=" * 60)
 
     save_image = nodes_v3.save_image
 
@@ -138,11 +139,12 @@ def test_save_image():
 # 测试 parse_target_path
 # ============================================================================
 
+
 def test_parse_target_path():
     """测试 parse_target_path 函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 parse_target_path 函数")
-    print("="*60)
+    print("=" * 60)
 
     parse_target_path = nodes_v3.parse_target_path
 
@@ -153,7 +155,7 @@ def test_parse_target_path():
 
     # 创建测试文件
     test_file = os.path.join(test_dir, "test.txt")
-    with open(test_file, 'w', encoding='utf-8') as f:
+    with open(test_file, "w", encoding="utf-8") as f:
         f.write("测试内容")
 
     # 测试普通路径
@@ -205,11 +207,12 @@ def test_parse_target_path():
 # 测试 save_latent
 # ============================================================================
 
+
 def test_save_latent():
     """测试 save_latent 函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 save_latent 函数")
-    print("="*60)
+    print("=" * 60)
 
     save_latent = nodes_v3.save_latent
 
@@ -243,11 +246,12 @@ def test_save_latent():
 # 测试 save_conditioning
 # ============================================================================
 
+
 def test_save_conditioning():
     """测试 save_conditioning 函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 save_conditioning 函数")
-    print("="*60)
+    print("=" * 60)
 
     save_conditioning = nodes_v3.save_conditioning
 
@@ -280,10 +284,11 @@ def test_save_conditioning():
 # 主函数
 # ============================================================================
 
+
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Core 模块测试")
-    print("="*60)
+    print("=" * 60)
 
     results = []
 
@@ -292,9 +297,9 @@ def main():
     results.append(("save_latent", test_save_latent()))
     results.append(("save_conditioning", test_save_conditioning()))
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试结果总结")
-    print("="*60)
+    print("=" * 60)
 
     all_passed = True
     for name, result in results:
@@ -303,17 +308,18 @@ def main():
             all_passed = False
         print(f"  {name}: {status}")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if all_passed:
         print("✓ 所有 Core 模块测试通过")
     else:
         print("✗ 部分测试失败")
-    print("="*60)
+    print("=" * 60)
 
     return all_passed
 
 
 if __name__ == "__main__":
     import sys
+
     success = main()
     sys.exit(0 if success else 1)

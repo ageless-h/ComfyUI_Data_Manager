@@ -2,12 +2,12 @@
  * ComfyUI Data Manager - Actions Component
  */
 
-import { listDirectory } from '../../api/endpoints/file.js';
-import { FileManagerState, saveLastPath, type FileItem } from '../../core/state.js';
-import { updateStatus, showToast, getParentPath } from '../../utils/helpers.js';
-import { createFileListItem, createFileGridItem } from './browser.js';
-import { getComfyTheme } from '../../utils/theme.js';
-import type { SortBy } from '../../core/types.js';
+import { listDirectory } from '../../api/endpoints/file.js'
+import { FileManagerState, saveLastPath, type FileItem } from '../../core/state.js'
+import { updateStatus, showToast, getParentPath } from '../../utils/helpers.js'
+import { createFileListItem, createFileGridItem } from './browser.js'
+import { getComfyTheme } from '../../utils/theme.js'
+import type { SortBy } from '../../core/types.js'
 
 /**
  * Load directory
@@ -15,66 +15,73 @@ import type { SortBy } from '../../core/types.js';
  */
 export async function loadDirectory(path: string): Promise<void> {
   // Check for active SSH connection
-  const remoteConn = (window as unknown as { _remoteConnectionsState: { active: unknown } })._remoteConnectionsState?.active;
+  const remoteConn = (window as unknown as { _remoteConnectionsState: { active: unknown } })
+    ._remoteConnectionsState?.active
   if (remoteConn) {
-    await loadRemoteDirectory(path, remoteConn as { connection_id: string; root_path?: string });
-    return;
+    await loadRemoteDirectory(path, remoteConn as { connection_id: string; root_path?: string })
+    return
   }
 
-  updateStatus(`正在加载: ${path}...`);
+  updateStatus(`正在加载: ${path}...`)
 
   try {
-    const data = await listDirectory(path);
-    FileManagerState.files = (data.files as FileItem[]) || [];
-    FileManagerState.currentPath = data.path;
+    const data = await listDirectory(path)
+    FileManagerState.files = (data.files as FileItem[]) || []
+    FileManagerState.currentPath = data.path
 
     // Save last visited path
-    saveLastPath(data.path);
+    saveLastPath(data.path)
 
     // Save to history
-    if (FileManagerState.historyIndex === -1 ||
-        FileManagerState.history[FileManagerState.historyIndex] !== data.path) {
-      FileManagerState.history = FileManagerState.history.slice(0, FileManagerState.historyIndex + 1);
-      FileManagerState.history.push(data.path);
-      FileManagerState.historyIndex = FileManagerState.history.length - 1;
+    if (
+      FileManagerState.historyIndex === -1 ||
+      FileManagerState.history[FileManagerState.historyIndex] !== data.path
+    ) {
+      FileManagerState.history = FileManagerState.history.slice(
+        0,
+        FileManagerState.historyIndex + 1
+      )
+      FileManagerState.history.push(data.path)
+      FileManagerState.historyIndex = FileManagerState.history.length - 1
     }
 
-    const pathInput = document.getElementById("dm-path-input") as HTMLInputElement;
-    if (pathInput) pathInput.value = data.path;
+    const pathInput = document.getElementById('dm-path-input') as HTMLInputElement
+    if (pathInput) pathInput.value = data.path
 
-    renderFileListUI();
-    updateStatus(`${FileManagerState.files.length} 个项目`);
-
+    renderFileListUI()
+    updateStatus(`${FileManagerState.files.length} 个项目`)
   } catch (error) {
-    console.error("Load directory error:", error);
-    updateStatus("加载错误");
-    showToast("error", "错误", "网络请求失败");
+    console.error('Load directory error:', error)
+    updateStatus('加载错误')
+    showToast('error', '错误', '网络请求失败')
   }
 }
 
 /**
  * Load remote SSH directory
  */
-async function loadRemoteDirectory(path: string, conn: { connection_id: string; root_path?: string }): Promise<void> {
-  updateStatus(`正在加载远程: ${path}...`);
+async function loadRemoteDirectory(
+  path: string,
+  conn: { connection_id: string; root_path?: string }
+): Promise<void> {
+  updateStatus(`正在加载远程: ${path}...`)
 
   try {
-    const { sshList } = await import('../../api/ssh.js');
-    const data = await sshList(conn.connection_id, path || conn.root_path || "/");
+    const { sshList } = await import('../../api/ssh.js')
+    const data = await sshList(conn.connection_id, path || conn.root_path || '/')
 
-    FileManagerState.files = (data.files as FileItem[]) || [];
-    FileManagerState.currentPath = data.path || path;
+    FileManagerState.files = (data.files as FileItem[]) || []
+    FileManagerState.currentPath = data.path || path
 
-    const pathInput = document.getElementById("dm-path-input") as HTMLInputElement;
-    if (pathInput) pathInput.value = `[SSH] ${data.path}`;
+    const pathInput = document.getElementById('dm-path-input') as HTMLInputElement
+    if (pathInput) pathInput.value = `[SSH] ${data.path}`
 
-    renderFileListUI();
-    updateStatus(`${FileManagerState.files.length} 个项目 (远程)`);
-
+    renderFileListUI()
+    updateStatus(`${FileManagerState.files.length} 个项目 (远程)`)
   } catch (error) {
-    console.error("Load remote directory error:", error);
-    updateStatus("加载错误");
-    showToast("error", "错误", `远程加载失败: ${(error as Error).message}`);
+    console.error('Load remote directory error:', error)
+    updateStatus('加载错误')
+    showToast('error', '错误', `远程加载失败: ${(error as Error).message}`)
   }
 }
 
@@ -82,130 +89,139 @@ async function loadRemoteDirectory(path: string, conn: { connection_id: string; 
  * Render file list UI
  */
 function renderFileListUI(): void {
-  const container = document.getElementById("dm-file-list");
-  if (!container) return;
+  const container = document.getElementById('dm-file-list')
+  if (!container) return
 
   // Clear current selection
-  FileManagerState.selectedFiles = [];
+  FileManagerState.selectedFiles = []
 
   // Sort files
   const sortedFiles = [...FileManagerState.files].sort((a, b) => {
     // Directories first
-    const aIsDir = (a as FileItem).is_dir || (a as FileItem).isDir || false;
-    const bIsDir = (b as FileItem).is_dir || (b as FileItem).isDir || false;
-    if (aIsDir && !bIsDir) return -1;
-    if (!aIsDir && bIsDir) return 1;
+    const aIsDir = (a as FileItem).is_dir || (a as FileItem).isDir || false
+    const bIsDir = (b as FileItem).is_dir || (b as FileItem).isDir || false
+    if (aIsDir && !bIsDir) return -1
+    if (!aIsDir && bIsDir) return 1
 
-    let comparison = 0;
+    let comparison = 0
     switch (FileManagerState.sortBy) {
       case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
+        comparison = a.name.localeCompare(b.name)
+        break
       case 'size':
-        comparison = ((a as FileItem).size || 0) - ((b as FileItem).size || 0);
-        break;
+        comparison = ((a as FileItem).size || 0) - ((b as FileItem).size || 0)
+        break
       case 'modified':
-        comparison = new Date((a as FileItem).modified || 0).getTime() - new Date((b as FileItem).modified || 0).getTime();
-        break;
+        comparison =
+          new Date((a as FileItem).modified || 0).getTime() -
+          new Date((b as FileItem).modified || 0).getTime()
+        break
     }
 
-    return FileManagerState.sortOrder === 'asc' ? comparison : -comparison;
-  });
+    return FileManagerState.sortOrder === 'asc' ? comparison : -comparison
+  })
 
-  let html = "";
+  let html = ''
 
   // Parent directory link
-  if (FileManagerState.currentPath !== "." && FileManagerState.currentPath !== "/") {
+  if (FileManagerState.currentPath !== '.' && FileManagerState.currentPath !== '/') {
     if (FileManagerState.viewMode === 'list') {
-      html += createFileListItem({
-        name: "..",
-        isDir: true,
-        path: getParentPath(FileManagerState.currentPath),
-        size: 0,
-        modified: undefined
-      }, true);
+      html += createFileListItem(
+        {
+          name: '..',
+          isDir: true,
+          path: getParentPath(FileManagerState.currentPath),
+          size: 0,
+          modified: undefined,
+        },
+        true
+      )
     } else {
-      html += createFileGridItem({
-        name: "..",
-        isDir: true,
-        path: getParentPath(FileManagerState.currentPath)
-      }, true);
+      html += createFileGridItem(
+        {
+          name: '..',
+          isDir: true,
+          path: getParentPath(FileManagerState.currentPath),
+        },
+        true
+      )
     }
   }
 
   // Render file list
-  sortedFiles.forEach(file => {
-    html += FileManagerState.viewMode === 'list'
-      ? createFileListItem(file as FileItem, false)
-      : createFileGridItem(file as FileItem, false);
-  });
+  sortedFiles.forEach((file) => {
+    html +=
+      FileManagerState.viewMode === 'list'
+        ? createFileListItem(file as FileItem, false)
+        : createFileGridItem(file as FileItem, false)
+  })
 
-  container.innerHTML = html;
+  container.innerHTML = html
 
   // Reset scroll position to top
-  container.scrollTop = 0;
+  container.scrollTop = 0
 
   // Bind events
-  container.querySelectorAll(".dm-file-item").forEach(item => {
-    (item as HTMLElement).onclick = () => selectFile(item as HTMLElement);
-    (item as HTMLElement).ondblclick = () => openFile(item as HTMLElement);
-  });
+  container.querySelectorAll('.dm-file-item').forEach((item) => {
+    ;(item as HTMLElement).onclick = () => selectFile(item as HTMLElement)
+    ;(item as HTMLElement).ondblclick = () => openFile(item as HTMLElement)
+  })
 
-  container.querySelectorAll(".dm-grid-item").forEach(item => {
-    (item as HTMLElement).onclick = () => selectGridItem(item as HTMLElement);
-    (item as HTMLElement).ondblclick = async () => {
-      const path = (item as HTMLElement).dataset.path;
-      const isDir = (item as HTMLElement).dataset.isDir === "true";
+  container.querySelectorAll('.dm-grid-item').forEach((item) => {
+    ;(item as HTMLElement).onclick = () => selectGridItem(item as HTMLElement)
+    ;(item as HTMLElement).ondblclick = async () => {
+      const path = (item as HTMLElement).dataset.path
+      const isDir = (item as HTMLElement).dataset.isDir === 'true'
       if (isDir && path) {
-        await loadDirectory(path);
+        await loadDirectory(path)
       } else if (path) {
-        const { previewFile } = await import('./preview-actions.js');
-        await previewFile(path);
+        const { previewFile } = await import('./preview-actions.js')
+        await previewFile(path)
       }
-    };
-  });
+    }
+  })
 }
 
 /**
  * Update copy path button state
  */
 function updateCopyPathButtonState(): void {
-  const copyBtn = document.getElementById("dm-copy-path-btn") as HTMLButtonElement;
-  if (!copyBtn) return;
+  const copyBtn = document.getElementById('dm-copy-path-btn') as HTMLButtonElement
+  if (!copyBtn) return
 
-  const hasSelection = FileManagerState.selectedFiles.length > 0;
-  copyBtn.disabled = !hasSelection;
-  copyBtn.style.opacity = hasSelection ? '1' : '0.5';
-  copyBtn.style.cursor = hasSelection ? 'pointer' : 'not-allowed';
+  const hasSelection = FileManagerState.selectedFiles.length > 0
+  copyBtn.disabled = !hasSelection
+  copyBtn.style.opacity = hasSelection ? '1' : '0.5'
+  copyBtn.style.cursor = hasSelection ? 'pointer' : 'not-allowed'
 }
 
 /**
  * Select list item
  */
 function selectFile(item: HTMLElement): void {
-  const theme = getComfyTheme();
+  const theme = getComfyTheme()
 
-  document.querySelectorAll(".dm-file-item").forEach(i => {
-    (i as HTMLElement).style.background = "transparent";
-  });
+  document.querySelectorAll('.dm-file-item').forEach((i) => {
+    ;(i as HTMLElement).style.background = 'transparent'
+  })
 
-  item.style.background = `${theme.bgTertiary} !important`;
+  item.style.background = `${theme.bgTertiary} !important`
 
-  const path = item.dataset.path || "";
-  const isDir = item.dataset.isDir === "true";
+  const path = item.dataset.path || ''
+  const isDir = item.dataset.isDir === 'true'
 
-  FileManagerState.selectedFiles = [path];
+  FileManagerState.selectedFiles = [path]
 
   // Update copy path button state
-  updateCopyPathButtonState();
+  updateCopyPathButtonState()
 
   if (!isDir && path) {
     void (async () => {
-      const { previewFile } = await import('./preview-actions.js');
-      await previewFile(path);
-    })();
+      const { previewFile } = await import('./preview-actions.js')
+      await previewFile(path)
+    })()
   } else {
-    clearPreviewPanel();
+    clearPreviewPanel()
   }
 }
 
@@ -213,26 +229,26 @@ function selectFile(item: HTMLElement): void {
  * Select grid item
  */
 function selectGridItem(item: HTMLElement): void {
-  const theme = getComfyTheme();
+  const theme = getComfyTheme()
 
-  document.querySelectorAll(".dm-grid-item").forEach(i => {
-    (i as HTMLElement).style.borderColor = "transparent";
-  });
+  document.querySelectorAll('.dm-grid-item').forEach((i) => {
+    ;(i as HTMLElement).style.borderColor = 'transparent'
+  })
 
-  item.style.borderColor = `${theme.accentColor} !important`;
-  FileManagerState.selectedFiles = [item.dataset.path || ""];
+  item.style.borderColor = `${theme.accentColor} !important`
+  FileManagerState.selectedFiles = [item.dataset.path || '']
 
   // Update copy path button state
-  updateCopyPathButtonState();
+  updateCopyPathButtonState()
 
-  const path = item.dataset.path;
-  const isDir = item.dataset.isDir === "true";
+  const path = item.dataset.path
+  const isDir = item.dataset.isDir === 'true'
 
   if (!isDir && path) {
     void (async () => {
-      const { previewFile } = await import('./preview-actions.js');
-      await previewFile(path);
-    })();
+      const { previewFile } = await import('./preview-actions.js')
+      await previewFile(path)
+    })()
   }
 }
 
@@ -240,16 +256,16 @@ function selectGridItem(item: HTMLElement): void {
  * Open file
  */
 function openFile(item: HTMLElement): void {
-  const path = item.dataset.path;
-  const isDir = item.dataset.isDir === "true";
+  const path = item.dataset.path
+  const isDir = item.dataset.isDir === 'true'
 
   if (isDir && path) {
-    void loadDirectory(path);
+    void loadDirectory(path)
   } else if (path) {
     void (async () => {
-      const { previewFile } = await import('./preview-actions.js');
-      await previewFile(path);
-    })();
+      const { previewFile } = await import('./preview-actions.js')
+      await previewFile(path)
+    })()
   }
 }
 
@@ -257,15 +273,15 @@ function openFile(item: HTMLElement): void {
  * Clear preview panel
  */
 function clearPreviewPanel(): void {
-  const previewContent = document.getElementById("dm-preview-content");
+  const previewContent = document.getElementById('dm-preview-content')
   if (previewContent) {
-    const theme = getComfyTheme();
+    const theme = getComfyTheme()
     previewContent.innerHTML = `
       <div style="text-align: center; padding: 40px; color: ${theme.textSecondary};">
         <i class="pi pi-folder" style="font-size: 48px; opacity: 0.5;"></i>
         <div style="margin-top: 15px; font-size: 13px;">双击打开目录</div>
       </div>
-    `;
+    `
   }
 }
 
@@ -275,52 +291,53 @@ function clearPreviewPanel(): void {
  */
 export function toggleSort(column: SortBy): void {
   if (FileManagerState.sortBy === column) {
-    FileManagerState.sortOrder = FileManagerState.sortOrder === 'asc' ? 'desc' : 'asc';
+    FileManagerState.sortOrder = FileManagerState.sortOrder === 'asc' ? 'desc' : 'asc'
   } else {
-    FileManagerState.sortBy = column;
-    FileManagerState.sortOrder = 'asc';
+    FileManagerState.sortBy = column
+    FileManagerState.sortOrder = 'asc'
   }
 
-  const sortSelect = document.getElementById("dm-sort-select") as HTMLSelectElement;
+  const sortSelect = document.getElementById('dm-sort-select') as HTMLSelectElement
   if (sortSelect) {
-    sortSelect.value = FileManagerState.sortBy;
+    sortSelect.value = FileManagerState.sortBy
   }
 
-  renderFileListUI();
-  updateHeaderSortIndicators();
+  renderFileListUI()
+  updateHeaderSortIndicators()
 }
 
 /**
  * Update header sort indicators
  */
 export function updateHeaderSortIndicators(): void {
-  const headers = document.querySelectorAll('.dm-header-cell');
-  headers.forEach(header => {
-    const icon = header.querySelector('i') as HTMLElement;
+  const headers = document.querySelectorAll('.dm-header-cell')
+  headers.forEach((header) => {
+    const icon = header.querySelector('i') as HTMLElement
     if (icon) {
-      const column = (header as HTMLElement).dataset.sort as SortBy;
+      const column = (header as HTMLElement).dataset.sort as SortBy
       if (column === FileManagerState.sortBy) {
-        icon.className = FileManagerState.sortOrder === 'asc' ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down';
-        icon.style.opacity = "1";
+        icon.className =
+          FileManagerState.sortOrder === 'asc' ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'
+        icon.style.opacity = '1'
       } else {
-        icon.className = 'pi pi-sort';
-        icon.style.opacity = "0.5";
+        icon.className = 'pi pi-sort'
+        icon.style.opacity = '0.5'
       }
     }
-  });
+  })
 }
 
 /**
  * Navigate to parent directory
  */
 export function navigateUp(): void {
-  if (FileManagerState.currentPath === "." || FileManagerState.currentPath === "/") {
-    return;
+  if (FileManagerState.currentPath === '.' || FileManagerState.currentPath === '/') {
+    return
   }
 
-  const parentPath = getParentPath(FileManagerState.currentPath);
+  const parentPath = getParentPath(FileManagerState.currentPath)
   if (parentPath !== FileManagerState.currentPath) {
-    void loadDirectory(parentPath);
+    void loadDirectory(parentPath)
   }
 }
 
@@ -328,31 +345,31 @@ export function navigateUp(): void {
  * Navigate to root directory
  */
 export function navigateHome(): void {
-  void loadDirectory(".");
+  void loadDirectory('.')
 }
 
 /**
  * Navigate back in history
  */
 export async function navigateBack(): Promise<void> {
-  if (FileManagerState.historyIndex <= 0) return;
+  if (FileManagerState.historyIndex <= 0) return
 
-  FileManagerState.historyIndex--;
-  const path = FileManagerState.history[FileManagerState.historyIndex];
-  await loadDirectoryWithoutHistory(path);
-  updateNavButtons();
+  FileManagerState.historyIndex--
+  const path = FileManagerState.history[FileManagerState.historyIndex]
+  await loadDirectoryWithoutHistory(path)
+  updateNavButtons()
 }
 
 /**
  * Navigate forward in history
  */
 export async function navigateForward(): Promise<void> {
-  if (FileManagerState.historyIndex >= FileManagerState.history.length - 1) return;
+  if (FileManagerState.historyIndex >= FileManagerState.history.length - 1) return
 
-  FileManagerState.historyIndex++;
-  const path = FileManagerState.history[FileManagerState.historyIndex];
-  await loadDirectoryWithoutHistory(path);
-  updateNavButtons();
+  FileManagerState.historyIndex++
+  const path = FileManagerState.history[FileManagerState.historyIndex]
+  await loadDirectoryWithoutHistory(path)
+  updateNavButtons()
 }
 
 /**
@@ -361,58 +378,63 @@ export async function navigateForward(): Promise<void> {
  */
 async function loadDirectoryWithoutHistory(path: string): Promise<void> {
   // Check for active SSH connection
-  const remoteConn = (window as unknown as { _remoteConnectionsState: { active: unknown } })._remoteConnectionsState?.active;
+  const remoteConn = (window as unknown as { _remoteConnectionsState: { active: unknown } })
+    ._remoteConnectionsState?.active
   if (remoteConn) {
-    await loadRemoteDirectoryWithoutHistory(path, remoteConn as { connection_id: string; root_path?: string });
-    return;
+    await loadRemoteDirectoryWithoutHistory(
+      path,
+      remoteConn as { connection_id: string; root_path?: string }
+    )
+    return
   }
 
-  updateStatus(`正在加载: ${path}...`);
+  updateStatus(`正在加载: ${path}...`)
 
   try {
-    const data = await listDirectory(path);
-    FileManagerState.files = (data.files as FileItem[]) || [];
-    FileManagerState.currentPath = data.path;
+    const data = await listDirectory(path)
+    FileManagerState.files = (data.files as FileItem[]) || []
+    FileManagerState.currentPath = data.path
 
     // Save last visited path
-    saveLastPath(data.path);
+    saveLastPath(data.path)
 
-    const pathInput = document.getElementById("dm-path-input") as HTMLInputElement;
-    if (pathInput) pathInput.value = data.path;
+    const pathInput = document.getElementById('dm-path-input') as HTMLInputElement
+    if (pathInput) pathInput.value = data.path
 
-    renderFileListUI();
-    updateStatus(`${FileManagerState.files.length} 个项目`);
-
+    renderFileListUI()
+    updateStatus(`${FileManagerState.files.length} 个项目`)
   } catch (error) {
-    console.error("Load directory error:", error);
-    updateStatus("加载错误");
-    showToast("error", "错误", "网络请求失败");
+    console.error('Load directory error:', error)
+    updateStatus('加载错误')
+    showToast('error', '错误', '网络请求失败')
   }
 }
 
 /**
  * Load remote SSH directory without history
  */
-async function loadRemoteDirectoryWithoutHistory(path: string, conn: { connection_id: string; root_path?: string }): Promise<void> {
-  updateStatus(`正在加载远程: ${path}...`);
+async function loadRemoteDirectoryWithoutHistory(
+  path: string,
+  conn: { connection_id: string; root_path?: string }
+): Promise<void> {
+  updateStatus(`正在加载远程: ${path}...`)
 
   try {
-    const { sshList } = await import('../../api/ssh.js');
-    const data = await sshList(conn.connection_id, path || conn.root_path || "/");
+    const { sshList } = await import('../../api/ssh.js')
+    const data = await sshList(conn.connection_id, path || conn.root_path || '/')
 
-    FileManagerState.files = (data.files as FileItem[]) || [];
-    FileManagerState.currentPath = data.path || path;
+    FileManagerState.files = (data.files as FileItem[]) || []
+    FileManagerState.currentPath = data.path || path
 
-    const pathInput = document.getElementById("dm-path-input") as HTMLInputElement;
-    if (pathInput) pathInput.value = `[SSH] ${data.path}`;
+    const pathInput = document.getElementById('dm-path-input') as HTMLInputElement
+    if (pathInput) pathInput.value = `[SSH] ${data.path}`
 
-    renderFileListUI();
-    updateStatus(`${FileManagerState.files.length} 个项目 (远程)`);
-
+    renderFileListUI()
+    updateStatus(`${FileManagerState.files.length} 个项目 (远程)`)
   } catch (error) {
-    console.error("Load remote directory error:", error);
-    updateStatus("加载错误");
-    showToast("error", "错误", `远程加载失败: ${(error as Error).message}`);
+    console.error('Load remote directory error:', error)
+    updateStatus('加载错误')
+    showToast('error', '错误', `远程加载失败: ${(error as Error).message}`)
   }
 }
 
@@ -420,15 +442,16 @@ async function loadRemoteDirectoryWithoutHistory(path: string, conn: { connectio
  * Update navigation buttons state
  */
 export function updateNavButtons(): void {
-  const backBtn = document.getElementById('dm-nav-back-btn') as HTMLButtonElement;
-  const forwardBtn = document.getElementById('dm-nav-forward-btn') as HTMLButtonElement;
+  const backBtn = document.getElementById('dm-nav-back-btn') as HTMLButtonElement
+  const forwardBtn = document.getElementById('dm-nav-forward-btn') as HTMLButtonElement
 
   if (backBtn) {
-    backBtn.disabled = FileManagerState.historyIndex <= 0;
-    backBtn.style.opacity = FileManagerState.historyIndex <= 0 ? '0.3' : '1';
+    backBtn.disabled = FileManagerState.historyIndex <= 0
+    backBtn.style.opacity = FileManagerState.historyIndex <= 0 ? '0.3' : '1'
   }
   if (forwardBtn) {
-    forwardBtn.disabled = FileManagerState.historyIndex >= FileManagerState.history.length - 1;
-    forwardBtn.style.opacity = FileManagerState.historyIndex >= FileManagerState.history.length - 1 ? '0.3' : '1';
+    forwardBtn.disabled = FileManagerState.historyIndex >= FileManagerState.history.length - 1
+    forwardBtn.style.opacity =
+      FileManagerState.historyIndex >= FileManagerState.history.length - 1 ? '0.3' : '1'
   }
 }

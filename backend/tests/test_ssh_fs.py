@@ -21,6 +21,7 @@ def get_ssh_fs_module():
 
     # 使用唯一的模块名称避免缓存
     import uuid
+
     module_name = f"ssh_fs_test_{uuid.uuid4().hex[:8]}"
     spec = importlib.util.spec_from_file_location(module_name, str(ssh_fs_path))
     ssh_fs = importlib.util.module_from_spec(spec)
@@ -163,10 +164,7 @@ class TestConnect:
             module._connection_pool.clear()
 
             conn_id, root_path = module.connect(
-                host="test.example.com",
-                port=22,
-                username="test_user",
-                password="test_password"
+                host="test.example.com", port=22, username="test_user", password="test_password"
             )
 
             assert conn_id is not None
@@ -191,10 +189,7 @@ class TestConnect:
             module._connection_pool.clear()
 
             conn_id, root_path = module.connect(
-                host="test.example.com",
-                port=22,
-                username="test_user",
-                key_filename="/path/to/key"
+                host="test.example.com", port=22, username="test_user", key_filename="/path/to/key"
             )
 
             assert conn_id is not None
@@ -227,7 +222,7 @@ class TestConnect:
                     host="test.example.com",
                     port=22,
                     username="test_user",
-                    password="wrong_password"
+                    password="wrong_password",
                 )
         finally:
             cleanup_module(name)
@@ -258,7 +253,7 @@ class TestConnect:
                     host="unreachable.example.com",
                     port=22,
                     username="test_user",
-                    password="test_password"
+                    password="test_password",
                 )
         finally:
             cleanup_module(name)
@@ -274,10 +269,7 @@ class TestConnect:
 
             with pytest.raises(module.SSHConnectionError, match="paramiko 库未安装"):
                 module.connect(
-                    host="test.example.com",
-                    port=22,
-                    username="test_user",
-                    password="test_password"
+                    host="test.example.com", port=22, username="test_user", password="test_password"
                 )
         finally:
             cleanup_module(name)
@@ -301,7 +293,7 @@ class TestConnect:
                 host="test.example.com",
                 port=0,  # 使用默认端口
                 username="test_user",
-                password="test_password"
+                password="test_password",
             )
 
             assert conn_id is not None
@@ -329,7 +321,7 @@ class TestDisconnect:
                 "ssh": mock_ssh,
                 "sftp": None,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             result = module.disconnect(conn_id)
@@ -364,7 +356,7 @@ class TestDisconnect:
                     "ssh": mock_ssh,
                     "sftp": None,
                     "root": "/home/test",
-                    "last_active": 0
+                    "last_active": 0,
                 }
 
             module.disconnect_all()
@@ -405,7 +397,7 @@ class TestGetConnectedHosts:
                 "host": "server1.example.com",
                 "port": 22,
                 "username": "user1",
-                "last_active": 100
+                "last_active": 100,
             }
             module._connection_pool["conn_2"] = {
                 "ssh": mock_ssh,
@@ -414,7 +406,7 @@ class TestGetConnectedHosts:
                 "host": "server2.example.com",
                 "port": 2222,
                 "username": "user2",
-                "last_active": 200
+                "last_active": 200,
             }
 
             hosts = module.get_connected_hosts()
@@ -444,7 +436,7 @@ class TestIsConnected:
                 "ssh": mock_ssh,
                 "sftp": None,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             result = module.is_connected(conn_id)
@@ -471,8 +463,20 @@ class TestListRemoteFiles:
         try:
             # Mock SFTP client listdir_attr - 添加 st_atime 属性
             mock_files = [
-                Mock(filename="file1.txt", st_size=1024, st_mode=0o100644, st_mtime=1609459200, st_atime=1609459200),
-                Mock(filename="dir1", st_size=4096, st_mode=0o040755, st_mtime=1609459200, st_atime=1609459200),
+                Mock(
+                    filename="file1.txt",
+                    st_size=1024,
+                    st_mode=0o100644,
+                    st_mtime=1609459200,
+                    st_atime=1609459200,
+                ),
+                Mock(
+                    filename="dir1",
+                    st_size=4096,
+                    st_mode=0o040755,
+                    st_mtime=1609459200,
+                    st_atime=1609459200,
+                ),
             ]
             mock_sftp_client.listdir_attr.return_value = mock_files
 
@@ -484,17 +488,21 @@ class TestListRemoteFiles:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp_client,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             # Mock get_remote_file_info
-            with patch.object(module, "get_remote_file_info", return_value={
-                "name": "file1.txt",
-                "path": "/home/test/file1.txt",
-                "size": 1024,
-                "is_dir": False,
-                "exists": True
-            }):
+            with patch.object(
+                module,
+                "get_remote_file_info",
+                return_value={
+                    "name": "file1.txt",
+                    "path": "/home/test/file1.txt",
+                    "size": 1024,
+                    "is_dir": False,
+                    "exists": True,
+                },
+            ):
                 files = module.list_remote_files(conn_id, "/home/test")
 
             assert len(files) == 2
@@ -520,7 +528,7 @@ class TestListRemoteFiles:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             with pytest.raises(module.SSHPathError):
@@ -552,7 +560,7 @@ class TestGetRemoteFileInfo:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp_client,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             info = module.get_remote_file_info(conn_id, "/test/file.txt")
@@ -581,7 +589,7 @@ class TestGetRemoteFileInfo:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             with pytest.raises(module.SSHConnectionError):
@@ -608,7 +616,7 @@ class TestDownloadRemoteFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             local_path = str(local_dir / "file.txt")
@@ -636,7 +644,7 @@ class TestDownloadRemoteFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             with pytest.raises(module.SSHConnectionError):
@@ -664,7 +672,7 @@ class TestUploadLocalFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             result = module.upload_local_file(conn_id, str(local_file), "/remote/uploaded.txt")
@@ -685,7 +693,7 @@ class TestUploadLocalFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             with pytest.raises(module.SSHConnectionError, match="上传失败"):
@@ -714,7 +722,7 @@ class TestCreateRemoteDirectory:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             result = module.create_remote_directory(conn_id, "/remote/new_dir")
@@ -742,7 +750,7 @@ class TestCreateRemoteDirectory:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             with pytest.raises(module.SSHPathError):
@@ -772,7 +780,7 @@ class TestDeleteRemoteFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             result = module.delete_remote_file(conn_id, "/remote/file.txt", False)
@@ -801,7 +809,7 @@ class TestDeleteRemoteFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             result = module.delete_remote_file(conn_id, "/remote/dir", False)
@@ -830,7 +838,7 @@ class TestDeleteRemoteFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             with pytest.raises(module.SSHConnectionError):
@@ -853,7 +861,7 @@ class TestReadRemoteFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp_client,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             content = module.read_remote_file(conn_id, "/remote/file.txt")
@@ -873,7 +881,7 @@ class TestReadRemoteFile:
                 "ssh": mock_ssh,
                 "sftp": mock_sftp_client,
                 "root": "/home/test",
-                "last_active": 0
+                "last_active": 0,
             }
 
             content = module.read_remote_file(conn_id, "/remote/file.txt", offset=10, length=100)

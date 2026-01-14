@@ -21,8 +21,9 @@ def register_api_routes():
     try:
         from server import PromptServer
 
-        if hasattr(PromptServer, 'instance') and PromptServer.instance:
+        if hasattr(PromptServer, "instance") and PromptServer.instance:
             from .routes import register_all_routes
+
             register_all_routes(PromptServer.instance)
             _ROUTES_REGISTERED = True
             return True

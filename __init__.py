@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 # 尝试导入 V3 API
 try:
     from comfy_api.latest import ComfyExtension
+
     HAS_V3 = True
     logger.info("[DataManager] V3 API detected - Using Node 2.0 mode")
 except ImportError:
@@ -33,18 +34,15 @@ else:
     from .backend.core.nodes_v1 import (
         NODE_CLASS_MAPPINGS,
         NODE_DISPLAY_NAME_MAPPINGS,
-        WEB_DIRECTORY
+        WEB_DIRECTORY,
     )
 
-    __all__ = [
-        "NODE_CLASS_MAPPINGS",
-        "NODE_DISPLAY_NAME_MAPPINGS",
-        "WEB_DIRECTORY"
-    ]
+    __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 
 # 注册 API 路由（同时支持 V1 和 V3）
 try:
     from .backend.api import register_api_routes
+
     register_api_routes()
 except Exception as e:
     logger.warning(f"[DataManager] Failed to register API routes: {e}")

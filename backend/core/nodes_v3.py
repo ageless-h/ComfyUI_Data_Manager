@@ -26,6 +26,7 @@ from ..helpers import save_file, list_files, get_file_info, get_file_category
 # 图像保存功能
 # ============================================================================
 
+
 def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     """保存 ComfyUI 图像张量到文件
 
@@ -71,19 +72,19 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     # 转换为 PIL Image，根据通道数选择模式
     if len(tensor.shape) == 2:
         # 灰度图像 [H, W]
-        img = Image.fromarray(tensor, 'L')
+        img = Image.fromarray(tensor, "L")
     elif tensor.shape[2] == 1:
         # 灰度图像 [H, W, 1]
-        img = Image.fromarray(tensor[:, :, 0], 'L')
+        img = Image.fromarray(tensor[:, :, 0], "L")
     elif tensor.shape[2] == 2:
         # 灰度 + Alpha [H, W, 2]
-        img = Image.fromarray(tensor[:, :, 0], 'L')
+        img = Image.fromarray(tensor[:, :, 0], "L")
     elif tensor.shape[2] == 3:
         # RGB 图像 [H, W, 3]
-        img = Image.fromarray(tensor, 'RGB')
+        img = Image.fromarray(tensor, "RGB")
     elif tensor.shape[2] == 4:
         # RGBA 图像 [H, W, 4]
-        img = Image.fromarray(tensor, 'RGBA')
+        img = Image.fromarray(tensor, "RGBA")
     else:
         raise ValueError(f"不支持的通道数: {tensor.shape[2]}")
 
@@ -121,7 +122,7 @@ def save_image(tensor: np.ndarray, file_path: str, format: str = "png") -> str:
     # JPEG 和 BMP 不支持透明通道，如果是 RGBA 需要转换为 RGB
     if pil_format in ["JPEG", "JPG", "BMP"] and img.mode == "RGBA":
         # 创建白色背景
-        background = Image.new('RGB', img.size, (255, 255, 255))
+        background = Image.new("RGB", img.size, (255, 255, 255))
         background.paste(img, mask=img.split()[3])  # 使用 alpha 通道作为掩码
         img = background
 
@@ -148,7 +149,7 @@ def save_latent(latent_data: Dict[str, np.ndarray], file_path: str) -> str:
     # 保存为 pickle 格式
     os.makedirs(Path(file_path).parent, exist_ok=True)
 
-    with open(file_path, 'wb') as f:
+    with open(file_path, "wb") as f:
         pickle.dump(latent_data, f)
 
     return file_path
@@ -176,14 +177,14 @@ def save_conditioning(cond_data: Any, file_path: str) -> str:
     serializable_data = []
     if isinstance(cond_data, list):
         for item in cond_data:
-            if hasattr(item, '__dict__'):
+            if hasattr(item, "__dict__"):
                 serializable_data.append(str(item))
             else:
                 serializable_data.append(item)
     else:
         serializable_data = str(cond_data)
 
-    with open(file_path, 'w', encoding='utf-8') as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         json.dump(serializable_data, f, ensure_ascii=False, indent=2)
 
     return file_path
@@ -218,13 +219,14 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
 
     # 提取视频数据
     # io.Video 类型包含：images (tensor), frame_rate, audio
-    if hasattr(data, 'images'):
+    if hasattr(data, "images"):
         # ComfyUI VideoComponents: images 是 [F, H, W, C] 格式的张量
         frames = data.images
-        frame_rate = getattr(data, 'frame_rate', 24)
+        frame_rate = getattr(data, "frame_rate", 24)
 
         # 转换为 numpy
         import torch
+
         if isinstance(frames, torch.Tensor):
             frames_np = frames.cpu().numpy()
         else:
@@ -238,20 +240,22 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
         try:
             import imageio
         except ImportError:
-            raise ImportError("imageio 未安装，无法保存视频。请运行: pip install imageio imageio-ffmpeg")
+            raise ImportError(
+                "imageio 未安装，无法保存视频。请运行: pip install imageio imageio-ffmpeg"
+            )
 
         # 格式对应的编码器配置
         codec_map = {
-            "mp4": "libx264",      # H.264，最兼容
-            "mov": "libx264",      # MOV 使用 H.264
-            "avi": "mpeg4",        # MPEG-4 Part 2，AVI 更兼容
-            "mkv": "libx264",      # MKV 使用 H.264
-            "webm": "libvpx-vp9", # WebM 使用 VP9
+            "mp4": "libx264",  # H.264，最兼容
+            "mov": "libx264",  # MOV 使用 H.264
+            "avi": "mpeg4",  # MPEG-4 Part 2，AVI 更兼容
+            "mkv": "libx264",  # MKV 使用 H.264
+            "webm": "libvpx-vp9",  # WebM 使用 VP9
         }
 
         # 格式支持的 pixelformat (注意：imageio 使用 pixelformat 不是 pixel_format)
         pixelformat_map = {
-            "mp4": "yuv420p",      # 最兼容
+            "mp4": "yuv420p",  # 最兼容
             "mov": "yuv420p",
             "avi": "yuv420p",
             "mkv": "yuv420p",
@@ -295,6 +299,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
 # 音频保存功能
 # ============================================================================
 
+
 def save_audio(data: Any, file_path: str, format: str = "mp3") -> str:
     """保存 ComfyUI 音频数据到文件
 
@@ -334,7 +339,7 @@ def save_audio(data: Any, file_path: str, format: str = "mp3") -> str:
         raise ValueError(f"不支持的音频数据类型: {type(data)}")
 
     # 转换为 numpy
-    if hasattr(waveform, 'cpu'):  # torch.Tensor
+    if hasattr(waveform, "cpu"):  # torch.Tensor
         waveform_np = waveform.cpu().numpy()
     else:
         waveform_np = waveform
@@ -410,11 +415,7 @@ def save_audio(data: Any, file_path: str, format: str = "mp3") -> str:
             start = i * num_channels
             end = (i + frame_size) * num_channels
             frame_data = interleaved_data[start:end].reshape(1, -1)
-            frame = av.AudioFrame.from_ndarray(
-                frame_data,
-                format="flt",
-                layout=layout
-            )
+            frame = av.AudioFrame.from_ndarray(frame_data, format="flt", layout=layout)
             frame.sample_rate = sample_rate
             for packet in stream.encode(frame):
                 output_container.mux(packet)
@@ -440,6 +441,7 @@ def save_audio(data: Any, file_path: str, format: str = "mp3") -> str:
 # ============================================================================
 # 文件加载功能（与保存功能对应）
 # ============================================================================
+
 
 def load_image(file_path: str) -> tuple:
     """加载图像文件为 ComfyUI Tensor 格式
@@ -476,10 +478,11 @@ def load_image(file_path: str) -> tuple:
 
     # 处理 EXIF 旋转
     from PIL import ImageOps
+
     img = ImageOps.exif_transpose(img)
 
     # 转换为 RGB
-    if img.mode == 'I':
+    if img.mode == "I":
         img = img.point(lambda i: i * (1 / 255))
     image = img.convert("RGB")
 
@@ -489,12 +492,12 @@ def load_image(file_path: str) -> tuple:
     image = torch.from_numpy(image)[None,]  # [1, H, W, 3]
 
     # 处理 mask (alpha 通道)
-    if 'A' in img.getbands():
-        mask = np.array(img.getchannel('A')).astype(np.float32) / 255.0
-        mask = 1. - torch.from_numpy(mask)  # ComfyUI mask 是反向的
-    elif img.mode == 'P' and 'transparency' in img.info:
-        mask = np.array(img.convert('RGBA').getchannel('A')).astype(np.float32) / 255.0
-        mask = 1. - torch.from_numpy(mask)
+    if "A" in img.getbands():
+        mask = np.array(img.getchannel("A")).astype(np.float32) / 255.0
+        mask = 1.0 - torch.from_numpy(mask)  # ComfyUI mask 是反向的
+    elif img.mode == "P" and "transparency" in img.info:
+        mask = np.array(img.convert("RGBA").getchannel("A")).astype(np.float32) / 255.0
+        mask = 1.0 - torch.from_numpy(mask)
     else:
         mask = None
 
@@ -554,6 +557,7 @@ def load_audio(file_path: str) -> dict:
     # 优先使用 soundfile 直接加载，避免 torchaudio 的依赖问题
     try:
         import soundfile as sf
+
         data, sample_rate = sf.read(file_path, always_2d=True)
         # soundfile 返回 [samples, channels] 格式，需要转置为 [channels, samples]
         waveform = torch.from_numpy(data.T).float()
@@ -563,6 +567,7 @@ def load_audio(file_path: str) -> dict:
         # 如果 soundfile 加载失败，尝试 torchaudio
         try:
             import torchaudio
+
             waveform, sample_rate = torchaudio.load(file_path)
         except ImportError:
             raise ImportError("torchaudio 未安装，无法加载音频")
@@ -570,8 +575,10 @@ def load_audio(file_path: str) -> dict:
             raise RuntimeError(f"无法加载音频文件: {e}, torchaudio 也失败: {e2}")
 
     return {
-        "waveform": waveform.unsqueeze(0),  # [channels, samples] -> [1, channels, samples] 添加批次维度
-        "sample_rate": sample_rate
+        "waveform": waveform.unsqueeze(
+            0
+        ),  # [channels, samples] -> [1, channels, samples] 添加批次维度
+        "sample_rate": sample_rate,
     }
 
 
@@ -592,7 +599,7 @@ def load_latent(file_path: str) -> dict:
         raise FileNotFoundError(f"Latent 文件不存在: {file_path}")
 
     # 使用 pickle 加载
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         latent_data = pickle.load(f)
 
     return latent_data
@@ -614,7 +621,7 @@ def load_conditioning(file_path: str) -> list:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Conditioning 文件不存在: {file_path}")
 
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     # 返回 ComfyUI conditioning 格式
@@ -640,7 +647,7 @@ def parse_target_path(target_path: str, detected_type: str, format: str) -> Tupl
         filename = path.name
         # 确保扩展名匹配格式
         name_without_ext = path.stem
-        if filename.split('.')[-1].lower() != format.lower():
+        if filename.split(".")[-1].lower() != format.lower():
             filename = f"{name_without_ext}.{format}"
     else:
         # 如果是目录路径，生成默认文件名
@@ -658,38 +665,26 @@ TYPE_FORMAT_MAP = {
     "IMAGE": {
         "formats": ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif"],
         "default": "png",
-        "description": "图像格式"
+        "description": "图像格式",
     },
     "VIDEO": {
         "formats": ["mp4", "webm", "avi", "mov", "mkv"],
         "default": "mp4",
-        "description": "视频格式"
+        "description": "视频格式",
     },
     "AUDIO": {
         "formats": ["mp3", "wav", "flac", "ogg"],
         "default": "mp3",
-        "description": "音频格式"
+        "description": "音频格式",
     },
-    "LATENT": {
-        "formats": ["latent"],
-        "default": "latent",
-        "description": "Latent 数据"
-    },
+    "LATENT": {"formats": ["latent"], "default": "latent", "description": "Latent 数据"},
     "MASK": {
         "formats": ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif"],
         "default": "png",
-        "description": "遮罩格式"
+        "description": "遮罩格式",
     },
-    "CONDITIONING": {
-        "formats": ["json"],
-        "default": "json",
-        "description": "Conditioning 数据"
-    },
-    "STRING": {
-        "formats": ["txt", "json"],
-        "default": "txt",
-        "description": "文本格式"
-    },
+    "CONDITIONING": {"formats": ["json"], "default": "json", "description": "Conditioning 数据"},
+    "STRING": {"formats": ["txt", "json"], "default": "txt", "description": "文本格式"},
 }
 
 
@@ -738,7 +733,7 @@ def detect_type_from_extension(file_path: str) -> str:
         检测到的类型名称（如 "IMAGE", "VIDEO" 等）
     """
     _, ext = os.path.splitext(file_path)
-    ext = ext.lstrip('.').lower()
+    ext = ext.lstrip(".").lower()
     return EXTENSION_TO_TYPE_MAP.get(ext, "STRING")
 
 
@@ -801,15 +796,15 @@ EXTENDED_TYPES = [
 
 # 所有支持的类型（合并所有类型列表）
 ALL_SUPPORTED_TYPES = (
-    BASIC_TYPES +
-    IMAGE_TYPES +
-    LATENT_TYPES +
-    MODEL_TYPES +
-    MEDIA_TYPES +
-    SAMPLER_TYPES +
-    ADVANCED_TYPES +
-    MODEL_3D_TYPES +
-    EXTENDED_TYPES
+    BASIC_TYPES
+    + IMAGE_TYPES
+    + LATENT_TYPES
+    + MODEL_TYPES
+    + MEDIA_TYPES
+    + SAMPLER_TYPES
+    + ADVANCED_TYPES
+    + MODEL_3D_TYPES
+    + EXTENDED_TYPES
 )
 
 
@@ -844,10 +839,7 @@ class DataManagerCore(io.ComfyNode):
         )
 
     @classmethod
-    def execute(
-        cls,
-        input: str = ""
-    ) -> io.NodeOutput:
+    def execute(cls, input: str = "") -> io.NodeOutput:
         """执行节点逻辑
 
         Args:
@@ -904,12 +896,7 @@ class InputPathConfig(io.ComfyNode):
         )
 
     @classmethod
-    def execute(
-        cls,
-        target_path: str,
-        format: str,
-        file_input = None
-    ) -> io.NodeOutput:
+    def execute(cls, target_path: str, format: str, file_input=None) -> io.NodeOutput:
         """处理动态类型的输入并保存文件
 
         Args:
@@ -939,7 +926,7 @@ class InputPathConfig(io.ComfyNode):
                 "detected_type": "none",
                 "format": format,
                 "saved_path": None,
-                "status": "no_input"
+                "status": "no_input",
             }
             return io.NodeOutput(json.dumps(config, ensure_ascii=False))
 
@@ -1003,20 +990,20 @@ class InputPathConfig(io.ComfyNode):
                         # 尝试解析输入为 JSON 对象，格式化保存
                         try:
                             data = json.loads(file_input)
-                            with open(full_path, 'w', encoding='utf-8') as f:
+                            with open(full_path, "w", encoding="utf-8") as f:
                                 json.dump(data, f, ensure_ascii=False, indent=2)
                         except json.JSONDecodeError:
                             # 如果不是 JSON，作为普通文本保存
-                            with open(full_path, 'w', encoding='utf-8') as f:
+                            with open(full_path, "w", encoding="utf-8") as f:
                                 f.write(file_input)
                     else:
-                        with open(full_path, 'w', encoding='utf-8') as f:
+                        with open(full_path, "w", encoding="utf-8") as f:
                             f.write(file_input)
                     saved_path = full_path
                     print(f"[DataManager] Saved text to: {saved_path}")
 
             # 处理张量类型
-            elif hasattr(file_input, 'shape'):
+            elif hasattr(file_input, "shape"):
                 import torch
 
                 if isinstance(file_input, torch.Tensor):
@@ -1036,7 +1023,9 @@ class InputPathConfig(io.ComfyNode):
                             error_msg = f"不支持的 4D 张量形状: {shape}"
 
                         if detected_type == "IMAGE":
-                            directory, filename = parse_target_path(target_path, detected_type, format)
+                            directory, filename = parse_target_path(
+                                target_path, detected_type, format
+                            )
                             full_path = os.path.join(directory, filename)
                             saved_path = save_image(tensor_np, full_path, format)
                             print(f"[DataManager] Saved IMAGE to: {saved_path}")
@@ -1046,14 +1035,18 @@ class InputPathConfig(io.ComfyNode):
                         if shape[0] == 1:  # [1, H, W] - MASK
                             detected_type = "MASK"
                             tensor_np = file_input.cpu().numpy()[0]
-                            directory, filename = parse_target_path(target_path, detected_type, format)
+                            directory, filename = parse_target_path(
+                                target_path, detected_type, format
+                            )
                             full_path = os.path.join(directory, filename)
                             saved_path = save_image(tensor_np, full_path, format)
                             print(f"[DataManager] Saved MASK to: {saved_path}")
                         elif shape[2] == 3 or shape[2] == 4:  # [H, W, C] - IMAGE
                             detected_type = "IMAGE"
                             tensor_np = file_input.cpu().numpy()
-                            directory, filename = parse_target_path(target_path, detected_type, format)
+                            directory, filename = parse_target_path(
+                                target_path, detected_type, format
+                            )
                             full_path = os.path.join(directory, filename)
                             saved_path = save_image(tensor_np, full_path, format)
                             print(f"[DataManager] Saved IMAGE to: {saved_path}")
@@ -1105,15 +1098,14 @@ class InputPathConfig(io.ComfyNode):
 
             # 处理视频类型 - 使用属性检测而不是 isinstance(io.Video)
             # 因为 io.Video 只是类型标记，实际数据是 VideoInput 或 VideoComponents
-            elif hasattr(file_input, 'get_components') or (
-                hasattr(file_input, 'images') and
-                hasattr(file_input, 'frame_rate')
+            elif hasattr(file_input, "get_components") or (
+                hasattr(file_input, "images") and hasattr(file_input, "frame_rate")
             ):
                 detected_type = "VIDEO"
                 print(f"[DataManager] Detected VIDEO type")
 
                 # 如果是 VideoInput，先获取 components
-                if hasattr(file_input, 'get_components'):
+                if hasattr(file_input, "get_components"):
                     video_data = file_input.get_components()
                     print(f"[DataManager] Got VideoComponents from VideoInput")
                 else:
@@ -1131,7 +1123,7 @@ class InputPathConfig(io.ComfyNode):
                 directory, filename = parse_target_path(target_path, "DATA", "txt")
                 os.makedirs(directory, exist_ok=True)
                 full_path = os.path.join(directory, filename)
-                with open(full_path, 'w', encoding='utf-8') as f:
+                with open(full_path, "w", encoding="utf-8") as f:
                     f.write(str(file_input))
                 saved_path = full_path
                 print(f"[DataManager] Saved as text to: {saved_path}")
@@ -1139,6 +1131,7 @@ class InputPathConfig(io.ComfyNode):
         except Exception as e:
             error_msg = str(e)
             import traceback
+
             traceback.print_exc()
 
         # 构建返回结果
@@ -1149,9 +1142,10 @@ class InputPathConfig(io.ComfyNode):
             "format": format,
             "saved_path": saved_path,
             "status": "success" if saved_path else "error",
-            "error": error_msg
+            "error": error_msg,
         }
         return io.NodeOutput(json.dumps(config, ensure_ascii=False))
+
 
 class OutputPathConfig(io.ComfyNode):
     """输出路径配置节点 - 配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口）"""
@@ -1162,14 +1156,14 @@ class OutputPathConfig(io.ComfyNode):
         template = io.MatchType.Template(
             template_id="file_data_output",
             allowed_types=[
-                io.Image,         # 图像
-                io.Video,         # 视频
-                io.Audio,         # 音频
-                io.Latent,        # Latent
+                io.Image,  # 图像
+                io.Video,  # 视频
+                io.Audio,  # 音频
+                io.Latent,  # Latent
                 io.Conditioning,  # Conditioning
-                io.String,        # 字符串
-                io.Mask,          # 遮罩
-            ]
+                io.String,  # 字符串
+                io.Mask,  # 遮罩
+            ],
         )
 
         return io.Schema(
@@ -1191,20 +1185,12 @@ class OutputPathConfig(io.ComfyNode):
             ],
             outputs=[
                 # 使用 MatchType.Output 实现动态输出端口
-                io.MatchType.Output(
-                    template=template,
-                    id="output",
-                    display_name="Output"
-                ),
+                io.MatchType.Output(template=template, id="output", display_name="Output"),
             ],
         )
 
     @classmethod
-    def execute(
-        cls,
-        source_path: str,
-        input = None
-    ) -> io.NodeOutput:
+    def execute(cls, source_path: str, input=None) -> io.NodeOutput:
         """根据文件路径加载文件并转换为对应的 ComfyUI 数据类型
 
         Args:
@@ -1269,7 +1255,7 @@ class OutputPathConfig(io.ComfyNode):
 
             elif detected_type == "STRING":
                 # 读取文本文件内容并返回
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     content = f.read()
                 return io.NodeOutput(content)
 
@@ -1280,11 +1266,12 @@ class OutputPathConfig(io.ComfyNode):
         except Exception as e:
             print(f"[DataManager] 加载文件失败: {e}")
             import traceback
+
             traceback.print_exc()
             # 加载失败，对于 STRING 类型尝试读取文本内容
             if detected_type == "STRING" and os.path.exists(file_path):
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
                     return io.NodeOutput(content)
                 except:

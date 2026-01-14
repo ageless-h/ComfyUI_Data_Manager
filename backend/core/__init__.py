@@ -11,7 +11,7 @@ from .nodes_v1 import (
 from .nodes_v3 import comfy_entrypoint
 
 __all__ = [
-    'NODE_CLASS_MAPPINGS_V1',
-    'NODE_DISPLAY_NAME_MAPPINGS_V1',
-    'comfy_entrypoint',
+    "NODE_CLASS_MAPPINGS_V1",
+    "NODE_DISPLAY_NAME_MAPPINGS_V1",
+    "comfy_entrypoint",
 ]

@@ -3,7 +3,7 @@
  */
 
 // Main window
-export * from './main-window.js';
+export * from './main-window.js'
 
 // Components
-export * from './components/index.js';
+export * from './components/index.js'

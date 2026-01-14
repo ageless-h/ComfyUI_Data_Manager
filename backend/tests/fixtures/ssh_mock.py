@@ -189,7 +189,10 @@ def mock_auth_error() -> Exception:
     """模拟认证错误"""
     try:
         import paramiko
-        return paramiko.AuthenticationException("Authentication failed: username or password incorrect")
+
+        return paramiko.AuthenticationException(
+            "Authentication failed: username or password incorrect"
+        )
     except ImportError:
         return Exception("Authentication failed: username or password incorrect")
 
@@ -198,6 +201,7 @@ def mock_connection_error(message: str = "Connection failed") -> Exception:
     """模拟连接错误"""
     try:
         import paramiko
+
         return paramiko.SSHException(f"SSH connection failed: {message}")
     except ImportError:
         return Exception(f"SSH connection failed: {message}")

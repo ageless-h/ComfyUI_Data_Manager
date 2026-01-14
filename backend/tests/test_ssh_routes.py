@@ -46,33 +46,28 @@ with open(ssh_routes_path, "r", encoding="utf-8") as f:
     ssh_routes_code = f.read()
 
 # 替换相对导入
-ssh_routes_code = ssh_routes_code.replace(
-    "from ...helpers.ssh_fs import (",
-    "from ssh_fs import ("
-)
-ssh_routes_code = ssh_routes_code.replace(
-    "from ...helpers import (",
-    "from mock_helpers import ("
-)
+ssh_routes_code = ssh_routes_code.replace("from ...helpers.ssh_fs import (", "from ssh_fs import (")
+ssh_routes_code = ssh_routes_code.replace("from ...helpers import (", "from mock_helpers import (")
 
 # 动态创建模块
 # 创建 Mock web 模块，包含 json_response 方法
 mock_web = Mock()
-mock_web.json_response = Mock(side_effect=lambda data, status=200: Mock(
-    status=status,
-    body=json.dumps(data).encode(),
-    text=json.dumps(data),
-    headers={}
-))
+mock_web.json_response = Mock(
+    side_effect=lambda data, status=200: Mock(
+        status=status, body=json.dumps(data).encode(), text=json.dumps(data), headers={}
+    )
+)
 
 ssh_routes = type(sys)("ssh_routes")
-ssh_routes.__dict__.update({
-    "web": mock_web,  # Mock aiohttp.web with json_response
-    "logging": __import__("logging"),
-    "os": __import__("os"),
-    "ssh_fs": ssh_fs,
-    "mock_helpers": mock_helpers,
-})
+ssh_routes.__dict__.update(
+    {
+        "web": mock_web,  # Mock aiohttp.web with json_response
+        "logging": __import__("logging"),
+        "os": __import__("os"),
+        "ssh_fs": ssh_fs,
+        "mock_helpers": mock_helpers,
+    }
+)
 
 # 执行修改后的代码
 exec(ssh_routes_code, ssh_routes.__dict__)
@@ -128,12 +123,14 @@ class TestSSHConnectHandler:
         mock_connect = patch("ssh_fs.connect", return_value=("conn_12345", "/home/user"))
         mock_connect.start()
 
-        request = MockRequest({
-            "host": "test.example.com",
-            "port": 22,
-            "username": "test_user",
-            "password": "test_password"
-        })
+        request = MockRequest(
+            {
+                "host": "test.example.com",
+                "port": 22,
+                "username": "test_user",
+                "password": "test_password",
+            }
+        )
 
         response = await ssh_connect_handler(request)
 
@@ -150,11 +147,7 @@ class TestSSHConnectHandler:
 
     async def test_connect_missing_host(self):
         """缺少主机地址 should return 400 error"""
-        request = MockRequest({
-            "port": 22,
-            "username": "test_user",
-            "password": "test_password"
-        })
+        request = MockRequest({"port": 22, "username": "test_user", "password": "test_password"})
 
         response = await ssh_connect_handler(request)
 
@@ -165,11 +158,7 @@ class TestSSHConnectHandler:
 
     async def test_connect_missing_username(self):
         """缺少用户名 should return 400 error"""
-        request = MockRequest({
-            "host": "test.example.com",
-            "port": 22,
-            "password": "test_password"
-        })
+        request = MockRequest({"host": "test.example.com", "port": 22, "password": "test_password"})
 
         response = await ssh_connect_handler(request)
 
@@ -183,12 +172,14 @@ class TestSSHConnectHandler:
         mock_connect = patch("ssh_fs.connect", side_effect=SSHAuthError("认证失败"))
         mock_connect.start()
 
-        request = MockRequest({
-            "host": "test.example.com",
-            "port": 22,
-            "username": "test_user",
-            "password": "wrong_password"
-        })
+        request = MockRequest(
+            {
+                "host": "test.example.com",
+                "port": 22,
+                "username": "test_user",
+                "password": "wrong_password",
+            }
+        )
 
         response = await ssh_connect_handler(request)
 
@@ -203,12 +194,14 @@ class TestSSHConnectHandler:
         mock_connect = patch("ssh_fs.connect", side_effect=SSHConnectionError("连接超时"))
         mock_connect.start()
 
-        request = MockRequest({
-            "host": "unreachable.example.com",
-            "port": 22,
-            "username": "test_user",
-            "password": "test_password"
-        })
+        request = MockRequest(
+            {
+                "host": "unreachable.example.com",
+                "port": 22,
+                "username": "test_user",
+                "password": "test_password",
+            }
+        )
 
         response = await ssh_connect_handler(request)
 
@@ -277,10 +270,7 @@ class TestSSHListHandler:
         mock_list = patch("ssh_fs.list_remote_files", return_value=mock_files)
         mock_list.start()
 
-        request = MockRequest({
-            "connection_id": "conn_12345",
-            "path": "/home/user"
-        })
+        request = MockRequest({"connection_id": "conn_12345", "path": "/home/user"})
 
         response = await ssh_list_handler(request)
 
@@ -308,10 +298,7 @@ class TestSSHListHandler:
         mock_list = patch("ssh_fs.list_remote_files", side_effect=SSHConnectionError("连接不存在"))
         mock_list.start()
 
-        request = MockRequest({
-            "connection_id": "nonexistent_conn",
-            "path": "/home/user"
-        })
+        request = MockRequest({"connection_id": "nonexistent_conn", "path": "/home/user"})
 
         response = await ssh_list_handler(request)
 
@@ -326,10 +313,7 @@ class TestSSHListHandler:
         mock_list = patch("ssh_fs.list_remote_files", side_effect=SSHPathError("路径不存在"))
         mock_list.start()
 
-        request = MockRequest({
-            "connection_id": "conn_12345",
-            "path": "/nonexistent/path"
-        })
+        request = MockRequest({"connection_id": "conn_12345", "path": "/nonexistent/path"})
 
         response = await ssh_list_handler(request)
 
@@ -351,15 +335,12 @@ class TestSSHInfoHandler:
             "path": "/path/test.txt",
             "size": 2048,
             "is_dir": False,
-            "exists": True
+            "exists": True,
         }
         mock_get = patch("ssh_fs.get_remote_file_info", return_value=mock_info)
         mock_get.start()
 
-        request = MockRequest({
-            "connection_id": "conn_12345",
-            "path": "/path/test.txt"
-        })
+        request = MockRequest({"connection_id": "conn_12345", "path": "/path/test.txt"})
 
         response = await ssh_info_handler(request)
 
@@ -402,14 +383,18 @@ class TestSSHDownloadHandler:
         local_dir = tmp_path / "downloads"
         local_dir.mkdir()
 
-        mock_download = patch("ssh_fs.download_remote_file", return_value=str(local_dir / "file.txt"))
+        mock_download = patch(
+            "ssh_fs.download_remote_file", return_value=str(local_dir / "file.txt")
+        )
         mock_download.start()
 
-        request = MockRequest({
-            "connection_id": "conn_12345",
-            "remote_path": "/remote/file.txt",
-            "local_path": str(local_dir / "file.txt")
-        })
+        request = MockRequest(
+            {
+                "connection_id": "conn_12345",
+                "remote_path": "/remote/file.txt",
+                "local_path": str(local_dir / "file.txt"),
+            }
+        )
 
         response = await ssh_download_handler(request)
 
@@ -422,11 +407,13 @@ class TestSSHDownloadHandler:
 
     async def test_download_missing_parameters(self):
         """缺少参数 should return 400 error"""
-        request = MockRequest({
-            "connection_id": "conn_12345",
-            "remote_path": "/remote/file.txt"
-            # 缺少 local_path
-        })
+        request = MockRequest(
+            {
+                "connection_id": "conn_12345",
+                "remote_path": "/remote/file.txt",
+                # 缺少 local_path
+            }
+        )
 
         response = await ssh_download_handler(request)
 
@@ -444,11 +431,13 @@ class TestSSHUploadHandler:
         mock_upload = patch("ssh_fs.upload_local_file", return_value="/remote/uploaded.txt")
         mock_upload.start()
 
-        request = MockRequest({
-            "connection_id": "conn_12345",
-            "local_path": "/local/file.txt",
-            "remote_path": "/remote/uploaded.txt"
-        })
+        request = MockRequest(
+            {
+                "connection_id": "conn_12345",
+                "local_path": "/local/file.txt",
+                "remote_path": "/remote/uploaded.txt",
+            }
+        )
 
         response = await ssh_upload_handler(request)
 
@@ -461,10 +450,12 @@ class TestSSHUploadHandler:
 
     async def test_upload_missing_parameters(self):
         """缺少参数 should return 400 error"""
-        request = MockRequest({
-            "connection_id": "conn_12345"
-            # 缺少 local_path 和 remote_path
-        })
+        request = MockRequest(
+            {
+                "connection_id": "conn_12345"
+                # 缺少 local_path 和 remote_path
+            }
+        )
 
         response = await ssh_upload_handler(request)
 
@@ -482,11 +473,9 @@ class TestSSHDeleteHandler:
         mock_delete = patch("ssh_fs.delete_remote_file", return_value=True)
         mock_delete.start()
 
-        request = MockRequest({
-            "connection_id": "conn_12345",
-            "path": "/remote/file.txt",
-            "use_trash": False
-        })
+        request = MockRequest(
+            {"connection_id": "conn_12345", "path": "/remote/file.txt", "use_trash": False}
+        )
 
         response = await ssh_delete_handler(request)
 
@@ -498,10 +487,12 @@ class TestSSHDeleteHandler:
 
     async def test_delete_missing_parameters(self):
         """缺少参数 should return 400 error"""
-        request = MockRequest({
-            "connection_id": "conn_12345"
-            # 缺少 path
-        })
+        request = MockRequest(
+            {
+                "connection_id": "conn_12345"
+                # 缺少 path
+            }
+        )
 
         response = await ssh_delete_handler(request)
 
@@ -545,7 +536,9 @@ class TestSSHListHostsHandler:
         with patch("backend.api.routes.ssh.web.json_response") as mock_json_response:
             mock_response = Mock()
             mock_response.status = 200
-            mock_response.body = json.dumps({"success": True, "hosts": mock_hosts, "count": 2}).encode()
+            mock_response.body = json.dumps(
+                {"success": True, "hosts": mock_hosts, "count": 2}
+            ).encode()
             mock_json_response.return_value = mock_response
 
             response = await ssh_list_hosts_handler(None)
@@ -564,12 +557,9 @@ class TestSSHReadHandler:
         mock_read = patch("ssh_fs.read_remote_file", return_value=b"file content")
         mock_read.start()
 
-        request = MockRequest({
-            "connection_id": "conn_12345",
-            "path": "/remote/file.txt",
-            "offset": 0,
-            "length": -1
-        })
+        request = MockRequest(
+            {"connection_id": "conn_12345", "path": "/remote/file.txt", "offset": 0, "length": -1}
+        )
 
         response = await ssh_read_handler(request)
 
@@ -582,10 +572,12 @@ class TestSSHReadHandler:
 
     async def test_read_missing_parameters(self):
         """缺少参数 should return 400 error"""
-        request = MockRequest({
-            "connection_id": "conn_12345"
-            # 缺少 path
-        })
+        request = MockRequest(
+            {
+                "connection_id": "conn_12345"
+                # 缺少 path
+            }
+        )
 
         response = await ssh_read_handler(request)
 

@@ -91,7 +91,9 @@ def mock_sftp_client():
     mock.getcwd.return_value = "/home/test_user"
 
     # 模拟文件操作
-    mock.file.return_value.__enter__ = Mock(return_value=Mock(read=Mock(return_value=b"test content")))
+    mock.file.return_value.__enter__ = Mock(
+        return_value=Mock(read=Mock(return_value=b"test content"))
+    )
     mock.file.return_value.__exit__ = Mock(return_value=False)
 
     return mock
@@ -147,6 +149,7 @@ def skip_if_no_paramiko():
     """如果 paramiko 未安装，跳过测试"""
     try:
         import importlib.util
+
         project_root = Path(__file__).parent.parent.parent
         ssh_fs_path = project_root / "backend" / "helpers" / "ssh_fs.py"
         spec = importlib.util.spec_from_file_location("ssh_fs_check", str(ssh_fs_path))
@@ -182,6 +185,7 @@ def reset_ssh_connection_pool():
     # 为每个测试使用唯一的模块名称，避免缓存冲突
     import hashlib
     import time
+
     unique_id = f"ssh_fs_reset_{hash(time.time())}"
 
     spec = importlib.util.spec_from_file_location(unique_id, str(ssh_fs_path))

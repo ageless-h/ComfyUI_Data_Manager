@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 
 class PathType(Enum):
     """路径类型枚举"""
+
     LOCAL = "local"
     UNC = "unc"  # Windows 共享路径，如 \\server\share
     SSH = "ssh"  # SSH 远程路径，如 ssh://user@host/path

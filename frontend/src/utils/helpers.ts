@@ -2,25 +2,25 @@
  * ComfyUI Data Manager - Helper Utilities
  */
 
-import { getComfyTheme } from './theme.js';
+import { getComfyTheme } from './theme.js'
 
 // ComfyUI app import (external)
 declare const app: {
   extensionManager?: {
     toast?: {
-      add: (options: { severity: string; summary: string; detail: string; life?: number }) => void;
-    };
-  };
-};
+      add: (options: { severity: string; summary: string; detail: string; life?: number }) => void
+    }
+  }
+}
 
 /**
  * Update status bar text
  * @param text - Status text
  */
 export function updateStatus(text: string): void {
-  const statusBar = document.getElementById("dm-status-bar");
+  const statusBar = document.getElementById('dm-status-bar')
   if (statusBar) {
-    statusBar.textContent = text;
+    statusBar.textContent = text
   }
 }
 
@@ -32,11 +32,11 @@ export function updateStatus(text: string): void {
  */
 export function showToast(severity: string, summary: string, detail: string): void {
   // Always try to use internal Data Manager toast first (when window is open)
-  const toastContainer = document.getElementById("dm-toast-container");
+  const toastContainer = document.getElementById('dm-toast-container')
   if (toastContainer) {
-    showInternalToast(severity, summary, detail);
+    showInternalToast(severity, summary, detail)
     // IMPORTANT: Return early to prevent ComfyUI toast from showing
-    return;
+    return
   }
 
   // Only use ComfyUI toast if Data Manager window is not open
@@ -45,10 +45,10 @@ export function showToast(severity: string, summary: string, detail: string): vo
       severity,
       summary,
       detail,
-      life: 3000
-    });
+      life: 3000,
+    })
   } else {
-    console.log(`[${severity.toUpperCase()}] ${summary}: ${detail}`);
+    console.log(`[${severity.toUpperCase()}] ${summary}: ${detail}`)
   }
 }
 
@@ -59,22 +59,22 @@ export function showToast(severity: string, summary: string, detail: string): vo
  * @param detail - Detail message
  */
 function showInternalToast(severity: string, summary: string, detail: string): void {
-  const toastContainer = document.getElementById("dm-toast-container");
-  if (!toastContainer) return;
+  const toastContainer = document.getElementById('dm-toast-container')
+  if (!toastContainer) return
 
-  const theme = getComfyTheme();
+  const theme = getComfyTheme()
 
   // ComfyUI-style colors using theme system
   const colors: Record<string, { bg: string; icon: string }> = {
     success: { bg: theme.successColor, icon: 'pi-check-circle' },
     error: { bg: theme.errorColor, icon: 'pi-exclamation-circle' },
     warn: { bg: '#f39c12', icon: 'pi-exclamation-triangle' },
-    info: { bg: theme.bgTertiary, icon: 'pi-info-circle' }
-  };
+    info: { bg: theme.bgTertiary, icon: 'pi-info-circle' },
+  }
 
-  const color = colors[severity] || colors.info;
+  const color = colors[severity] || colors.info
 
-  const toast = document.createElement("div");
+  const toast = document.createElement('div')
   toast.style.cssText = `
     display: flex;
     align-items: center;
@@ -90,24 +90,24 @@ function showInternalToast(severity: string, summary: string, detail: string): v
     max-width: 400px;
     animation: dmSlideIn 0.3s ease-out;
     pointer-events: auto;
-  `;
+  `
   toast.innerHTML = `
     <i class="pi ${color.icon}" style="font-size: 18px;"></i>
     <div style="flex: 1;">
       <div style="font-weight: 600; margin-bottom: 2px;">${summary}</div>
       <div style="opacity: 0.9; font-size: 12px;">${detail}</div>
     </div>
-  `;
+  `
 
-  toastContainer.appendChild(toast);
+  toastContainer.appendChild(toast)
 
   // Auto remove after 3 seconds
   setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(-10px)';
-    toast.style.transition = 'all 0.3s ease-in';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+    toast.style.opacity = '0'
+    toast.style.transform = 'translateY(-10px)'
+    toast.style.transition = 'all 0.3s ease-in'
+    setTimeout(() => toast.remove(), 300)
+  }, 3000)
 }
 
 /**
@@ -116,10 +116,10 @@ function showInternalToast(severity: string, summary: string, detail: string): v
  * @returns Parent path
  */
 export function getParentPath(path: string): string {
-  const normalized = path.replace(/\\/g, "/");
-  const lastSlash = normalized.lastIndexOf("/");
-  if (lastSlash <= 0) return ".";
-  return normalized.substring(0, lastSlash);
+  const normalized = path.replace(/\\/g, '/')
+  const lastSlash = normalized.lastIndexOf('/')
+  if (lastSlash <= 0) return '.'
+  return normalized.substring(0, lastSlash)
 }
 
 /**
@@ -128,7 +128,7 @@ export function getParentPath(path: string): string {
  * @returns Filename
  */
 export function getFileName(path: string): string {
-  return path.split(/[/\\]/).pop() || "";
+  return path.split(/[/\\]/).pop() || ''
 }
 
 /**
@@ -137,7 +137,7 @@ export function getFileName(path: string): string {
  * @returns Extension with dot
  */
 export function getExt(path: string): string {
-  const parts = path.split('.');
-  const ext = parts.pop()?.toLowerCase() || "";
-  return '.' + ext;
+  const parts = path.split('.')
+  const ext = parts.pop()?.toLowerCase() || ''
+  return '.' + ext
 }

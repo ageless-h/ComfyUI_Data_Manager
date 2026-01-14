@@ -5,12 +5,12 @@
 
 // Shim for scripts/app.js
 declare module '../../../scripts/app.js' {
-  export const app: ComfyApp;
-  export { app as default };
+  export const app: ComfyApp
+  export { app as default }
 }
 
 // Shim for scripts/*.js generic pattern
 declare module '*scripts*.js' {
-  const content: unknown;
-  export default content;
+  const content: unknown
+  export default content
 }

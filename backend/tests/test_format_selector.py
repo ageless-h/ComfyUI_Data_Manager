@@ -10,9 +10,9 @@ from playwright.sync_api import sync_playwright
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ComfyUI Data Manager 格式选择器测试")
-    print("="*60)
+    print("=" * 60)
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, slow_mo=500)
@@ -23,10 +23,7 @@ def main():
         errors = []
 
         def on_console(msg):
-            console_logs.append({
-                "type": msg.type,
-                "text": msg.text
-            })
+            console_logs.append({"type": msg.type, "text": msg.text})
             if msg.type == "error":
                 errors.append(msg.text)
 
@@ -39,7 +36,8 @@ def main():
             time.sleep(2)
 
             print("\n[步骤 2] 添加 InputPathConfig 节点")
-            result = page.evaluate("""() => {
+            result = page.evaluate(
+                """() => {
                 try {
                     const node = window.LiteGraph.createNode('InputPathConfig');
                     if (node) {
@@ -51,7 +49,8 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message, stack: e.stack };
                 }
-            }""")
+            }"""
+            )
 
             print(f"  结果: {result}")
             if not result.get("success"):
@@ -63,7 +62,8 @@ def main():
             time.sleep(1)
 
             print("\n[步骤 3] 添加 LoadImage 节点")
-            result = page.evaluate("""() => {
+            result = page.evaluate(
+                """() => {
                 try {
                     const node = window.LiteGraph.createNode('LoadImage');
                     if (node) {
@@ -75,7 +75,8 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message };
                 }
-            }""")
+            }"""
+            )
 
             if not result.get("success"):
                 print(f"  ✗ LoadImage 节点添加失败")
@@ -86,10 +87,13 @@ def main():
             time.sleep(1)
 
             # 截图
-            page.screenshot(path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\30_nodes_added.png")
+            page.screenshot(
+                path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\30_nodes_added.png"
+            )
 
             print("\n[步骤 4] 检查 InputPathConfig 节点的输入端口和 widget")
-            port_check = page.evaluate("""() => {
+            port_check = page.evaluate(
+                """() => {
                 const nodes = window.app.graph._nodes;
                 const inputNode = nodes.find(n => n.type === 'InputPathConfig');
                 if (!inputNode) {
@@ -128,7 +132,8 @@ def main():
                     })),
                     widgetDetails: widgetDetails
                 };
-            }""")
+            }"""
+            )
 
             print(f"  端口状态: {json.dumps(port_check, indent=2, ensure_ascii=False)}")
 
@@ -149,7 +154,8 @@ def main():
                 print(f"  ⚠ 未找到格式选择器 widget")
 
             print("\n[步骤 5] 检查格式选择器模块是否加载")
-            module_check = page.evaluate("""() => {
+            module_check = page.evaluate(
+                """() => {
                 // 检查 ui-format-selector.js 是否加载
                 const hasFormatSelector = typeof window.createFormatSelector === 'function';
 
@@ -170,12 +176,14 @@ def main():
                     hasFormatSelector,
                     hasUpdateFunction
                 };
-            }""")
+            }"""
+            )
 
             print(f"  模块状态: {module_check}")
 
             print("\n[步骤 6] 连接 LoadImage 到 InputPathConfig")
-            connect_result = page.evaluate("""() => {
+            connect_result = page.evaluate(
+                """() => {
                 try {
                     const nodes = window.app.graph._nodes;
                     const loadImage = nodes.find(n => n.type === 'LoadImage');
@@ -206,7 +214,8 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message, stack: e.stack };
                 }
-            }""")
+            }"""
+            )
 
             print(f"  连接结果: {connect_result}")
 
@@ -217,7 +226,8 @@ def main():
                 print(f"  ✗ 连接失败: {connect_result.get('error')}")
 
             # 检查控制台日志中的 DataManager 相关消息
-            console_check = page.evaluate("""() => {
+            console_check = page.evaluate(
+                """() => {
                 // 获取所有控制台日志（ DataManager 相关的）
                 const logs = [];
                 const originalLog = console.log;
@@ -229,15 +239,19 @@ def main():
                     hasLogs: logs.length > 0,
                     dmLogs: logs.filter(l => l.includes('DataManager'))
                 };
-            }""")
+            }"""
+            )
 
             print(f"  控制台检查: {console_check}")
 
             # 截图
-            page.screenshot(path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\31_nodes_connected.png")
+            page.screenshot(
+                path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\31_nodes_connected.png"
+            )
 
             print("\n[步骤 7] 打开文件管理器")
-            open_result = page.evaluate("""() => {
+            open_result = page.evaluate(
+                """() => {
                 try {
                     if (window.openFileManager) {
                         window.openFileManager();
@@ -247,7 +261,8 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message };
                 }
-            }""")
+            }"""
+            )
 
             if open_result.get("success"):
                 print(f"  ✓ 文件管理器已打开")
@@ -259,7 +274,8 @@ def main():
 
             # 检查 checkNodeConnectionAndUpdateFormat 函数是否被调用
             print("\n[步骤 7.5] 检查自动触发状态")
-            auto_trigger_check = page.evaluate("""() => {
+            auto_trigger_check = page.evaluate(
+                """() => {
                 // 检查 dm-format-section 是否存在
                 const formatSection = document.getElementById('dm-format-section');
                 const sectionExists = !!formatSection;
@@ -289,7 +305,8 @@ def main():
                     sectionDisplay,
                     triggerResult
                 };
-            }""")
+            }"""
+            )
 
             print(f"  自动触发检查: {auto_trigger_check}")
 
@@ -297,7 +314,8 @@ def main():
             time.sleep(1)
 
             print("\n[步骤 8] 检查格式选择器 UI")
-            format_ui_check = page.evaluate("""() => {
+            format_ui_check = page.evaluate(
+                """() => {
                 const dmWindow = document.getElementById('dm-file-manager');
                 if (!dmWindow) {
                     return { exists: false, reason: 'dm-file-manager not found' };
@@ -321,7 +339,8 @@ def main():
                     selectOptions: select ? Array.from(select.options).map(o => o.value) : null,
                     innerHTML: formatSection.innerHTML.substring(0, 500)
                 };
-            }""")
+            }"""
+            )
 
             print(f"  格式选择器 UI: {json.dumps(format_ui_check, indent=2, ensure_ascii=False)}")
 
@@ -333,7 +352,10 @@ def main():
                 print(f"  ⚠ 未找到格式选择下拉框")
 
             # 截图
-            page.screenshot(path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\32_format_selector.png", full_page=True)
+            page.screenshot(
+                path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\32_format_selector.png",
+                full_page=True,
+            )
 
             print("\n[步骤 9] 检查控制台错误")
             if errors:
@@ -344,7 +366,8 @@ def main():
                 print(f"  ✓ 无控制台错误")
 
             print("\n[步骤 10] 尝试手动触发格式选择器更新")
-            trigger_result = page.evaluate("""() => {
+            trigger_result = page.evaluate(
+                """() => {
                 try {
                     // 尝试手动调用 updateFormatSelector
                     const dmWindow = document.getElementById('dm-file-manager');
@@ -378,38 +401,41 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message, stack: e.stack };
                 }
-            }""")
+            }"""
+            )
 
             print(f"  手动触发结果: {trigger_result}")
 
             if trigger_result.get("success"):
                 time.sleep(1)
                 print(f"  ✓ 手动创建了格式选择器")
-                page.screenshot(path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\33_manual_format_selector.png")
+                page.screenshot(
+                    path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\33_manual_format_selector.png"
+                )
 
             time.sleep(3)
             browser.close()
 
             # 判断测试是否通过
-            format_selector_found = (
-                format_ui_check.get("hasSelect") or
-                trigger_result.get("hasSelect")
+            format_selector_found = format_ui_check.get("hasSelect") or trigger_result.get(
+                "hasSelect"
             )
 
             if format_selector_found:
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("✓ 格式选择器测试通过!")
-                print("="*60)
+                print("=" * 60)
                 return True
             else:
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("⚠ 格式选择器未正常显示，需要调试")
-                print("="*60)
+                print("=" * 60)
                 return False
 
         except Exception as e:
             print(f"\n✗ 测试失败: {e}")
             import traceback
+
             traceback.print_exc()
             browser.close()
             return False

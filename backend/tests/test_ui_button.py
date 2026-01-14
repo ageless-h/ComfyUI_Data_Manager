@@ -9,9 +9,9 @@ from playwright.sync_api import sync_playwright
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ComfyUI Data Manager UI 按钮测试")
-    print("="*60)
+    print("=" * 60)
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, slow_mo=300)
@@ -22,10 +22,7 @@ def main():
         errors = []
 
         def on_console(msg):
-            console_logs.append({
-                "type": msg.type,
-                "text": msg.text
-            })
+            console_logs.append({"type": msg.type, "text": msg.text})
             if msg.type == "error":
                 errors.append(msg.text)
 
@@ -45,7 +42,8 @@ def main():
                     print(f"    [{log['type']}] {log['text']}")
 
             print("\n[步骤 2] 添加 DataManagerCore 节点")
-            result = page.evaluate("""() => {
+            result = page.evaluate(
+                """() => {
                 try {
                     const node = window.LiteGraph.createNode('DataManagerCore');
                     if (node) {
@@ -57,7 +55,8 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message };
                 }
-            }""")
+            }"""
+            )
 
             print(f"  结果: {result}")
             if not result.get("success"):
@@ -69,10 +68,13 @@ def main():
             print(f"  ✓ 节点已添加 (ID: {result['nodeId']})")
 
             # 截图
-            page.screenshot(path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\20_node_with_button.png")
+            page.screenshot(
+                path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\20_node_with_button.png"
+            )
 
             print("\n[步骤 3] 检查节点上的按钮")
-            button_check = page.evaluate("""() => {
+            button_check = page.evaluate(
+                """() => {
                 const nodes = window.app.graph._nodes;
                 const dmNode = nodes.find(n => n.type === 'DataManagerCore');
                 if (!dmNode) {
@@ -95,7 +97,8 @@ def main():
                         class: b.className
                     }))
                 };
-            }""")
+            }"""
+            )
 
             print(f"  按钮状态: {button_check}")
 
@@ -107,7 +110,8 @@ def main():
                 print(f"  ✗ 未找到按钮")
 
             print("\n[步骤 4] 通过全局接口打开文件管理器")
-            open_result = page.evaluate("""() => {
+            open_result = page.evaluate(
+                """() => {
                 try {
                     if (window.DataManager && window.DataManager.open) {
                         window.DataManager.open();
@@ -117,14 +121,16 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message };
                 }
-            }""")
+            }"""
+            )
 
             print(f"  打开结果: {open_result}")
 
             time.sleep(2)
 
             print("\n[步骤 5] 检查文件管理器窗口")
-            window_check = page.evaluate("""() => {
+            window_check = page.evaluate(
+                """() => {
                 const dmWindow = document.getElementById('dm-file-manager');
                 if (!dmWindow) {
                     return { exists: false };
@@ -140,7 +146,8 @@ def main():
                     fileCount: fileItems.length,
                     currentPath: pathInput ? pathInput.value : null
                 };
-            }""")
+            }"""
+            )
 
             print(f"  窗口状态: {window_check}")
 
@@ -151,7 +158,10 @@ def main():
                 print(f"  - 当前路径: {window_check.get('currentPath')}")
 
                 # 截图文件管理器
-                page.screenshot(path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\21_file_manager_open.png", full_page=True)
+                page.screenshot(
+                    path=r"C:\Users\Administrator\Documents\ai\ComfyUI\custom_nodes\ComfyUI_Data_Manager\tests\21_file_manager_open.png",
+                    full_page=True,
+                )
 
                 # 检查是否包含真实文件
                 if window_check.get("fileCount", 0) > 0:
@@ -175,14 +185,14 @@ def main():
 
             # 判断测试是否通过
             if window_check.get("exists") and window_check.get("fileCount", 0) > 0:
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("✓ UI 测试通过!")
-                print("="*60)
+                print("=" * 60)
                 return True
             else:
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("⚠ UI 测试未完全通过")
-                print("="*60)
+                print("=" * 60)
                 return False
 
         except Exception as e:

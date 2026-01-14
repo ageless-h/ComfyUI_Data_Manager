@@ -34,35 +34,24 @@ async def save_file_handler(request):
         add_timestamp = data.get("add_timestamp", False)
 
         if not source:
-            return web.json_response({
-                "error": "Source path is required"
-            }, status=400)
+            return web.json_response({"error": "Source path is required"}, status=400)
 
         if not os.path.exists(source):
-            return web.json_response({
-                "error": "Source file not found",
-                "path": source
-            }, status=404)
+            return web.json_response({"error": "Source file not found", "path": source}, status=404)
 
         # 保存文件
         saved_path = save_file(source, target_dir, filename, prefix, add_timestamp)
 
-        return web.json_response({
-            "success": True,
-            "path": saved_path,
-            "filename": os.path.basename(saved_path)
-        })
+        return web.json_response(
+            {"success": True, "path": saved_path, "filename": os.path.basename(saved_path)}
+        )
 
     except FileNotFoundError as e:
-        return web.json_response({
-            "error": "Source file not found"
-        }, status=404)
+        return web.json_response({"error": "Source file not found"}, status=404)
 
     except Exception as e:
         logger.error(f"[DataManager] save_file error: {e}")
-        return web.json_response({
-            "error": str(e)
-        }, status=500)
+        return web.json_response({"error": str(e)}, status=500)
 
 
 async def create_file_handler(request):
@@ -82,42 +71,29 @@ async def create_file_handler(request):
         content = data.get("content", "")
 
         if not filename:
-            return web.json_response({
-                "error": "Filename is required"
-            }, status=400)
+            return web.json_response({"error": "Filename is required"}, status=400)
 
         # 规范化路径
         if not os.path.isabs(directory):
             import folder_paths
+
             comfy_root = os.path.dirname(folder_paths.__file__)
             directory = os.path.abspath(os.path.join(comfy_root, directory))
 
         # 创建文件
         file_path = create_file(directory, filename, content)
 
-        return web.json_response({
-            "success": True,
-            "path": file_path,
-            "filename": filename
-        })
+        return web.json_response({"success": True, "path": file_path, "filename": filename})
 
     except FileExistsError as e:
-        return web.json_response({
-            "error": "File already exists",
-            "message": str(e)
-        }, status=409)
+        return web.json_response({"error": "File already exists", "message": str(e)}, status=409)
 
     except FileNotFoundError as e:
-        return web.json_response({
-            "error": "Directory not found",
-            "message": str(e)
-        }, status=404)
+        return web.json_response({"error": "Directory not found", "message": str(e)}, status=404)
 
     except Exception as e:
         logger.error(f"[DataManager] create_file error: {e}")
-        return web.json_response({
-            "error": str(e)
-        }, status=500)
+        return web.json_response({"error": str(e)}, status=500)
 
 
 async def create_directory_handler(request):
@@ -135,42 +111,33 @@ async def create_directory_handler(request):
         dirname = data.get("dirname", "")
 
         if not dirname:
-            return web.json_response({
-                "error": "Directory name is required"
-            }, status=400)
+            return web.json_response({"error": "Directory name is required"}, status=400)
 
         # 规范化路径
         if not os.path.isabs(directory):
             import folder_paths
+
             comfy_root = os.path.dirname(folder_paths.__file__)
             directory = os.path.abspath(os.path.join(comfy_root, directory))
 
         # 创建文件夹
         dir_path = create_directory(directory, dirname)
 
-        return web.json_response({
-            "success": True,
-            "path": dir_path,
-            "dirname": dirname
-        })
+        return web.json_response({"success": True, "path": dir_path, "dirname": dirname})
 
     except FileExistsError as e:
-        return web.json_response({
-            "error": "Directory already exists",
-            "message": str(e)
-        }, status=409)
+        return web.json_response(
+            {"error": "Directory already exists", "message": str(e)}, status=409
+        )
 
     except FileNotFoundError as e:
-        return web.json_response({
-            "error": "Parent directory not found",
-            "message": str(e)
-        }, status=404)
+        return web.json_response(
+            {"error": "Parent directory not found", "message": str(e)}, status=404
+        )
 
     except Exception as e:
         logger.error(f"[DataManager] create_directory error: {e}")
-        return web.json_response({
-            "error": str(e)
-        }, status=500)
+        return web.json_response({"error": str(e)}, status=500)
 
 
 async def delete_file_handler(request):
@@ -188,41 +155,29 @@ async def delete_file_handler(request):
         use_trash = data.get("use_trash", True)
 
         if not path:
-            return web.json_response({
-                "error": "Path is required"
-            }, status=400)
+            return web.json_response({"error": "Path is required"}, status=400)
 
         # 规范化路径
         if not os.path.isabs(path):
             import folder_paths
+
             comfy_root = os.path.dirname(folder_paths.__file__)
             path = os.path.abspath(os.path.join(comfy_root, path))
 
         # 删除文件
         delete_file(path, use_trash)
 
-        return web.json_response({
-            "success": True,
-            "path": path
-        })
+        return web.json_response({"success": True, "path": path})
 
     except FileNotFoundError as e:
-        return web.json_response({
-            "error": "File not found",
-            "message": str(e)
-        }, status=404)
+        return web.json_response({"error": "File not found", "message": str(e)}, status=404)
 
     except PermissionError as e:
-        return web.json_response({
-            "error": "Permission denied",
-            "message": str(e)
-        }, status=403)
+        return web.json_response({"error": "Permission denied", "message": str(e)}, status=403)
 
     except Exception as e:
         logger.error(f"[DataManager] delete_file error: {e}")
-        return web.json_response({
-            "error": str(e)
-        }, status=500)
+        return web.json_response({"error": str(e)}, status=500)
 
 
 def register_operation_routes(server):
@@ -245,7 +200,7 @@ def register_operation_routes(server):
 
     # 回退到 app.router 注册
     app = getattr(server, "app", None)
-    if app and hasattr(app, 'router'):
+    if app and hasattr(app, "router"):
         app.router.add_post("/dm/save", save_file_handler)
         app.router.add_post("/dm/create/file", create_file_handler)
         app.router.add_post("/dm/create/directory", create_directory_handler)

@@ -33,11 +33,11 @@ def test_extension_loaded(page: Page):
     dm_button = page.get_by_text("Data Manager")
     if dm_button.count() == 0:
         dm_button = page.locator("[data-id*='dm'], .comfy-menu-button")
-    
+
     page.screenshot(path="tests/test_screenshots/01_page_state.png", full_page=True)
     print(f"  Page loaded, checking for extension...")
     print(f"  DM button count: {dm_button.count()}")
-    
+
     return dm_button.count() > 0
 
 

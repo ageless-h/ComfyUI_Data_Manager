@@ -13,6 +13,7 @@ from pathlib import Path
 
 try:
     import paramiko
+
     HAS_PARAMIKO = True
 except ImportError:
     HAS_PARAMIKO = False
@@ -29,16 +30,19 @@ DEFAULT_TIMEOUT = 300  # SFTP 操作超时
 
 class SSHConnectionError(Exception):
     """SSH 连接错误"""
+
     pass
 
 
 class SSHAuthError(SSHConnectionError):
     """认证失败"""
+
     pass
 
 
 class SSHPathError(SSHConnectionError):
     """路径错误（权限不足、路径不存在等）"""
+
     pass
 
 
@@ -73,7 +77,7 @@ def connect(
     username: str = "",
     password: str = "",
     key_filename: Optional[str] = None,
-    connect_timeout: int = DEFAULT_CONNECT_TIMEOUT
+    connect_timeout: int = DEFAULT_CONNECT_TIMEOUT,
 ) -> Tuple[str, str]:
     """建立 SSH 连接
 
@@ -279,7 +283,9 @@ def list_remote_files(conn_id: str, path: str = ".") -> List[Dict[str, Any]]:
 
         items = []
         for entry in sftp.listdir_attr(path):
-            remote_path = f"{path}/{entry.filename}" if not path.endswith("/") else f"{path}{entry.filename}"
+            remote_path = (
+                f"{path}/{entry.filename}" if not path.endswith("/") else f"{path}{entry.filename}"
+            )
 
             # 构建文件信息（兼容本地文件信息格式）
             file_info = {
@@ -552,7 +558,7 @@ def read_remote_file(conn_id: str, path: str, offset: int = 0, length: int = -1)
         _ensure_connected(conn_id)
         _update_activity(conn_id)
 
-        with sftp.file(path, mode='rb') as remote_file:
+        with sftp.file(path, mode="rb") as remote_file:
             if offset > 0:
                 remote_file.seek(offset)
             if length > 0:
@@ -572,7 +578,7 @@ def _format_size(size: int) -> str:
     Returns:
         人类可读的大小字符串
     """
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
         if size < 1024.0:
             return f"{size:.1f} {unit}"
         size /= 1024.0

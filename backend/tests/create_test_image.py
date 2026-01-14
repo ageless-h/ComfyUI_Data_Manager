@@ -7,7 +7,7 @@ import os
 
 # 创建一个简单的测试图像
 img_array = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
-img = Image.fromarray(img_array, 'RGB')
+img = Image.fromarray(img_array, "RGB")
 
 # 保存到 ComfyUI input 目录
 comfyui_input = r"C:\Users\Administrator\Documents\ai\ComfyUI\input"

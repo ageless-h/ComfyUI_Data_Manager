@@ -56,29 +56,30 @@ async def ssh_connect_handler(request):
             return web.json_response({"error": "username 参数必填"}, status=400)
 
         if not is_available():
-            return web.json_response({
-                "error": "paramiko 库未安装",
-                "hint": "请运行: pip install paramiko"
-            }, status=500)
+            return web.json_response(
+                {"error": "paramiko 库未安装", "hint": "请运行: pip install paramiko"}, status=500
+            )
 
         conn_id, root_path = connect(
             host=host,
             port=port,
             username=username,
             password=password,
-            key_filename=key_filename if key_filename else None
+            key_filename=key_filename if key_filename else None,
         )
 
         logger.info(f"[DataManager] SSH 连接已建立: {conn_id} -> {username}@{host}:{port}")
 
-        return web.json_response({
-            "success": True,
-            "connection_id": conn_id,
-            "host": host,
-            "port": port,
-            "username": username,
-            "root_path": root_path
-        })
+        return web.json_response(
+            {
+                "success": True,
+                "connection_id": conn_id,
+                "host": host,
+                "port": port,
+                "username": username,
+                "root_path": root_path,
+            }
+        )
 
     except SSHAuthError as e:
         logger.warning(f"[DataManager] SSH 认证失败: {e}")
@@ -135,12 +136,9 @@ async def ssh_list_handler(request):
 
         files = list_remote_files(conn_id, path)
 
-        return web.json_response({
-            "success": True,
-            "path": path,
-            "files": files,
-            "count": len(files)
-        })
+        return web.json_response(
+            {"success": True, "path": path, "files": files, "count": len(files)}
+        )
 
     except SSHConnectionError as e:
         return web.json_response({"error": str(e)}, status=500)
@@ -169,10 +167,7 @@ async def ssh_info_handler(request):
 
         info = get_remote_file_info(conn_id, path)
 
-        return web.json_response({
-            "success": True,
-            "info": info
-        })
+        return web.json_response({"success": True, "info": info})
 
     except SSHConnectionError as e:
         return web.json_response({"error": str(e)}, status=500)
@@ -213,10 +208,7 @@ async def ssh_download_handler(request):
 
         result_path = download_remote_file(conn_id, remote_path, local_path)
 
-        return web.json_response({
-            "success": True,
-            "local_path": result_path
-        })
+        return web.json_response({"success": True, "local_path": result_path})
 
     except SSHConnectionError as e:
         return web.json_response({"error": str(e)}, status=500)
@@ -252,10 +244,7 @@ async def ssh_upload_handler(request):
 
         result_path = upload_local_file(conn_id, local_path, remote_path)
 
-        return web.json_response({
-            "success": True,
-            "remote_path": result_path
-        })
+        return web.json_response({"success": True, "remote_path": result_path})
 
     except SSHConnectionError as e:
         return web.json_response({"error": str(e)}, status=500)
@@ -303,11 +292,7 @@ async def ssh_list_hosts_handler(request):
     """
     try:
         hosts = get_connected_hosts()
-        return web.json_response({
-            "success": True,
-            "hosts": hosts,
-            "count": len(hosts)
-        })
+        return web.json_response({"success": True, "hosts": hosts, "count": len(hosts)})
 
     except Exception as e:
         logger.error(f"[DataManager] SSH list_hosts 异常: {e}")
@@ -334,11 +319,15 @@ async def ssh_read_handler(request):
 
         content = read_remote_file(conn_id, path, offset, length)
 
-        return web.json_response({
-            "success": True,
-            "content_length": len(content),
-            "content": content.decode('latin-1') if len(content) < 1024 * 1024 else None  # 小于 1MB 直接返回
-        })
+        return web.json_response(
+            {
+                "success": True,
+                "content_length": len(content),
+                "content": (
+                    content.decode("latin-1") if len(content) < 1024 * 1024 else None
+                ),  # 小于 1MB 直接返回
+            }
+        )
 
     except SSHConnectionError as e:
         return web.json_response({"error": str(e)}, status=500)
@@ -379,7 +368,7 @@ def register_ssh_routes(server):
 
     # 回退到 app.router 注册
     app = getattr(server, "app", None)
-    if app and hasattr(app, 'router'):
+    if app and hasattr(app, "router"):
         for path, handler in routes:
             app.router.add_post(path, handler)
         logger.info(f"[DataManager] SSH routes registered (app.router): {len(routes)} endpoints")

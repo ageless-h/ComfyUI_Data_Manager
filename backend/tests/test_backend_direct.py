@@ -22,10 +22,12 @@ sys.path.insert(0, data_manager_path)
 # 导入 comfy_api
 try:
     from comfy_api.latest import io, ComfyExtension
+
     print("✓ comfy_api 已导入")
 except ImportError as e:
     print(f"✗ comfy_api 导入失败: {e}")
     print("将尝试模拟 io 模块...")
+
 
 def create_test_image():
     """创建测试图像张量"""
@@ -33,11 +35,12 @@ def create_test_image():
     img_array = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
     return img_array
 
+
 def test_parse_target_path():
     """测试路径解析函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 parse_target_path 函数")
-    print("="*60)
+    print("=" * 60)
 
     from backend.core.nodes_v3 import parse_target_path
 
@@ -67,11 +70,12 @@ def test_parse_target_path():
 
     print("\n✓ parse_target_path 测试通过")
 
+
 def test_save_image():
     """测试图像保存函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 save_image 函数")
-    print("="*60)
+    print("=" * 60)
 
     from backend.core.nodes_v3 import save_image
 
@@ -100,6 +104,7 @@ def test_save_image():
     except Exception as e:
         print(f"  ✗ 保存失败: {e}")
         import traceback
+
         traceback.print_exc()
 
     # 测试保存 JPG
@@ -117,6 +122,7 @@ def test_save_image():
     except Exception as e:
         print(f"  ✗ 保存失败: {e}")
         import traceback
+
         traceback.print_exc()
 
     # 测试保存 WebP
@@ -134,15 +140,17 @@ def test_save_image():
     except Exception as e:
         print(f"  ✗ 保存失败: {e}")
         import traceback
+
         traceback.print_exc()
 
     print("\n✓ save_image 测试完成")
 
+
 def test_input_path_config_execute():
     """测试 InputPathConfig.execute 方法"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 InputPathConfig.execute 方法")
-    print("="*60)
+    print("=" * 60)
 
     from backend.core.nodes_v3 import InputPathConfig
 
@@ -157,12 +165,12 @@ def test_input_path_config_execute():
         cls=InputPathConfig,
         target_path=r"C:\Users\Administrator\Downloads\test_execute_output.png",
         format="png",
-        file_input=test_tensor
+        file_input=test_tensor,
     )
 
     print(f"  返回结果类型: {type(result)}")
     # result 是 io.NodeOutput 对象，需要获取值
-    if hasattr(result, 'value'):
+    if hasattr(result, "value"):
         result_value = result.value
     else:
         result_value = result
@@ -177,7 +185,7 @@ def test_input_path_config_execute():
         print(f"  保存路径: {result_dict.get('saved_path')}")
         print(f"  错误信息: {result_dict.get('error')}")
 
-        saved_path = result_dict.get('saved_path')
+        saved_path = result_dict.get("saved_path")
         if saved_path and os.path.exists(saved_path):
             file_size = os.path.getsize(saved_path)
             print(f"  ✓ 文件已保存，大小: {file_size} 字节")
@@ -193,10 +201,10 @@ def test_input_path_config_execute():
         cls=InputPathConfig,
         target_path=r"C:\Users\Administrator\Downloads\test_execute_output2.png",
         format="png",
-        file_input=None
+        file_input=None,
     )
 
-    if hasattr(result, 'value'):
+    if hasattr(result, "value"):
         result_value = result.value
     else:
         result_value = result
@@ -212,11 +220,12 @@ def test_input_path_config_execute():
 
     print("\n✓ InputPathConfig.execute 测试完成")
 
+
 def test_dict_input():
     """测试字典类型输入（ComfyUI 图像格式）"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试字典类型输入（ComfyUI 图像格式）")
-    print("="*60)
+    print("=" * 60)
 
     from backend.core.nodes_v3 import InputPathConfig
 
@@ -226,19 +235,16 @@ def test_dict_input():
 
     # 测试 1: 带有 tensor 字段的字典
     print("\n[测试 1] 带有 tensor 字段的字典")
-    image_dict = {
-        "tensor": test_tensor,
-        "some_other_field": "test"
-    }
+    image_dict = {"tensor": test_tensor, "some_other_field": "test"}
 
     result = InputPathConfig.execute(
         cls=InputPathConfig,
         target_path=r"C:\Users\Administrator\Downloads\test_dict_output.png",
         format="png",
-        file_input=image_dict
+        file_input=image_dict,
     )
 
-    if hasattr(result, 'value'):
+    if hasattr(result, "value"):
         result_value = result.value
     else:
         result_value = result
@@ -252,7 +258,7 @@ def test_dict_input():
         print(f"  保存路径: {result_dict.get('saved_path')}")
         print(f"  错误信息: {result_dict.get('error')}")
 
-        saved_path = result_dict.get('saved_path')
+        saved_path = result_dict.get("saved_path")
         if saved_path and os.path.exists(saved_path):
             file_size = os.path.getsize(saved_path)
             print(f"  ✓ 文件已保存，大小: {file_size} 字节")
@@ -263,10 +269,11 @@ def test_dict_input():
 
     print("\n✓ 字典类型输入测试完成")
 
+
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ComfyUI Data Manager 后端测试")
-    print("="*60)
+    print("=" * 60)
 
     try:
         # 测试路径解析
@@ -281,15 +288,19 @@ def main():
         # 测试字典输入
         test_dict_input()
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("✓ 所有测试完成")
-        print("="*60)
+        print("=" * 60)
 
         # 检查保存的文件
         print("\n检查保存的文件:")
         test_dir = r"C:\Users\Administrator\Downloads"
-        for f in ["test_backend_save.png", "test_backend_save.jpg", "test_backend_save.webp",
-                  "test_execute_output.png"]:
+        for f in [
+            "test_backend_save.png",
+            "test_backend_save.jpg",
+            "test_backend_save.webp",
+            "test_execute_output.png",
+        ]:
             path = os.path.join(test_dir, f)
             if os.path.exists(path):
                 print(f"  ✓ {f} ({os.path.getsize(path)} 字节)")
@@ -299,10 +310,12 @@ def main():
     except Exception as e:
         print(f"\n✗ 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
     return True
+
 
 if __name__ == "__main__":
     success = main()

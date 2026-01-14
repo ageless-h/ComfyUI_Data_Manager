@@ -7,9 +7,9 @@ from playwright.sync_api import sync_playwright
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("节点加载状态调试")
-    print("="*60)
+    print("=" * 60)
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, slow_mo=500)
@@ -22,7 +22,8 @@ def main():
             time.sleep(2)
 
             print("\n[步骤 2] 检查 InputPathConfig 节点是否可用")
-            check_result = page.evaluate("""() => {
+            check_result = page.evaluate(
+                """() => {
                 try {
                     // 检查节点类型是否注册
                     const hasInputPathConfig = typeof window.LiteGraph !== 'undefined' &&
@@ -60,12 +61,14 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message };
                 }
-            }""")
+            }"""
+            )
 
             print(f"  检查结果: {json.dumps(check_result, indent=2, ensure_ascii=False)}")
 
             print("\n[步骤 3] 检查控制台错误")
-            console_errors = page.evaluate("""() => {
+            console_errors = page.evaluate(
+                """() => {
                 // 收集所有控制台错误
                 const errors = [];
 
@@ -76,12 +79,14 @@ def main():
                     hasDataManagerLogs: hasDataManagerLogs.length > 0,
                     logs: hasDataManagerLogs.slice(-10)
                 };
-            }""")
+            }"""
+            )
 
             print(f"  DataManager 日志: {json.dumps(console_errors, indent=2, ensure_ascii=False)}")
 
             print("\n[步骤 4] 添加测试节点并执行")
-            execute_test = page.evaluate("""() => {
+            execute_test = page.evaluate(
+                """() => {
                 try {
                     // 创建 LoadImage
                     const loadImage = window.LiteGraph.createNode('LoadImage');
@@ -125,23 +130,30 @@ def main():
                 } catch (e) {
                     return { success: false, error: e.message, stack: e.stack };
                 }
-            }""")
+            }"""
+            )
 
             print(f"  执行测试: {json.dumps(execute_test, indent=2, ensure_ascii=False)}")
 
             # 截图
-            page.screenshot(path=r"C:\\Users\\Administrator\\Documents\\ai\\ComfyUI\\custom_nodes\\ComfyUI_Data_Manager\\tests\\debug_nodes.png")
+            page.screenshot(
+                path=r"C:\\Users\\Administrator\\Documents\\ai\\ComfyUI\\custom_nodes\\ComfyUI_Data_Manager\\tests\\debug_nodes.png"
+            )
 
             print("\n[步骤 5] 执行工作流")
-            page.evaluate("""() => {
+            page.evaluate(
+                """() => {
                 window.app.queuePrompt(0, 1);
-            }""")
+            }"""
+            )
 
             print("  等待执行完成（10秒）...")
             time.sleep(10)
 
             # 截图
-            page.screenshot(path=r"C:\\Users\\Administrator\\Documents\\ai\\ComfyUI\\custom_nodes\\ComfyUI_Data_Manager\\tests\\debug_after_execute.png")
+            page.screenshot(
+                path=r"C:\\Users\\Administrator\\Documents\\ai\\ComfyUI\\custom_nodes\\ComfyUI_Data_Manager\\tests\\debug_after_execute.png"
+            )
 
             time.sleep(2)
             browser.close()
@@ -149,6 +161,7 @@ def main():
         except Exception as e:
             print(f"\n✗ 调试失败: {e}")
             import traceback
+
             traceback.print_exc()
             browser.close()
 

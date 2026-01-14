@@ -21,18 +21,22 @@ from PIL import Image
 # 导入修复后的 load_image 函数
 # 直接导入函数以避免模块问题
 import importlib.util
-spec = importlib.util.spec_from_file_location("nodes_v3", os.path.join(data_manager_path, "core", "nodes_v3.py"))
+
+spec = importlib.util.spec_from_file_location(
+    "nodes_v3", os.path.join(data_manager_path, "core", "nodes_v3.py")
+)
 nodes_v3 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(nodes_v3)
 
 load_image = nodes_v3.load_image
 save_image = nodes_v3.save_image
 
+
 def test_load_image_returns_tensor():
     """测试 load_image 返回 torch.Tensor 而不是 numpy.ndarray"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试 load_image 返回 torch.Tensor")
-    print("="*60)
+    print("=" * 60)
 
     # 创建测试图像
     test_image_path = r"C:\Users\Administrator\Downloads\test_load_image.png"
@@ -108,14 +112,16 @@ def test_load_image_returns_tensor():
     except Exception as e:
         print(f"  ✗ 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
+
 def test_roundtrip_save_load():
     """测试保存和加载的往返一致性"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试保存和加载往返一致性")
-    print("="*60)
+    print("=" * 60)
 
     # 创建原始图像 (torch.Tensor 格式, ComfyUI 标准)
     original = torch.from_numpy(np.random.rand(1, 256, 256, 3).astype(np.float32))
@@ -159,13 +165,15 @@ def test_roundtrip_save_load():
     except Exception as e:
         print(f"  ✗ 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
+
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("load_image 修复验证测试")
-    print("="*60)
+    print("=" * 60)
 
     results = []
 
@@ -176,9 +184,9 @@ def main():
     results.append(("保存和加载往返一致性", test_roundtrip_save_load()))
 
     # 总结
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试结果总结")
-    print("="*60)
+    print("=" * 60)
     for name, passed in results:
         status = "✓ PASS" if passed else "✗ FAIL"
         print(f"{status}: {name}")
@@ -190,6 +198,7 @@ def main():
     else:
         print("\n✗ 有测试失败")
         return False
+
 
 if __name__ == "__main__":
     success = main()

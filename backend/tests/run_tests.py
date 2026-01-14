@@ -20,9 +20,13 @@ import pytest
 
 # 运行测试
 if __name__ == "__main__":
-    sys.exit(pytest.main([
-        "-v",
-        "--tb=short",
-        "test_ssh_fs.py",
-        "test_ssh_routes.py",
-    ]))
+    sys.exit(
+        pytest.main(
+            [
+                "-v",
+                "--tb=short",
+                "test_ssh_fs.py",
+                "test_ssh_routes.py",
+            ]
+        )
+    )

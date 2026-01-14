@@ -10,26 +10,28 @@
  * @param overrides - Partial file info to override defaults
  * @returns A mock file info object
  */
-export function createMockFileInfo(overrides: Partial<{
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  modified: string;
-}> = {}): {
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  modified: string;
+export function createMockFileInfo(
+  overrides: Partial<{
+    name: string
+    path: string
+    type: string
+    size: number
+    modified: string
+  }> = {}
+): {
+  name: string
+  path: string
+  type: string
+  size: number
+  modified: string
 } {
   return {
     name: overrides.name ?? 'test_file.jpg',
     path: overrides.path ?? '/path/to/test_file.jpg',
     type: overrides.type ?? 'file',
     size: overrides.size ?? 1024000,
-    modified: overrides.modified ?? new Date().toISOString()
-  };
+    modified: overrides.modified ?? new Date().toISOString(),
+  }
 }
 
 /**
@@ -42,19 +44,19 @@ export function createMockFileList(
   count: number,
   prefix: string = 'file'
 ): Array<{
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  modified: string;
+  name: string
+  path: string
+  type: string
+  size: number
+  modified: string
 }> {
   return Array.from({ length: count }, (_, i) => ({
     name: `${prefix}_${i + 1}.jpg`,
     path: `/path/to/${prefix}_${i + 1}.jpg`,
     type: 'file',
     size: 1024000 * (i + 1),
-    modified: new Date().toISOString()
-  }));
+    modified: new Date().toISOString(),
+  }))
 }
 
 /**
@@ -68,25 +70,25 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
   attributes: Record<string, string> = {},
   children: HTMLElement[] = []
 ): HTMLElementTagNameMap[K] {
-  const element = document.createElement(tagName);
+  const element = document.createElement(tagName)
 
   Object.entries(attributes).forEach(([key, value]) => {
     if (key === 'className') {
-      element.className = value;
+      element.className = value
     } else if (key === 'id') {
-      element.id = value;
+      element.id = value
     } else if (key === 'textContent') {
-      element.textContent = value;
+      element.textContent = value
     } else if (key === 'innerHTML') {
-      element.innerHTML = value;
+      element.innerHTML = value
     } else {
-      element.setAttribute(key, value);
+      element.setAttribute(key, value)
     }
-  });
+  })
 
-  children.forEach(child => element.appendChild(child));
+  children.forEach((child) => element.appendChild(child))
 
-  return element;
+  return element
 }
 
 /**
@@ -95,17 +97,17 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
  * @returns An HTMLInputElement configured as a file input
  */
 export function createFileInput(files: File[] = []): HTMLInputElement {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.multiple = files.length > 1;
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.multiple = files.length > 1
 
   // Mock the files property (readonly)
   Object.defineProperty(input, 'files', {
     value: files,
-    writable: false
-  });
+    writable: false,
+  })
 
-  return input;
+  return input
 }
 
 /**
@@ -120,10 +122,10 @@ export function createMockFile(
   size: number = 1024,
   type: string = 'image/jpeg'
 ): File {
-  const file = new File(['test content'], name, { type });
+  const file = new File(['test content'], name, { type })
   // Mock the size property
-  Object.defineProperty(file, 'size', { value: size });
-  return file;
+  Object.defineProperty(file, 'size', { value: size })
+  return file
 }
 
 /**
@@ -132,16 +134,13 @@ export function createMockFile(
  * @param options - Event options
  * @returns A MouseEvent object
  */
-export function createMouseEvent(
-  type: string,
-  options: MouseEventInit = {}
-): MouseEvent {
+export function createMouseEvent(type: string, options: MouseEventInit = {}): MouseEvent {
   return new MouseEvent(type, {
     bubbles: true,
     cancelable: true,
     view: window,
-    ...options
-  });
+    ...options,
+  })
 }
 
 /**
@@ -160,8 +159,8 @@ export function createKeyboardEvent(
     key,
     bubbles: true,
     cancelable: true,
-    ...options
-  });
+    ...options,
+  })
 }
 
 /**
@@ -169,7 +168,7 @@ export function createKeyboardEvent(
  * @returns Promise that resolves on next animation frame
  */
 export function waitForNextFrame(): Promise<void> {
-  return new Promise(resolve => requestAnimationFrame(() => resolve()));
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()))
 }
 
 /**
@@ -178,7 +177,7 @@ export function waitForNextFrame(): Promise<void> {
  * @returns Promise that resolves after specified time
  */
 export function wait(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
@@ -186,7 +185,7 @@ export function wait(ms: number): Promise<void> {
  * @returns Promise that resolves when microtask queue is empty
  */
 export function flushPromises(): Promise<void> {
-  return Promise.resolve();
+  return Promise.resolve()
 }
 
 /**
@@ -215,9 +214,9 @@ export function createMockResponse<T>(
     body: null as Response['body'],
     bodyUsed: false,
     clone: function () {
-      return this;
-    }
-  } as unknown as Response;
+      return this
+    },
+  } as unknown as Response
 }
 
 /**
@@ -226,11 +225,8 @@ export function createMockResponse<T>(
  * @param status - HTTP status code
  * @returns A mock error Response object
  */
-export function createMockErrorResponse(
-  message: string,
-  status: number = 500
-): Response {
-  return createMockResponse({ error: message }, status, 'Error');
+export function createMockErrorResponse(message: string, status: number = 500): Response {
+  return createMockResponse({ error: message }, status, 'Error')
 }
 
 /**
@@ -243,7 +239,7 @@ export const mockFileData = {
     type: 'image',
     size: 2048000,
     modified: new Date().toISOString(),
-    ext: '.jpg'
+    ext: '.jpg',
   },
   video: {
     name: 'test_video.mp4',
@@ -251,7 +247,7 @@ export const mockFileData = {
     type: 'video',
     size: 10240000,
     modified: new Date().toISOString(),
-    ext: '.mp4'
+    ext: '.mp4',
   },
   audio: {
     name: 'test_audio.mp3',
@@ -259,7 +255,7 @@ export const mockFileData = {
     type: 'audio',
     size: 5120000,
     modified: new Date().toISOString(),
-    ext: '.mp3'
+    ext: '.mp3',
   },
   document: {
     name: 'test_doc.pdf',
@@ -267,7 +263,7 @@ export const mockFileData = {
     type: 'document',
     size: 256000,
     modified: new Date().toISOString(),
-    ext: '.pdf'
+    ext: '.pdf',
   },
   csv: {
     name: 'test_data.csv',
@@ -275,38 +271,36 @@ export const mockFileData = {
     type: 'spreadsheet',
     size: 1024,
     modified: new Date().toISOString(),
-    ext: '.csv'
-  }
-} as const;
+    ext: '.csv',
+  },
+} as const
 
 /**
  * Creates a mock directory listing response
  * @param files - Optional array of files to include
  * @returns A mock directory listing response
  */
-export function createMockDirectoryListing(
-  files: ReturnType<typeof createMockFileInfo>[] = []
-): {
+export function createMockDirectoryListing(files: ReturnType<typeof createMockFileInfo>[] = []): {
   files: Array<{
-    name: string;
-    path: string;
-    type: string;
-    size: number;
-    modified: string;
-  }>;
-  path: string;
+    name: string
+    path: string
+    type: string
+    size: number
+    modified: string
+  }>
+  path: string
 } {
   return {
     files: files.length > 0 ? files : [createMockFileInfo()],
-    path: '/test/path'
-  };
+    path: '/test/path',
+  }
 }
 
 /**
  * Clears document body between tests
  */
 export function clearDocumentBody(): void {
-  document.body.innerHTML = '';
+  document.body.innerHTML = ''
 }
 
 /**
@@ -314,9 +308,9 @@ export function clearDocumentBody(): void {
  * @returns Cleanup function to restore environment
  */
 export function setupTestEnvironment(): () => void {
-  clearDocumentBody();
+  clearDocumentBody()
 
   return () => {
-    clearDocumentBody();
-  };
+    clearDocumentBody()
+  }
 }

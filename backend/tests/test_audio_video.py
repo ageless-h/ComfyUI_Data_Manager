@@ -11,6 +11,7 @@ sys.path.insert(0, comfyui_path)
 import torch
 import numpy as np
 
+
 def load_audio(file_path: str) -> dict:
     """加载音频文件为 ComfyUI AUDIO 格式"""
     try:
@@ -24,6 +25,7 @@ def load_audio(file_path: str) -> dict:
     # 优先使用 soundfile 直接加载
     try:
         import soundfile as sf
+
         data, sample_rate = sf.read(file_path, always_2d=True)
         waveform = torch.from_numpy(data.T).float()
     except ImportError:
@@ -31,6 +33,7 @@ def load_audio(file_path: str) -> dict:
     except Exception as e:
         try:
             import torchaudio
+
             waveform, sample_rate = torchaudio.load(file_path)
         except ImportError:
             raise ImportError("torchaudio 未安装，无法加载音频")
@@ -38,8 +41,10 @@ def load_audio(file_path: str) -> dict:
             raise RuntimeError(f"无法加载音频文件: {e}, torchaudio 也失败: {e2}")
 
     return {
-        "waveform": waveform.unsqueeze(0),  # [channels, samples] -> [1, channels, samples] 添加批次维度
-        "sample_rate": sample_rate
+        "waveform": waveform.unsqueeze(
+            0
+        ),  # [channels, samples] -> [1, channels, samples] 添加批次维度
+        "sample_rate": sample_rate,
     }
 
 
@@ -50,6 +55,7 @@ def load_video(file_path: str):
 
     try:
         from comfy_api.latest import InputImpl
+
         return InputImpl.VideoFromFile(file_path)
     except ImportError:
         raise ImportError("comfy_api 未安装，无法加载视频")
@@ -61,7 +67,8 @@ def load_conditioning(file_path: str) -> list:
         raise FileNotFoundError(f"Conditioning 文件不存在: {file_path}")
 
     import json
-    with open(file_path, 'r', encoding='utf-8') as f:
+
+    with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     return [[data]]
@@ -72,29 +79,44 @@ def load_text(file_path: str) -> str:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"文本文件不存在: {file_path}")
 
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
 def detect_type_from_extension(file_path: str) -> str:
     """根据文件扩展名检测 ComfyUI 数据类型"""
     ext_map = {
-        "png": "IMAGE", "jpg": "IMAGE", "jpeg": "IMAGE", "webp": "IMAGE",
-        "bmp": "IMAGE", "tiff": "IMAGE", "tif": "IMAGE", "gif": "IMAGE",
-        "mp4": "VIDEO", "webm": "VIDEO", "avi": "VIDEO", "mov": "VIDEO", "mkv": "VIDEO",
-        "mp3": "AUDIO", "wav": "AUDIO", "flac": "AUDIO", "ogg": "AUDIO",
-        "latent": "LATENT", "json": "CONDITIONING", "txt": "STRING",
+        "png": "IMAGE",
+        "jpg": "IMAGE",
+        "jpeg": "IMAGE",
+        "webp": "IMAGE",
+        "bmp": "IMAGE",
+        "tiff": "IMAGE",
+        "tif": "IMAGE",
+        "gif": "IMAGE",
+        "mp4": "VIDEO",
+        "webm": "VIDEO",
+        "avi": "VIDEO",
+        "mov": "VIDEO",
+        "mkv": "VIDEO",
+        "mp3": "AUDIO",
+        "wav": "AUDIO",
+        "flac": "AUDIO",
+        "ogg": "AUDIO",
+        "latent": "LATENT",
+        "json": "CONDITIONING",
+        "txt": "STRING",
     }
     _, ext = os.path.splitext(file_path)
-    ext = ext.lstrip('.').lower()
+    ext = ext.lstrip(".").lower()
     return ext_map.get(ext, "STRING")
 
 
 def test_audio_loading():
     """测试音频加载"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试音频加载 (AUDIO)")
-    print("="*60)
+    print("=" * 60)
 
     # 查找 Downloads 文件夹中的音频文件
     downloads_dir = r"C:\Users\Administrator\Downloads"
@@ -153,7 +175,9 @@ def test_audio_loading():
             if waveform.shape[0] != 1:
                 print(f"  ⚠ waveform 批次维度不是 1: {waveform.shape[0]}")
 
-            print(f"  ✓ waveform 形状: {waveform.shape} (batch={waveform.shape[0]}, channels={waveform.shape[1]}, samples={waveform.shape[2]})")
+            print(
+                f"  ✓ waveform 形状: {waveform.shape} (batch={waveform.shape[0]}, channels={waveform.shape[1]}, samples={waveform.shape[2]})"
+            )
             print(f"  ✓ sample_rate: {sample_rate} Hz")
 
             # 验证可以调用 movedim (这是 ComfyUI 音频预览需要的关键操作)
@@ -172,6 +196,7 @@ def test_audio_loading():
         except Exception as e:
             print(f"  ✗ 加载失败: {e}")
             import traceback
+
             traceback.print_exc()
             results.append((os.path.basename(audio_file), False))
 
@@ -186,9 +211,9 @@ def test_audio_loading():
 
 def test_video_loading():
     """测试视频加载"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试视频加载 (VIDEO)")
-    print("="*60)
+    print("=" * 60)
 
     # 查找 Downloads 文件夹中的视频文件
     downloads_dir = r"C:\Users\Administrator\Downloads"
@@ -222,6 +247,7 @@ def test_video_loading():
         except Exception as e:
             print(f"  ✗ 加载失败: {e}")
             import traceback
+
             traceback.print_exc()
             results.append((os.path.basename(video_file), False))
 
@@ -236,9 +262,9 @@ def test_video_loading():
 
 def test_text_loading():
     """测试文本/conditioning 加载"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试文本/Conditioning 加载")
-    print("="*60)
+    print("=" * 60)
 
     # 创建测试文件
     test_dir = r"C:\Users\Administrator\Downloads\test_formats"
@@ -251,8 +277,9 @@ def test_text_loading():
     json_file = os.path.join(test_dir, "test.json")
     try:
         import json
+
         test_data = {"prompt": "a beautiful landscape", "steps": 20}
-        with open(json_file, 'w', encoding='utf-8') as f:
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(test_data, f, ensure_ascii=False, indent=2)
 
         detected = detect_type_from_extension(json_file)
@@ -274,7 +301,7 @@ def test_text_loading():
     print("\n[测试] TXT 文件")
     txt_file = os.path.join(test_dir, "test.txt")
     try:
-        with open(txt_file, 'w', encoding='utf-8') as f:
+        with open(txt_file, "w", encoding="utf-8") as f:
             f.write("Hello, ComfyUI Data Manager!")
 
         detected = detect_type_from_extension(txt_file)
@@ -290,6 +317,7 @@ def test_text_loading():
 
     # 清理
     import shutil
+
     try:
         shutil.rmtree(test_dir)
         print(f"\n✓ 清理测试目录")
@@ -306,9 +334,9 @@ def test_text_loading():
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("音频、视频、文本格式测试")
-    print("="*60)
+    print("=" * 60)
 
     results = []
 
@@ -322,9 +350,9 @@ def main():
     results.append(("文本/Conditioning 加载", test_text_loading()))
 
     # 总结
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("最终结果")
-    print("="*60)
+    print("=" * 60)
     for name, passed in results:
         status = "✓ PASS" if passed else "✗ FAIL"
         print(f"{status}: {name}")

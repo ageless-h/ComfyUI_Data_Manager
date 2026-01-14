@@ -1,0 +1,12 @@
+# 依赖目录
+node_modules
+dist
+build
+
+# 测试覆盖率
+coverage
+
+# 其他
+*.min.js
+*.min.css
+CHANGELOG.md

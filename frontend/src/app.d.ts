@@ -4,75 +4,75 @@
  */
 
 declare module '*/scripts/app.js' {
-  export const app: ComfyApp;
-  export { app as default };
+  export const app: ComfyApp
+  export { app as default }
 }
 
 declare module '*/scripts/*.js' {
-  const content: unknown;
-  export default content;
+  const content: unknown
+  export default content
 }
 
 interface ComfyExtensionConfig {
-  name: string;
-  version?: string;
-  setup?: () => void;
-  cleanup?: () => void;
-  [key: string]: unknown;
+  name: string
+  version?: string
+  setup?: () => void
+  cleanup?: () => void
+  [key: string]: unknown
 }
 
 interface ComfyApp {
-  registerExtension: (config: ComfyExtensionConfig) => void;
+  registerExtension: (config: ComfyExtensionConfig) => void
   ui?: {
     version?: {
-      major: number;
-      minor: number;
-      patch: number;
-    };
-  };
+      major: number
+      minor: number
+      patch: number
+    }
+  }
   graph?: {
-    _nodes: ComfyNode[];
-    add: (node: ComfyNode) => void;
-    remove: (node: ComfyNode) => void;
-    serialize: () => unknown;
-    getNodeById: (id: number) => ComfyNode | undefined;
-  };
+    _nodes: ComfyNode[]
+    add: (node: ComfyNode) => void
+    remove: (node: ComfyNode) => void
+    serialize: () => unknown
+    getNodeById: (id: number) => ComfyNode | undefined
+  }
   extensionManager?: {
     toast?: {
-      add: (message: { text: string; type?: string }) => void;
-    };
-  };
+      add: (message: { text: string; type?: string }) => void
+    }
+  }
 }
 
 interface ComfyNode {
-  id: number;
-  widgets?: ComfyWidget[];
-  [key: string]: unknown;
+  id: number
+  widgets?: ComfyWidget[]
+  [key: string]: unknown
 }
 
 interface ComfyWidget {
-  name: string;
-  value: unknown;
-  [key: string]: unknown;
+  name: string
+  value: unknown
+  [key: string]: unknown
 }
 
 // Declare global types
 declare global {
   interface Window {
-    app?: ComfyApp;
-    FileManagerState?: unknown;
-    openFileManager?: () => void;
-    openFloatingPreview?: (path: string) => void;
-    toggleFullscreen?: () => void;
-    restoreFloatingPreview?: () => void;
-    closeFloatingPreview?: () => void;
-    updateDock?: () => void;
-    checkNodeConnectionAndUpdateFormat?: () => void;
+    app?: ComfyApp
+    FileManagerState?: unknown
+    openFileManager?: () => void
+    openFloatingPreview?: (path: string) => void
+    toggleFullscreen?: () => void
+    restoreFloatingPreview?: () => void
+    closeFloatingPreview?: () => void
+    updateDock?: () => void
+    checkNodeConnectionAndUpdateFormat?: () => void
     _remoteConnectionsState?: {
-      active: unknown | null;
-      saved: unknown[];
-    };
+      active: unknown | null
+      saved: unknown[]
+    }
   }
 }
 
-export {};
+export {}

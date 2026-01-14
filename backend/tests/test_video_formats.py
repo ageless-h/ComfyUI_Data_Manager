@@ -15,6 +15,7 @@ from typing import Any
 # 直接复制 save_video 函数（避免导入问题）
 # ============================================================================
 
+
 def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
     """保存 ComfyUI 视频数据到文件
 
@@ -44,13 +45,13 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
 
     # 提取视频数据
     # io.Video 类型包含：images (tensor), frame_rate, audio
-    if hasattr(data, 'images'):
+    if hasattr(data, "images"):
         # ComfyUI VideoComponents: images 是 [F, H, W, C] 格式的张量
         frames = data.images
-        frame_rate = getattr(data, 'frame_rate', 24)
+        frame_rate = getattr(data, "frame_rate", 24)
 
         # 转换为 numpy
-        if hasattr(frames, 'cpu'):  # torch.Tensor
+        if hasattr(frames, "cpu"):  # torch.Tensor
             frames_np = frames.cpu().numpy()
         else:
             frames_np = frames
@@ -95,6 +96,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
 # 模拟 ComfyUI io.Video 类型
 class MockVideo:
     """模拟 ComfyUI VideoComponents 类型"""
+
     def __init__(self, frames, frame_rate=24):
         self.images = frames  # [F, H, W, C] numpy array
         self.frame_rate = frame_rate
@@ -137,6 +139,7 @@ def test_video_format(format_name, test_dir):
             # 验证视频文件可以用 OpenCV 读取
             try:
                 import cv2
+
                 cap = cv2.VideoCapture(saved_path)
                 frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
                 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -155,6 +158,7 @@ def test_video_format(format_name, test_dir):
     except Exception as e:
         print(f"✗ 失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -189,13 +193,14 @@ def test_grouped_format(format_name, test_dir):
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("视频格式保存测试")
-    print("="*60)
+    print("=" * 60)
 
     # 检查 opencv-python
     try:
         import cv2
+
         print(f"✓ OpenCV 版本: {cv2.__version__}")
     except ImportError:
         print("✗ opencv-python 未安装，无法测试视频保存")
@@ -208,9 +213,9 @@ def main():
     # 测试所有格式
     formats = ["mp4", "webm", "avi", "mov", "mkv", "flv"]
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试视频格式保存")
-    print("="*60)
+    print("=" * 60)
 
     results = {}
     for fmt in formats:
@@ -219,9 +224,9 @@ def main():
         results[key] = success
 
     # 测试分组格式字符串
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试分组格式字符串解析")
-    print("="*60)
+    print("=" * 60)
 
     for fmt in formats:
         key = f"grouped_{fmt}"
@@ -229,9 +234,9 @@ def main():
         results[key] = success
 
     # 总结
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试结果总结")
-    print("="*60)
+    print("=" * 60)
 
     total = len(results)
     passed = sum(1 for v in results.values() if v)

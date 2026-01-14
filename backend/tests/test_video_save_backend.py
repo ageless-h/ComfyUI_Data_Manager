@@ -20,8 +20,10 @@ sys.path.insert(0, str(project_path))
 # 模拟 VideoComponents 类型
 # ============================================================================
 
+
 class MockVideoComponents:
     """模拟 ComfyUI VideoComponents 类型"""
+
     def __init__(self, images, frame_rate=24, audio=None, metadata=None):
         self.images = images  # numpy array [F, H, W, C]
         self.frame_rate = frame_rate if isinstance(frame_rate, Fraction) else Fraction(frame_rate)
@@ -32,6 +34,7 @@ class MockVideoComponents:
 # ============================================================================
 # 直接复制 save_video 函数
 # ============================================================================
+
 
 def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
     """保存 ComfyUI 视频数据到文件
@@ -53,12 +56,12 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
     os.makedirs(Path(file_path).parent, exist_ok=True)
 
     # 提取视频数据
-    if hasattr(data, 'images'):
+    if hasattr(data, "images"):
         frames = data.images
-        frame_rate = getattr(data, 'frame_rate', 24)
+        frame_rate = getattr(data, "frame_rate", 24)
 
         # 转换为 numpy
-        if hasattr(frames, 'cpu'):
+        if hasattr(frames, "cpu"):
             frames_np = frames.cpu().numpy()
         else:
             frames_np = frames
@@ -71,13 +74,15 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
         try:
             import imageio
         except ImportError:
-            raise ImportError("imageio 未安装，无法保存视频。请运行: pip install imageio imageio-ffmpeg")
+            raise ImportError(
+                "imageio 未安装，无法保存视频。请运行: pip install imageio imageio-ffmpeg"
+            )
 
         # 格式对应的编码器配置
         codec_map = {
             "mp4": "libx264",
             "mov": "libx264",
-            "avi": "mpeg4",        # MPEG-4 Part 2，AVI 更兼容
+            "avi": "mpeg4",  # MPEG-4 Part 2，AVI 更兼容
             "mkv": "libx264",
             "webm": "libvpx-vp9",
         }
@@ -123,6 +128,7 @@ def save_video(data: Any, file_path: str, format: str = "mp4") -> str:
 # 测试函数
 # ============================================================================
 
+
 def create_test_video(num_frames=30, height=256, width=256, channels=3):
     """创建测试视频数据"""
     frames = np.zeros((num_frames, height, width, channels), dtype=np.uint8)
@@ -155,6 +161,7 @@ def test_video_format(format_name, test_dir):
 
             # 验证可以用 imageio 读取（不加载所有帧到内存）
             import imageio
+
             reader = imageio.get_reader(saved_path)
             meta_data = reader.get_meta_data()
             reader.close()
@@ -168,6 +175,7 @@ def test_video_format(format_name, test_dir):
     except Exception as e:
         print(f"✗ 失败: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -200,13 +208,14 @@ def test_grouped_format(format_name, test_dir):
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("视频保存后端测试")
-    print("="*60)
+    print("=" * 60)
 
     # 检查 imageio
     try:
         import imageio
+
         print(f"✓ imageio 版本: {imageio.__version__}")
     except ImportError:
         print("✗ imageio 未安装")
@@ -219,9 +228,9 @@ def main():
     # 测试所有格式
     formats = ["mp4", "avi", "mkv", "mov", "webm"]
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试视频格式保存")
-    print("="*60)
+    print("=" * 60)
 
     results = {}
     for fmt in formats:
@@ -230,9 +239,9 @@ def main():
         results[key] = success
 
     # 测试分组格式字符串
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试分组格式字符串解析")
-    print("="*60)
+    print("=" * 60)
 
     for fmt in formats:
         key = f"grouped_{fmt}"
@@ -240,9 +249,9 @@ def main():
         results[key] = success
 
     # 总结
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("测试结果总结")
-    print("="*60)
+    print("=" * 60)
 
     total = len(results)
     passed = sum(1 for v in results.values() if v)
