@@ -16,8 +16,8 @@ from pathlib import Path
 
 def get_ssh_fs_module():
     """获取 ssh_fs 模块的新实例，避免测试间状态污染"""
-    project_root = Path(__file__).parent.parent
-    ssh_fs_path = project_root / "utils" / "ssh_fs.py"
+    project_root = Path(__file__).parent.parent.parent
+    ssh_fs_path = project_root / "backend" / "helpers" / "ssh_fs.py"
 
     # 使用唯一的模块名称避免缓存
     import uuid
