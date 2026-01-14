@@ -4,6 +4,7 @@
 
 import { updateStatus } from '../../utils/helpers.js';
 import { previewFloatingWindows } from '../../core/state.js';
+import { getComfyTheme } from '../../utils/theme.js';
 
 /**
  * Floating window data interface
@@ -22,6 +23,8 @@ export interface FloatingWindowData {
 export function updateDock(): void {
   const dock = document.getElementById("dm-preview-dock");
   if (!dock) return;
+
+  const theme = getComfyTheme();
 
   // Clear Dock
   dock.innerHTML = "";
@@ -47,8 +50,8 @@ export function updateDock(): void {
     thumbnail.style.cssText = `
       width: 80px;
       height: 50px;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
+      background: ${theme.bgSecondary};
+      border: 1px solid ${theme.borderColor};
       border-radius: 6px;
       cursor: pointer;
       display: flex;
@@ -61,15 +64,15 @@ export function updateDock(): void {
     thumbnail.title = `${w.fileName} - 点击恢复`;
     thumbnail.innerHTML = `
       <i class="pi ${w.fileConfig.icon}" style="color: ${w.fileConfig.color}; font-size: 16px;"></i>
-      <span style="color: #aaa; font-size: 9px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${w.fileName}</span>
+      <span style="color: ${theme.textSecondary}; font-size: 9px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${w.fileName}</span>
     `;
     thumbnail.onmouseover = () => {
-      (thumbnail as HTMLElement).style.background = "#3a3a3a";
+      (thumbnail as HTMLElement).style.background = theme.bgTertiary;
       (thumbnail as HTMLElement).style.borderColor = w.fileConfig.color;
     };
     thumbnail.onmouseout = () => {
-      (thumbnail as HTMLElement).style.background = "#2a2a2a";
-      (thumbnail as HTMLElement).style.borderColor = "#3a3a3a";
+      (thumbnail as HTMLElement).style.background = theme.bgSecondary;
+      (thumbnail as HTMLElement).style.borderColor = theme.borderColor;
     };
     thumbnail.onclick = () => restoreFloatingPreview(w.window);
 
@@ -82,9 +85,13 @@ export function updateDock(): void {
  * @param window - Floating window element
  */
 export function restoreFloatingPreview(window: HTMLElement): void {
-  // Window restore logic is implemented in window.ts
-  // This is a placeholder for the actual restore functionality
-  (window as unknown as { minimized?: boolean }).minimized = false;
   (window as HTMLElement).style.display = "flex";
+
+  // 查找窗口数据并更新 minimized 状态
+  const windowData = (previewFloatingWindows as FloatingWindowData[]).find(w => w.window === window);
+  if (windowData) {
+    windowData.minimized = false;
+  }
+
   updateDock();
 }

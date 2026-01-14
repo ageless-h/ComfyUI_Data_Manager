@@ -2,42 +2,14 @@
  * ComfyUI Data Manager - Settings Panel Component
  */
 
+import { getComfyTheme } from '../../utils/theme.js';
+
 /**
  * Settings panel options
  */
 export interface SettingsOptions {
   onConnect?: (result: unknown) => void;
   onDisconnect?: () => void;
-}
-
-/**
- * Theme colors interface
- */
-interface ThemeColors {
-  bgPrimary: string;
-  bgSecondary: string;
-  textPrimary: string;
-  textSecondary: string;
-  borderColor: string;
-  accentColor: string;
-  successColor: string;
-  errorColor: string;
-}
-
-/**
- * Get theme colors
- */
-function getThemeColors(): ThemeColors {
-  return {
-    bgPrimary: '#1e1e1e',
-    bgSecondary: '#2d2d2d',
-    textPrimary: '#e0e0e0',
-    textSecondary: '#999',
-    borderColor: '#444',
-    accentColor: '#3498db',
-    successColor: '#27ae60',
-    errorColor: '#e74c3c'
-  };
 }
 
 /**
@@ -60,6 +32,7 @@ interface RemoteConnection {
  */
 export function openSettingsPanel(options: SettingsOptions = {}): HTMLElement {
   const { onConnect, onDisconnect } = options;
+  const theme = getComfyTheme();
 
   const overlay = document.createElement("div");
   overlay.id = "dm-settings-panel-overlay";
@@ -77,12 +50,10 @@ export function openSettingsPanel(options: SettingsOptions = {}): HTMLElement {
     z-index: 10002;
   `;
 
-  const colors = getThemeColors();
-
   const panel = document.createElement("div");
   panel.style.cssText = `
-    background: ${colors.bgPrimary};
-    border: 1px solid ${colors.borderColor};
+    background: ${theme.bgPrimary};
+    border: 1px solid ${theme.borderColor};
     border-radius: 12px;
     padding: 20px;
     width: 400px;
@@ -131,7 +102,7 @@ export function openSettingsPanel(options: SettingsOptions = {}): HTMLElement {
  * Show connection list page
  */
 function showConnectionList(container: HTMLElement, onConnect?: (result: unknown) => void, onDisconnect?: () => void): void {
-  const colors = getThemeColors();
+  const theme = getComfyTheme();
 
   container.innerHTML = "";
 
@@ -140,7 +111,7 @@ function showConnectionList(container: HTMLElement, onConnect?: (result: unknown
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 12px;
-    color: ${colors.textPrimary};
+    color: ${theme.textPrimary};
   `;
   title.textContent = "已保存的连接";
   container.appendChild(title);
@@ -168,7 +139,7 @@ function showConnectionList(container: HTMLElement, onConnect?: (result: unknown
  * Show connection form page
  */
 function showConnectionForm(container: HTMLElement, onConnect?: (result: unknown) => void, onDisconnect?: () => void): void {
-  const colors = getThemeColors();
+  const theme = getComfyTheme();
 
   container.innerHTML = "";
 
@@ -187,7 +158,7 @@ function showConnectionForm(container: HTMLElement, onConnect?: (result: unknown
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 12px;
-    color: ${colors.textPrimary};
+    color: ${theme.textPrimary};
   `;
   formTitle.textContent = "新建 SSH 连接";
   container.appendChild(formTitle);
@@ -205,7 +176,7 @@ function showConnectionForm(container: HTMLElement, onConnect?: (result: unknown
   btnRow.style.cssText = "display: flex; align-items: center; gap: 12px; margin-top: 5px;";
 
   const saveLabel = document.createElement("label");
-  saveLabel.style.cssText = "display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa; cursor: pointer;";
+  saveLabel.style.cssText = `display: flex; align-items: center; gap: 6px; font-size: 12px; color: ${theme.textSecondary}; cursor: pointer;`;
   saveLabel.innerHTML = `
     <input type="checkbox" id="dm-ssh-save-creds">
     <span>保存凭据</span>
@@ -284,7 +255,7 @@ function renderSavedConnectionsList(
   onConnect2?: (result: unknown) => void,
   onDisconnect2?: () => void
 ): void {
-  const colors = getThemeColors();
+  const theme = getComfyTheme();
   const state = (window as unknown as { _remoteConnectionsState: { saved: RemoteConnection[]; active: RemoteConnection | null } })._remoteConnectionsState;
   const saved = state.saved || [];
   const active = state.active;
@@ -292,7 +263,7 @@ function renderSavedConnectionsList(
   list.innerHTML = "";
 
   if (saved.length === 0) {
-    list.innerHTML = `<div style="text-align: center; padding: 20px; color: ${colors.textSecondary};">暂无保存的连接</div>`;
+    list.innerHTML = `<div style="text-align: center; padding: 20px; color: ${theme.textSecondary};">暂无保存的连接</div>`;
     return;
   }
 
@@ -303,8 +274,8 @@ function renderSavedConnectionsList(
       align-items: center;
       justify-content: space-between;
       padding: 12px;
-      background: ${colors.bgSecondary};
-      border: 1px solid ${colors.borderColor};
+      background: ${theme.bgSecondary};
+      border: 1px solid ${theme.borderColor};
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s;
@@ -315,8 +286,8 @@ function renderSavedConnectionsList(
     const info = document.createElement("div");
     info.style.cssText = "flex: 1;";
     info.innerHTML = `
-      <div style="font-size: 13px; font-weight: 600; color: ${isActive ? colors.successColor : colors.textPrimary};">${conn.name || `${conn.username}@${conn.host}`}</div>
-      <div style="font-size: 11px; color: ${colors.textSecondary};">${conn.host}:${conn.port}</div>
+      <div style="font-size: 13px; font-weight: 600; color: ${isActive ? theme.successColor : theme.textPrimary};">${conn.name || `${conn.username}@${conn.host}`}</div>
+      <div style="font-size: 11px; color: ${theme.textSecondary};">${conn.host}:${conn.port}</div>
     `;
 
     const actions = document.createElement("div");
@@ -345,8 +316,8 @@ function renderSavedConnectionsList(
     item.appendChild(info);
     item.appendChild(actions);
 
-    item.onmouseover = () => item.style.borderColor = colors.accentColor;
-    item.onmouseout = () => item.style.borderColor = colors.borderColor;
+    item.onmouseover = () => item.style.borderColor = theme.accentColor;
+    item.onmouseout = () => item.style.borderColor = theme.borderColor;
 
     list.appendChild(item);
   });
@@ -356,11 +327,12 @@ function renderSavedConnectionsList(
  * Create settings input field
  */
 function createSettingsInput(label: string, id: string, type: string, placeholder: string): HTMLElement {
+  const theme = getComfyTheme();
   const container = document.createElement("div");
   container.style.cssText = "display: flex; flex-direction: column; gap: 4px;";
 
   const labelEl = document.createElement("label");
-  labelEl.style.cssText = "font-size: 12px; color: #aaa;";
+  labelEl.style.cssText = `font-size: 12px; color: ${theme.textSecondary};`;
   labelEl.textContent = label;
 
   const input = document.createElement("input");
@@ -370,11 +342,11 @@ function createSettingsInput(label: string, id: string, type: string, placeholde
   input.placeholder = placeholder;
   input.style.cssText = `
     padding: 8px 10px;
-    border: 1px solid #444;
+    border: 1px solid ${theme.borderColor};
     border-radius: 4px;
     font-size: 14px;
-    background: #2a2a2a;
-    color: #fff;
+    background: ${theme.inputBg};
+    color: ${theme.inputText};
   `;
 
   container.appendChild(labelEl);

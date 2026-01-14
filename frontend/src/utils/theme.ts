@@ -126,6 +126,20 @@ export function initThemeSystem(): void {
  * @returns True if color is light
  */
 function isLightColor(color: string): boolean {
+  // Handle rgb() format
+  if (color.includes('rgb')) {
+    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+      const r = parseInt(match[1]);
+      const g = parseInt(match[2]);
+      const b = parseInt(match[3]);
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      // console.log('[DataManager Theme] Color brightness:', brightness, 'for', color);
+      return brightness > 128;
+    }
+  }
+
+  // Handle hex format
   const hex = color.replace('#', '');
   if (hex.length === 3) {
     const r = parseInt(hex[0] + hex[0], 16);
@@ -155,31 +169,54 @@ export function getComfyTheme(): ComfyTheme {
     const bgPrimary = rootStyle.getPropertyValue('--comfy-menu-bg')?.trim() || '#1a1a1a';
     const bgSecondary = rootStyle.getPropertyValue('--comfy-menu-bg-2')?.trim() ||
                          rootStyle.getPropertyValue('--comfy-menu-secondary-bg')?.trim() || '#252525';
-    const inputBg = rootStyle.getPropertyValue('--comfy-input-bg')?.trim() || '#2a2a2a';
 
-    // Detect if light theme
+    // CRITICAL: Detect theme based on bgPrimary (main window background)
     const isLight = isLightColor(bgPrimary);
 
-    // Select text colors based on theme brightness
-    const textPrimary = rootStyle.getPropertyValue('--input-text')?.trim() ||
-                        rootStyle.getPropertyValue('--input-text-text')?.trim() ||
-                        (isLight ? '#222' : '#ddd');
-    const textSecondary = rootStyle.getPropertyValue('--descrip-text')?.trim() ||
-                          (isLight ? '#666' : '#999');
+    // For bgTertiary, use appropriate color based on theme
+    // ComfyUI's --comfy-menu-bg-3 may be dark even in light themes, so we override it
+    const comfyBgTertiary = rootStyle.getPropertyValue('--comfy-menu-bg-3')?.trim();
+    let bgTertiary: string;
+    let inputBg: string;
+
+    if (isLight) {
+      // Light theme: use light gray for buttons/inputs
+      bgTertiary = '#f0f0f0';
+      inputBg = rootStyle.getPropertyValue('--comfy-input-bg')?.trim() || '#ffffff';
+    } else {
+      // Dark theme: use ComfyUI's value or default dark
+      bgTertiary = comfyBgTertiary || '#2a2a2a';
+      inputBg = rootStyle.getPropertyValue('--comfy-input-bg')?.trim() || bgTertiary;
+    }
+
+    // console.log('[DataManager Theme] bgPrimary:', bgPrimary);
+    // console.log('[DataManager Theme] isLight:', isLight);
+    // console.log('[DataManager Theme] bgTertiary (final):', bgTertiary);
+
+    // Get raw input text color from ComfyUI for debugging
+    const rawInputText = rootStyle.getPropertyValue('--input-text')?.trim() || '';
+    // console.log('[DataManager Theme] rawInputText:', rawInputText);
+
+    // CRITICAL: For text colors, ALWAYS use smart defaults based on theme brightness
+    // Never use ComfyUI's --input-text directly because it may have wrong contrast
+    const textPrimary = isLight ? '#222222' : '#dddddd';
+    const textSecondary = isLight ? '#666666' : '#999999';
+
+    // console.log('[DataManager Theme] Using textPrimary:', textPrimary, 'textSecondary:', textSecondary);
 
     return {
       // Background colors
       bgPrimary: bgPrimary,
       bgSecondary: bgSecondary,
-      bgTertiary: rootStyle.getPropertyValue('--comfy-menu-bg-3')?.trim() || '#2a2a2a',
+      bgTertiary: bgTertiary,
 
-      // Input
+      // Input - ALWAYS use theme-appropriate color, not ComfyUI's
       inputBg: inputBg,
       inputText: textPrimary,
 
       // Border
       borderColor: rootStyle.getPropertyValue('--border-color')?.trim() ||
-                    (isLight ? '#ddd' : '#3a3a3a'),
+                    (isLight ? '#dddddd' : '#444444'),
 
       // Text
       textPrimary: textPrimary,
@@ -201,10 +238,10 @@ export function getComfyTheme(): ComfyTheme {
       bgSecondary: '#252525',
       bgTertiary: '#2a2a2a',
       inputBg: '#2a2a2a',
-      inputText: '#ddd',
-      borderColor: '#3a3a3a',
-      textPrimary: '#ddd',
-      textSecondary: '#999',
+      inputText: '#dddddd',
+      borderColor: '#444444',
+      textPrimary: '#dddddd',
+      textSecondary: '#999999',
       accentColor: '#9b59b6',
       errorColor: '#e74c3c',
       successColor: '#27ae60',
@@ -219,11 +256,15 @@ export function getComfyTheme(): ComfyTheme {
 export function applyComfyTheme(): void {
   const theme = getComfyTheme();
 
+  // Calculate hover color (slightly darker for light theme, lighter for dark theme)
+  const bgHover = theme.isLight ? '#e0e0e0' : '#3a3a3a';
+
   // Apply CSS custom properties to root
   const root = document.documentElement;
   root.style.setProperty('--dm-bg-primary', theme.bgPrimary);
   root.style.setProperty('--dm-bg-secondary', theme.bgSecondary);
   root.style.setProperty('--dm-bg-tertiary', theme.bgTertiary);
+  root.style.setProperty('--dm-bg-hover', bgHover);
   root.style.setProperty('--dm-input-bg', theme.inputBg);
   root.style.setProperty('--dm-input-text', theme.inputText);
   root.style.setProperty('--dm-border-color', theme.borderColor);

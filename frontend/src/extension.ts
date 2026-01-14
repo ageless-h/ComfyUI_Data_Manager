@@ -27,7 +27,7 @@ import { openFloatingPreview } from './ui/floating/window.js';
 
 // Import utility functions
 import { updateStatus, showToast, getParentPath, getExt, getFileName } from './utils/helpers.js';
-import { applyComfyTheme, initThemeSystem } from './utils/theme.js';
+import { applyComfyTheme, initThemeSystem, getComfyTheme, addThemeListener, type ComfyTheme } from './utils/theme.js';
 
 // ==================== Constants ====================
 const MIN_NODE_VERSION = 2;
@@ -75,6 +75,12 @@ const extensionConfig = {
   ],
 
   async setup() {
+    // Export FileManagerState to global window object
+    (window as unknown as { FileManagerState: typeof FileManagerState }).FileManagerState = FileManagerState;
+
+    // CRITICAL: Apply theme BEFORE injecting CSS to avoid flicker
+    applyComfyTheme();
+
     // Inject official-style button styles
     const style = document.createElement("style");
     style.textContent = `
@@ -83,19 +89,42 @@ const extensionConfig = {
         height: 32px !important;
         border: none !important;
         border-radius: 6px !important;
-        background: rgba(255, 255, 255, 0.05) !important;
-        color: rgba(255, 255, 255, 0.9) !important;
+        background: var(--dm-bg-tertiary, #f0f0f0) !important;
+        color: var(--dm-text-primary, #222222) !important;
         margin-right: 0.5rem !important;
         transition: all 0.2s ease !important;
       }
       .dm-actionbar-btn:hover {
-        background: rgba(255, 255, 255, 0.15) !important;
+        background: var(--dm-bg-hover, #e0e0e0) !important;
       }
       .dm-actionbar-btn i {
-        color: rgba(255, 255, 255, 0.9) !important;
+        color: var(--dm-text-primary, #222222) !important;
       }
     `;
     document.head.appendChild(style);
+
+    // Apply theme immediately and repeatedly until successful
+    const ensureThemeApplied = () => {
+      try {
+        applyComfyTheme();
+        // Verify CSS variables are set
+        const root = document.documentElement;
+        const bgTertiary = root.style.getPropertyValue('--dm-bg-tertiary');
+        if (bgTertiary) {
+          // console.log('[DataManager] Theme CSS variables applied:', bgTertiary);
+        }
+      } catch (e) {
+        console.warn('[DataManager] Theme apply error:', e);
+      }
+    };
+
+    // Apply immediately
+    ensureThemeApplied();
+
+    // Also apply on next tick (in case DOM wasn't ready)
+    setTimeout(ensureThemeApplied, 0);
+    setTimeout(ensureThemeApplied, 100);
+    setTimeout(ensureThemeApplied, 500);
 
     // Simplified position fix function
     const fixPosition = () => {
@@ -106,13 +135,16 @@ const extensionConfig = {
 
       if (!dmBtn || !queueBtn) return false;
 
+      // CRITICAL: Re-apply theme when button is found (handles refresh/reload)
+      applyComfyTheme();
+
       const queueParent = queueBtn.parentElement;
       const prevSibling = queueBtn.previousElementSibling;
 
       // Only move when button is not in correct position
       if (prevSibling !== dmBtn || dmBtn.parentElement !== queueParent) {
         queueParent!.insertBefore(dmBtn, queueBtn);
-        console.log('[DataManager] Button position fixed');
+        // console.log('[DataManager] Button position fixed');
         return true;
       }
       return false;
@@ -166,15 +198,30 @@ const extensionConfig = {
 
     // Initialize theme system
     initThemeSystem();
+
+    // Add theme listener to update node buttons when theme changes
+    addThemeListener((theme: ComfyTheme) => {
+      // Update all node buttons
+      document.querySelectorAll('.dm-node-open-btn').forEach(btn => {
+        const button = btn as HTMLButtonElement;
+        button.style.background = theme.bgTertiary;
+        button.style.borderColor = theme.borderColor;
+        button.style.color = theme.textPrimary;
+        // console.log('[DataManager] Node button theme updated');
+      });
+    });
   },
 
   async nodeCreated(node: unknown) {
     const nodeObj = node as { comfyClass?: string; addDOMWidget?: (name: string, type: string, elem: HTMLElement, options?: { minWidth?: number; minHeight?: number }) => void };
     if (nodeObj.comfyClass === "DataManagerCore") {
-      console.log("[DataManager] DataManagerCore node created, IS_NODE_V3:", IS_NODE_V3);
+      // console.log("[DataManager] DataManagerCore node created, IS_NODE_V3:", IS_NODE_V3);
 
       // V1/V3 API both use addDOMWidget to add button
       if (nodeObj.addDOMWidget) {
+        // Ensure theme is applied before creating button
+        applyComfyTheme();
+        const theme = getComfyTheme();
         const container = document.createElement("div");
         container.style.cssText = `
           display: flex;
@@ -183,28 +230,30 @@ const extensionConfig = {
         `;
 
         const button = document.createElement("button");
-        button.className = "comfy-btn";
+        button.className = "comfy-btn dm-node-open-btn";
         button.innerHTML = '<i class="pi pi-folder-open"></i> 打开文件管理器';
         button.style.cssText = `
           padding: 12px 24px;
           font-size: 14px;
-          background: #6c757d;
-          border: none;
+          background: ${theme.bgTertiary};
+          border: 1px solid ${theme.borderColor};
           border-radius: 8px;
-          color: white;
+          color: ${theme.textPrimary};
           cursor: pointer;
           transition: all 0.2s;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         `;
         button.onmouseover = () => {
-          button.style.background = "#5a6268";
+          button.style.background = theme.bgSecondary;
           button.style.transform = "translateY(-1px)";
-          button.style.boxShadow = "0 4px 8px rgba(0,0,0,0.15)";
+          button.style.borderColor = theme.accentColor;
+          button.style.boxShadow = `0 4px 8px rgba(0, 0, 0, 0.3)`;
         };
         button.onmouseout = () => {
-          button.style.background = "#6c757d";
+          button.style.background = theme.bgTertiary;
           button.style.transform = "translateY(0)";
-          button.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+          button.style.borderColor = theme.borderColor;
+          button.style.boxShadow = `0 2px 4px rgba(0, 0, 0, 0.2)`;
         };
         button.onclick = (e) => {
           e.stopPropagation();
@@ -218,11 +267,11 @@ const extensionConfig = {
         });
       }
     } else if (nodeObj.comfyClass === "InputPathConfig") {
-      console.log("[DataManager] InputPathConfig node created");
+      // console.log("[DataManager] InputPathConfig node created");
       // Initialize format selector state
       (nodeObj as { _dmFormatSelectorEnabled?: boolean })._dmFormatSelectorEnabled = false;
     } else if (nodeObj.comfyClass === "OutputPathConfig") {
-      console.log("[DataManager] OutputPathConfig node created");
+      // console.log("[DataManager] OutputPathConfig node created");
       // Initialize OutputPathConfig node state
       const outputNode = nodeObj as { _dmOutputType?: string; _dmFilePath?: string };
       outputNode._dmOutputType = "STRING";
@@ -271,7 +320,7 @@ function openFileManager(): void {
   const lastPath = getLastPath();
   if (lastPath && lastPath !== '.') {
     FileManagerState.currentPath = lastPath;
-    console.log('[DataManager] Restored last path:', lastPath);
+    // console.log('[DataManager] Restored last path:', lastPath);
   } else {
     FileManagerState.currentPath = ".";
   }
@@ -291,6 +340,11 @@ function openFileManager(): void {
     },
     onCopyPath: () => copySelectedPaths(),
     onDelete: () => deleteSelectedFiles(),
+    // Toolbar callbacks
+    onSortChange: (sortBy: string) => {
+      toggleSort(sortBy as 'name' | 'size' | 'modified');
+    },
+    onNewFile: () => showNewFileDialog(),
     // SSH callbacks
     onSshConnect: async (conn) => {
       const result = conn as { root_path?: string; username?: string; host?: string };
@@ -366,11 +420,47 @@ function copySelectedPaths(): void {
   }
 
   const paths = selected.join('\n');
-  navigator.clipboard.writeText(paths).then(() => {
-    showToast("success", "已复制", `已复制 ${selected.length} 个文件路径`);
-  }).catch(() => {
+
+  // Try modern Clipboard API first
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(paths).then(() => {
+      showToast("success", "已复制", `已复制 ${selected.length} 个文件路径`);
+    }).catch(() => {
+      // Fallback to document.execCommand
+      fallbackCopy(paths);
+    });
+  } else {
+    // Use fallback directly
+    fallbackCopy(paths);
+  }
+}
+
+/**
+ * Fallback copy method using document.execCommand
+ */
+function fallbackCopy(text: string): void {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      showToast("success", "已复制", `已复制 ${FileManagerState.selectedFiles.length} 个文件路径`);
+    } else {
+      showToast("error", "复制失败", "无法复制到剪贴板");
+    }
+  } catch (err) {
+    console.error('[DataManager] Fallback copy failed:', err);
     showToast("error", "复制失败", "无法访问剪贴板");
-  });
+  }
+
+  document.body.removeChild(textArea);
 }
 
 /**
@@ -399,6 +489,103 @@ async function deleteSelectedFiles(): Promise<void> {
     loadDirectory(FileManagerState.currentPath);
   } catch (error) {
     showToast("error", "删除失败", (error as Error).message);
+  }
+}
+
+/**
+ * Show new file dialog
+ */
+function showNewFileDialog(): void {
+  const { getComfyTheme } = require('../utils/theme.js') as { getComfyTheme: () => {
+    bgSecondary: string;
+    bgTertiary: string;
+    borderColor: string;
+    textPrimary: string;
+    textSecondary: string;
+  }};
+
+  const theme = getComfyTheme();
+
+  const modal = document.createElement("div");
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7); z-index: 10001;
+    display: flex; align-items: center; justify-content: center;
+  `;
+
+  const dialog = document.createElement("div");
+  dialog.style.cssText = `
+    background: ${theme.bgSecondary}; border-radius: 12px; padding: 24px;
+    width: 400px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  `;
+
+  dialog.innerHTML = `
+    <h3 style="margin: 0 0 20px 0; color: ${theme.textPrimary};">新建</h3>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <button id="dm-new-file-btn" class="comfy-btn"
+              style="flex: 1; padding: 15px; background: ${theme.bgTertiary}; border: 1px solid ${theme.borderColor};
+                     border-radius: 8px; color: ${theme.textPrimary}; cursor: pointer;">
+        <i class="pi pi-file" style="display: block; font-size: 24px; margin-bottom: 8px;"></i>
+        文件
+      </button>
+      <button id="dm-new-folder-btn" class="comfy-btn"
+              style="flex: 1; padding: 15px; background: ${theme.bgTertiary}; border: 1px solid ${theme.borderColor};
+                     border-radius: 8px; color: ${theme.textPrimary}; cursor: pointer;">
+        <i class="pi pi-folder" style="display: block; font-size: 24px; margin-bottom: 8px;"></i>
+        文件夹
+      </button>
+    </div>
+    <button class="comfy-btn" id="dm-cancel-new-btn"
+            style="width: 100%; padding: 10px; background: transparent;
+                   border: 1px solid ${theme.borderColor}; border-radius: 6px; color: ${theme.textSecondary}; cursor: pointer;">
+      取消
+    </button>
+  `;
+
+  modal.appendChild(dialog);
+  document.body.appendChild(modal);
+
+  const fileBtn = dialog.querySelector('#dm-new-file-btn') as HTMLButtonElement;
+  const folderBtn = dialog.querySelector('#dm-new-folder-btn') as HTMLButtonElement;
+  const cancelBtn = dialog.querySelector('#dm-cancel-new-btn') as HTMLButtonElement;
+
+  fileBtn.onclick = () => { modal.remove(); createNewFile(); };
+  folderBtn.onclick = () => { modal.remove(); createNewFolder(); };
+  cancelBtn.onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
+
+/**
+ * Create new file
+ */
+async function createNewFile(): Promise<void> {
+  const name = prompt("输入文件名:", "new_file.txt");
+  if (name) {
+    try {
+      await apiCreateFile(FileManagerState.currentPath, name, "");
+      await loadDirectory(FileManagerState.currentPath);
+      showToast("success", "成功", `文件已创建: ${name}`);
+    } catch (error) {
+      console.error("创建文件失败:", error);
+      showToast("error", "错误", `创建文件失败: ${(error as Error).message}`);
+    }
+  }
+}
+
+/**
+ * Create new folder
+ */
+async function createNewFolder(): Promise<void> {
+  const name = prompt("输入文件夹名称:", "新建文件夹");
+  if (name) {
+    try {
+      await apiCreateDirectory(FileManagerState.currentPath, name);
+      await loadDirectory(FileManagerState.currentPath);
+      showToast("success", "成功", `文件夹已创建: ${name}`);
+    } catch (error) {
+      console.error("创建文件夹失败:", error);
+      showToast("error", "错误", `创建文件夹失败: ${(error as Error).message}`);
+    }
   }
 }
 

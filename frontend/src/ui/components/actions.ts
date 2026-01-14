@@ -6,6 +6,7 @@ import { listDirectory } from '../../api/endpoints/file.js';
 import { FileManagerState, saveLastPath, type FileItem } from '../../core/state.js';
 import { updateStatus, showToast, getParentPath } from '../../utils/helpers.js';
 import { createFileListItem, createFileGridItem } from './browser.js';
+import { getComfyTheme } from '../../utils/theme.js';
 import type { SortBy } from '../../core/types.js';
 
 /**
@@ -166,19 +167,37 @@ function renderFileListUI(): void {
 }
 
 /**
+ * Update copy path button state
+ */
+function updateCopyPathButtonState(): void {
+  const copyBtn = document.getElementById("dm-copy-path-btn") as HTMLButtonElement;
+  if (!copyBtn) return;
+
+  const hasSelection = FileManagerState.selectedFiles.length > 0;
+  copyBtn.disabled = !hasSelection;
+  copyBtn.style.opacity = hasSelection ? '1' : '0.5';
+  copyBtn.style.cursor = hasSelection ? 'pointer' : 'not-allowed';
+}
+
+/**
  * Select list item
  */
 function selectFile(item: HTMLElement): void {
+  const theme = getComfyTheme();
+
   document.querySelectorAll(".dm-file-item").forEach(i => {
     (i as HTMLElement).style.background = "transparent";
   });
 
-  item.style.background = "#3a3a3a";
+  item.style.background = `${theme.bgTertiary} !important`;
 
   const path = item.dataset.path || "";
   const isDir = item.dataset.isDir === "true";
 
   FileManagerState.selectedFiles = [path];
+
+  // Update copy path button state
+  updateCopyPathButtonState();
 
   if (!isDir && path) {
     void (async () => {
@@ -194,12 +213,17 @@ function selectFile(item: HTMLElement): void {
  * Select grid item
  */
 function selectGridItem(item: HTMLElement): void {
+  const theme = getComfyTheme();
+
   document.querySelectorAll(".dm-grid-item").forEach(i => {
     (i as HTMLElement).style.borderColor = "transparent";
   });
 
-  item.style.borderColor = "#9b59b6";
+  item.style.borderColor = `${theme.accentColor} !important`;
   FileManagerState.selectedFiles = [item.dataset.path || ""];
+
+  // Update copy path button state
+  updateCopyPathButtonState();
 
   const path = item.dataset.path;
   const isDir = item.dataset.isDir === "true";
@@ -235,8 +259,9 @@ function openFile(item: HTMLElement): void {
 function clearPreviewPanel(): void {
   const previewContent = document.getElementById("dm-preview-content");
   if (previewContent) {
+    const theme = getComfyTheme();
     previewContent.innerHTML = `
-      <div style="text-align: center; padding: 40px; color: #666;">
+      <div style="text-align: center; padding: 40px; color: ${theme.textSecondary};">
         <i class="pi pi-folder" style="font-size: 48px; opacity: 0.5;"></i>
         <div style="margin-top: 15px; font-size: 13px;">双击打开目录</div>
       </div>
@@ -304,4 +329,106 @@ export function navigateUp(): void {
  */
 export function navigateHome(): void {
   void loadDirectory(".");
+}
+
+/**
+ * Navigate back in history
+ */
+export async function navigateBack(): Promise<void> {
+  if (FileManagerState.historyIndex <= 0) return;
+
+  FileManagerState.historyIndex--;
+  const path = FileManagerState.history[FileManagerState.historyIndex];
+  await loadDirectoryWithoutHistory(path);
+  updateNavButtons();
+}
+
+/**
+ * Navigate forward in history
+ */
+export async function navigateForward(): Promise<void> {
+  if (FileManagerState.historyIndex >= FileManagerState.history.length - 1) return;
+
+  FileManagerState.historyIndex++;
+  const path = FileManagerState.history[FileManagerState.historyIndex];
+  await loadDirectoryWithoutHistory(path);
+  updateNavButtons();
+}
+
+/**
+ * Load directory without adding to history (for navigation)
+ * @param path - Directory path
+ */
+async function loadDirectoryWithoutHistory(path: string): Promise<void> {
+  // Check for active SSH connection
+  const remoteConn = (window as unknown as { _remoteConnectionsState: { active: unknown } })._remoteConnectionsState?.active;
+  if (remoteConn) {
+    await loadRemoteDirectoryWithoutHistory(path, remoteConn as { connection_id: string; root_path?: string });
+    return;
+  }
+
+  updateStatus(`正在加载: ${path}...`);
+
+  try {
+    const data = await listDirectory(path);
+    FileManagerState.files = (data.files as FileItem[]) || [];
+    FileManagerState.currentPath = data.path;
+
+    // Save last visited path
+    saveLastPath(data.path);
+
+    const pathInput = document.getElementById("dm-path-input") as HTMLInputElement;
+    if (pathInput) pathInput.value = data.path;
+
+    renderFileListUI();
+    updateStatus(`${FileManagerState.files.length} 个项目`);
+
+  } catch (error) {
+    console.error("Load directory error:", error);
+    updateStatus("加载错误");
+    showToast("error", "错误", "网络请求失败");
+  }
+}
+
+/**
+ * Load remote SSH directory without history
+ */
+async function loadRemoteDirectoryWithoutHistory(path: string, conn: { connection_id: string; root_path?: string }): Promise<void> {
+  updateStatus(`正在加载远程: ${path}...`);
+
+  try {
+    const { sshList } = await import('../../api/ssh.js');
+    const data = await sshList(conn.connection_id, path || conn.root_path || "/");
+
+    FileManagerState.files = (data.files as FileItem[]) || [];
+    FileManagerState.currentPath = data.path || path;
+
+    const pathInput = document.getElementById("dm-path-input") as HTMLInputElement;
+    if (pathInput) pathInput.value = `[SSH] ${data.path}`;
+
+    renderFileListUI();
+    updateStatus(`${FileManagerState.files.length} 个项目 (远程)`);
+
+  } catch (error) {
+    console.error("Load remote directory error:", error);
+    updateStatus("加载错误");
+    showToast("error", "错误", `远程加载失败: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * Update navigation buttons state
+ */
+export function updateNavButtons(): void {
+  const backBtn = document.getElementById('dm-nav-back-btn') as HTMLButtonElement;
+  const forwardBtn = document.getElementById('dm-nav-forward-btn') as HTMLButtonElement;
+
+  if (backBtn) {
+    backBtn.disabled = FileManagerState.historyIndex <= 0;
+    backBtn.style.opacity = FileManagerState.historyIndex <= 0 ? '0.3' : '1';
+  }
+  if (forwardBtn) {
+    forwardBtn.disabled = FileManagerState.historyIndex >= FileManagerState.history.length - 1;
+    forwardBtn.style.opacity = FileManagerState.historyIndex >= FileManagerState.history.length - 1 ? '0.3' : '1';
+  }
 }

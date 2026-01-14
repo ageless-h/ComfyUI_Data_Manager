@@ -9,6 +9,7 @@ import { createPreviewPanel, createStatusBar, type PreviewCallbacks } from './co
 import { loadDirectory } from './components/actions.js';
 import { setupWindowDrag } from '../utils/drag.js';
 import { FileManagerState } from '../core/state.js';
+import { getComfyTheme } from '../utils/theme.js';
 
 // Keyboard event handler reference
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -30,6 +31,7 @@ export interface WindowManagerCallbacks extends ToolbarCallbacks, PreviewCallbac
  * @returns Window element
  */
 export function createFileManagerWindow(callbacks: WindowManagerCallbacks = {}): HTMLElement {
+  const theme = getComfyTheme();
   const window = document.createElement("div");
   window.id = "dm-file-manager";
   window.style.cssText = `
@@ -41,15 +43,32 @@ export function createFileManagerWindow(callbacks: WindowManagerCallbacks = {}):
     height: 700px;
     max-width: calc(100vw - 40px);
     max-height: calc(100vh - 40px);
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    background: ${theme.bgPrimary};
+    border: 0.8px solid ${theme.borderColor};
+    border-radius: 8px;
+    box-shadow: rgba(0, 0, 0, 0.4) 1px 1px 8px 0px;
     z-index: 10000;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    font-family: Inter, Arial, sans-serif;
   `;
+
+  // Create toast notification container (positioned above all content)
+  const toastContainer = document.createElement("div");
+  toastContainer.id = "dm-toast-container";
+  toastContainer.style.cssText = `
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  `;
+  window.appendChild(toastContainer);
 
   // Assemble window
   window.appendChild(createHeader({

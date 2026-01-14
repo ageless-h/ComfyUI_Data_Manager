@@ -2,6 +2,8 @@
  * ComfyUI Data Manager - Format Selector Component
  */
 
+import { getComfyTheme } from '../../utils/theme.js';
+
 /**
  * Format type map
  */
@@ -103,6 +105,8 @@ export function createFormatSelector(options: FormatSelectorOptions = {}): HTMLE
     compact = false
   } = options;
 
+  const theme = getComfyTheme();
+
   const container = document.createElement("div");
   container.className = "dm-format-selector";
   container.style.cssText = `
@@ -110,30 +114,31 @@ export function createFormatSelector(options: FormatSelectorOptions = {}): HTMLE
     flex-direction: column;
     gap: 10px;
     padding: 15px;
-    background: #252525;
+    background: ${theme.bgSecondary};
     border-radius: 8px;
-    border: 1px solid #3a3a3a;
+    border: 1px solid ${theme.borderColor};
   `;
 
   // Type indicator
   if (showTypeIndicator && detectedType) {
     const typeIndicator = document.createElement("div");
     typeIndicator.className = "dm-type-indicator";
+    const typeColor = getTypeColor(detectedType);
     typeIndicator.style.cssText = `
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      background: ${getTypeColor(detectedType)}20;
-      border-left: 3px solid ${getTypeColor(detectedType)};
+      background: ${typeColor}20;
+      border-left: 3px solid ${typeColor};
       border-radius: 4px;
       font-size: 12px;
-      color: ${getTypeColor(detectedType)};
+      color: ${typeColor};
     `;
     typeIndicator.innerHTML = `
       <i class="pi ${getTypeIcon(detectedType)}"></i>
       <span style="font-weight: 600;">${detectedType}</span>
-      <span style="color: #888;">检测到</span>
+      <span style="color: ${theme.textSecondary};">检测到</span>
     `;
     container.appendChild(typeIndicator);
   }
@@ -149,7 +154,7 @@ export function createFormatSelector(options: FormatSelectorOptions = {}): HTMLE
   const label = document.createElement("label");
   label.style.cssText = `
     font-size: 12px;
-    color: #aaa;
+    color: ${theme.textSecondary};
     font-weight: 500;
   `;
   label.textContent = "输出格式:";
@@ -166,10 +171,10 @@ export function createFormatSelector(options: FormatSelectorOptions = {}): HTMLE
     select.style.cssText = `
       width: 100%;
       padding: 8px 12px;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
+      background: ${theme.bgTertiary};
+      border: 1px solid ${theme.borderColor};
       border-radius: 6px;
-      color: #fff;
+      color: ${theme.inputText};
       font-size: 13px;
       cursor: pointer;
     `;
@@ -201,14 +206,15 @@ export function createFormatSelector(options: FormatSelectorOptions = {}): HTMLE
       const btn = document.createElement("button");
       btn.className = "comfy-btn dm-format-btn";
       btn.dataset.format = fmt;
+      const isSelected = fmt === defaultFormat;
       btn.style.cssText = `
         padding: 8px 16px;
-        background: ${fmt === defaultFormat ? "#3a3a3a" : "#2a2a2a"};
-        border: 1px solid ${fmt === defaultFormat ? "#9b59b6" : "#3a3a3a"};
+        background: ${isSelected ? theme.bgTertiary : theme.bgTertiary};
+        border: 1px solid ${isSelected ? theme.accentColor : theme.borderColor};
         border-radius: 6px;
-        color: ${fmt === defaultFormat ? "#9b59b6" : "#fff"};
+        color: ${isSelected ? theme.accentColor : theme.textPrimary};
         font-size: 12px;
-        font-weight: ${fmt === defaultFormat ? "600" : "400"};
+        font-weight: ${isSelected ? "600" : "400"};
         cursor: pointer;
         transition: all 0.2s;
       `;
@@ -217,15 +223,15 @@ export function createFormatSelector(options: FormatSelectorOptions = {}): HTMLE
         // Update all button states
         buttonGroup.querySelectorAll('.dm-format-btn').forEach(b => {
           const btnEl = b as HTMLElement;
-          btnEl.style.background = "#2a2a2a";
-          btnEl.style.borderColor = "#3a3a3a";
-          btnEl.style.color = "#fff";
+          btnEl.style.background = theme.bgTertiary;
+          btnEl.style.borderColor = theme.borderColor;
+          btnEl.style.color = theme.textPrimary;
           btnEl.style.fontWeight = "400";
         });
         // Activate current button
-        btn.style.background = "#3a3a3a";
-        btn.style.borderColor = "#9b59b6";
-        btn.style.color = "#9b59b6";
+        btn.style.background = theme.bgTertiary;
+        btn.style.borderColor = theme.accentColor;
+        btn.style.color = theme.accentColor;
         btn.style.fontWeight = "600";
         if (onFormatChange) {
           onFormatChange(fmt);
@@ -244,9 +250,9 @@ export function createFormatSelector(options: FormatSelectorOptions = {}): HTMLE
   description.id = "dm-format-description";
   description.style.cssText = `
     font-size: 11px;
-    color: #888;
+    color: ${theme.textSecondary};
     padding: 8px 12px;
-    background: #1a1a1a;
+    background: ${theme.bgPrimary};
     border-radius: 4px;
   `;
   description.textContent = FORMAT_TYPE_MAP[defaultFormat]?.description || "";

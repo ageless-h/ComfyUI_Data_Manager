@@ -21,6 +21,8 @@ export interface TableOptions {
   type?: TableModeType;
   maxRows?: number;
   height?: number | null;
+  hasFullscreen?: boolean;
+  path?: string;  // File path for fullscreen open floating preview
 }
 
 /**
@@ -54,7 +56,7 @@ const MODE_CONFIG: Record<'floating' | 'panel', TableModeConfig> = {
   panel: {
     containerClass: 'dm-panel-table-container',
     controlsClass: 'dm-table-controls-panel',
-    height: '400px',
+    height: null,  // 使用自动高度，避免同时出现垂直和水平滚动条
     hasFullscreen: true,
     prefix: 'dm-table'
   }
@@ -69,9 +71,12 @@ const MODE_CONFIG: Record<'floating' | 'panel', TableModeConfig> = {
 export function createTableHTML(rows: string[][], options: TableOptions = {}): string {
   const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
   const mode = MODE_CONFIG[mergedOptions.type || 'floating'];
+  // Override hasFullscreen if specified in options
+  const hasFullscreen = mergedOptions.hasFullscreen !== undefined ? mergedOptions.hasFullscreen : mode.hasFullscreen;
   const displayRows = rows.slice(0, mergedOptions.maxRows || LIMITS.MAX_PREVIEW_ROWS);
   const isTruncated = rows.length > (mergedOptions.maxRows || LIMITS.MAX_PREVIEW_ROWS);
   const tableId = `${mode.prefix}-${Date.now()}`;
+  const tablePath = mergedOptions.path || '';
 
   const heightStyle = mode.height !== null ? `height: ${mode.height};` : 'height: 100%;';
   const containerStyle = `position: relative; flex: 1; overflow: hidden; ${heightStyle}`;
@@ -81,7 +86,7 @@ export function createTableHTML(rows: string[][], options: TableOptions = {}): s
       <div class="${mode.containerClass}" style="${containerStyle}">
         <div id="${tableId}-wrapper" class="dm-table-wrapper"
              style="width: 100%; overflow: auto; padding: 15px; ${heightStyle}">
-          <table id="${tableId}" class="dm-data-table"
+          <table id="${tableId}" class="dm-data-table" ${tablePath ? `data-table-path="${escapeHtml(tablePath)}"` : ''}
                  style="width: 100%; border-collapse: collapse; font-size: 12px; transform-origin: top left;">
   `;
 
@@ -118,7 +123,7 @@ export function createTableHTML(rows: string[][], options: TableOptions = {}): s
   }
 
   // Delay setting up controls
-  setTimeout(() => setupTableControls(tableId, (mergedOptions.type || 'floating') as 'floating' | 'panel'), 0);
+  setTimeout(() => setupTableControls(tableId, (mergedOptions.type || 'floating') as 'floating' | 'panel', hasFullscreen, tablePath), 0);
 
   return tableHTML;
 }
@@ -160,12 +165,15 @@ function createTableControls(tableId: string, mode: typeof MODE_CONFIG.floating)
  * Setup table control events
  * @param tableId - Table ID
  * @param modeType - Mode type ('floating' | 'panel')
+ * @param hasFullscreen - Whether to show fullscreen button
+ * @param tablePath - File path for fullscreen open floating preview
  */
-export function setupTableControls(tableId: string, modeType: TableModeType = 'floating'): void {
+export function setupTableControls(tableId: string, modeType: TableModeType = 'floating', hasFullscreen?: boolean, tablePath?: string): void {
   const table = document.getElementById(tableId);
   if (!table) return;
 
   const mode = MODE_CONFIG[modeType] || MODE_CONFIG.floating;
+  const showFullscreen = hasFullscreen !== undefined ? hasFullscreen : mode.hasFullscreen;
   let zoom = 100;
   let isFullscreen = false;
   const tableEl = table as HTMLElement;
@@ -175,7 +183,7 @@ export function setupTableControls(tableId: string, modeType: TableModeType = 'f
   const zoomInBtn = document.querySelector(`.dm-table-zoom-in-btn[data-table-id="${tableId}"]`) as HTMLButtonElement;
   const zoomOutBtn = document.querySelector(`.dm-table-zoom-out-btn[data-table-id="${tableId}"]`) as HTMLButtonElement;
   const fitBtn = document.querySelector(`.dm-table-fit-btn[data-table-id="${tableId}"]`) as HTMLButtonElement;
-  const fullscreenBtn = mode.hasFullscreen
+  const fullscreenBtn = showFullscreen
     ? document.querySelector(`.dm-table-fullscreen-btn[data-table-id="${tableId}"]`) as HTMLButtonElement | null
     : null;
 
@@ -212,12 +220,14 @@ export function setupTableControls(tableId: string, modeType: TableModeType = 'f
   }
 
   if (fullscreenBtn) {
-    fullscreenBtn.addEventListener('click', () => {
-      isFullscreen = !isFullscreen;
-      if (isFullscreen) {
-        table.parentElement?.requestFullscreen();
-      } else {
-        document.exitFullscreen();
+    fullscreenBtn.addEventListener('click', async () => {
+      // Open floating preview for table fullscreen
+      // Use passed path first, fallback to data attribute
+      const path = tablePath || tableEl.getAttribute('data-table-path');
+      if (path) {
+        const fileName = path.split(/[\\/]/).pop() || path;
+        const { openFloatingPreview } = await import('../ui/floating/window.js');
+        openFloatingPreview(path, fileName);
       }
     });
   }
@@ -284,7 +294,24 @@ export async function parseSpreadsheet(path: string, ext: string): Promise<strin
     return parseCSV(text);
   }
 
-  // For Excel files, we would need SheetJS (xlsx) library
-  // For now, return unsupported error
-  throw new Error('Excel format requires SheetJS library');
+  // Excel files (.xls, .xlsx) - use SheetJS library
+  if (ext === '.xls' || ext === '.xlsx') {
+    // Load SheetJS if not available
+    const win = window as unknown as { XLSX?: any };
+    if (typeof win.XLSX === 'undefined') {
+      await loadScript('https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js');
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const XLSX = win.XLSX;
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    return rows as string[][];
+  }
+
+  throw new Error('Unsupported spreadsheet format');
 }

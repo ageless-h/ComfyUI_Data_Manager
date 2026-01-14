@@ -1,214 +1,298 @@
-import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(e){return"/"+e},Q={},$=function(t,n,o){let i=Promise.resolve();if(n&&n.length>0){document.getElementsByTagName("link");const s=document.querySelector("meta[property=csp-nonce]"),r=s?.nonce||s?.getAttribute("nonce");i=Promise.allSettled(n.map(c=>{if(c=ke(c),c in Q)return;Q[c]=!0;const l=c.endsWith(".css"),d=l?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${c}"]${d}`))return;const g=document.createElement("link");if(g.rel=l?"stylesheet":Oe,l||(g.as="script"),g.crossOrigin="",g.href=c,r&&g.setAttribute("nonce",r),document.head.appendChild(g),l)return new Promise((m,u)=>{g.addEventListener("load",m),g.addEventListener("error",()=>u(new Error(`Unable to preload CSS for ${c}`)))})}))}function a(s){const r=new Event("vite:preloadError",{cancelable:!0});if(r.payload=s,window.dispatchEvent(r),!r.defaultPrevented)throw s}return i.then(s=>{for(const r of s||[])r.status==="rejected"&&a(r.reason);return t().catch(a)})},M={LAST_PATH:"comfyui_datamanager_last_path",VIEW_MODE:"comfyui_datamanager_view_mode",SORT_BY:"comfyui_datamanager_sort_by",REMOTE_CONNECTIONS:"comfyui_datamanager_remote_connections",LAST_CONNECTION:"comfyui_datamanager_last_connection"},p={currentPath:"",selectedFiles:[],currentPreviewFile:null,viewMode:"list",sortBy:"name",sortOrder:"asc",files:[],history:[],historyIndex:-1};function Y(e,t){try{localStorage.setItem(e,JSON.stringify(t))}catch(n){console.warn("[DataManager] Failed to save state:",n)}}function J(e,t){try{const n=localStorage.getItem(e);return n?JSON.parse(n):t}catch(n){return console.warn("[DataManager] Failed to load state:",n),t}}function ce(e){Y(M.LAST_PATH,e)}function le(){return J(M.LAST_PATH,".")}function Le(e){Y(M.VIEW_MODE,e)}function Ne(){return J(M.VIEW_MODE,"list")}let ze=null,Ae=null,I=[];const Fe=M.REMOTE_CONNECTIONS,Be=M.LAST_CONNECTION;let D={active:null,saved:[]};function je(){try{const e=localStorage.getItem(Fe);e&&(D.saved=JSON.parse(e));const t=localStorage.getItem(Be);t&&(D.active=JSON.parse(t)),window._remoteConnectionsState?(window._remoteConnectionsState.active=D.active,window._remoteConnectionsState.saved=D.saved):window._remoteConnectionsState=D}catch(e){console.warn("[DataManager] Failed to init remote connections:",e)}}je();const Ve=D,Bt=Object.freeze(Object.defineProperty({__proto__:null,FileManagerState:p,STORAGE_KEYS:M,fileManagerWindow:ze,getLastPath:le,getViewMode:Ne,loadState:J,previewFloatingWindows:I,previewModal:Ae,remoteConnectionsState:Ve,saveLastPath:ce,saveState:Y,saveViewMode:Le},Symbol.toStringTag,{value:"Module"})),de=[];function pe(e){de.push(e)}function ee(){const e=L();de.forEach(t=>{try{t(e)}catch(n){console.error("[DataManager] Theme listener error:",n)}})}function He(){const e=new MutationObserver(o=>{let i=!1;for(const a of o)if(a.type==="attributes"){i=!0;break}i&&(z(),ee())});e.observe(document.documentElement,{attributes:!0,attributeFilter:["class","data-theme"]});let t=te();const n=window.setInterval(()=>{const o=te();JSON.stringify(t)!==JSON.stringify(o)&&(t=o,z(),ee())},2e3);return{observer:e,checkInterval:n}}function te(){const e=window.getComputedStyle(document.documentElement);return{bg:e.getPropertyValue("--comfy-menu-bg"),bg2:e.getPropertyValue("--comfy-menu-bg-2"),inputText:e.getPropertyValue("--input-text"),borderColor:e.getPropertyValue("--border-color")}}let ne=null;function Re(){ne||setTimeout(()=>{try{ne=He()}catch(e){console.error("[DataManager] Theme watcher init failed:",e)}},1e3)}function Ue(e){const t=e.replace("#","");if(t.length===3){const n=parseInt(t[0]+t[0],16),o=parseInt(t[1]+t[1],16),i=parseInt(t[2]+t[2],16);return(n*299+o*587+i*114)/1e3>128}if(t.length===6){const n=parseInt(t.substring(0,2),16),o=parseInt(t.substring(2,4),16),i=parseInt(t.substring(4,6),16);return(n*299+o*587+i*114)/1e3>128}return!1}function L(){try{const e=window.getComputedStyle(document.documentElement),t=window.getComputedStyle(document.body),n=e.getPropertyValue("--comfy-menu-bg")?.trim()||"#1a1a1a",o=e.getPropertyValue("--comfy-menu-bg-2")?.trim()||e.getPropertyValue("--comfy-menu-secondary-bg")?.trim()||"#252525",i=e.getPropertyValue("--comfy-input-bg")?.trim()||"#2a2a2a",a=Ue(n),s=e.getPropertyValue("--input-text")?.trim()||e.getPropertyValue("--input-text-text")?.trim()||(a?"#222":"#ddd"),r=e.getPropertyValue("--descrip-text")?.trim()||(a?"#666":"#999");return{bgPrimary:n,bgSecondary:o,bgTertiary:e.getPropertyValue("--comfy-menu-bg-3")?.trim()||"#2a2a2a",inputBg:i,inputText:s,borderColor:e.getPropertyValue("--border-color")?.trim()||(a?"#ddd":"#3a3a3a"),textPrimary:s,textSecondary:r,accentColor:e.getPropertyValue("--comfy-accent")?.trim()||"#9b59b6",errorColor:"#e74c3c",successColor:"#27ae60",isLight:a}}catch(e){return console.warn("[DataManager] Failed to get ComfyUI theme:",e),{bgPrimary:"#1a1a1a",bgSecondary:"#252525",bgTertiary:"#2a2a2a",inputBg:"#2a2a2a",inputText:"#ddd",borderColor:"#3a3a3a",textPrimary:"#ddd",textSecondary:"#999",accentColor:"#9b59b6",errorColor:"#e74c3c",successColor:"#27ae60",isLight:!1}}}function z(){const e=L(),t=document.documentElement;t.style.setProperty("--dm-bg-primary",e.bgPrimary),t.style.setProperty("--dm-bg-secondary",e.bgSecondary),t.style.setProperty("--dm-bg-tertiary",e.bgTertiary),t.style.setProperty("--dm-input-bg",e.inputBg),t.style.setProperty("--dm-input-text",e.inputText),t.style.setProperty("--dm-border-color",e.borderColor),t.style.setProperty("--dm-text-primary",e.textPrimary),t.style.setProperty("--dm-text-secondary",e.textSecondary),t.style.setProperty("--dm-accent-color",e.accentColor),t.style.setProperty("--dm-error-color",e.errorColor),t.style.setProperty("--dm-success-color",e.successColor)}function oe(e,t){e&&(e.style.background=`linear-gradient(135deg, ${t.bgSecondary} 0%, ${t.bgPrimary} 100%)`,e.style.borderColor=t.borderColor)}function We(e={}){const{title:t="Data Manager",icon:n="pi-folder-open",onClose:o=null,onMinimize:i=null,onFullscreen:a=null,onRefresh:s=null}=e,r=document.createElement("div");r.className="dm-header dm-preview-header",r.setAttribute("draggable","false");const c=L();r.style.cssText=`
+import{app as L}from"../../scripts/app.js";const qe="modulepreload",We=function(e){return"/"+e},ae={},I=function(n,t,o){let i=Promise.resolve();if(t&&t.length>0){document.getElementsByTagName("link");const r=document.querySelector("meta[property=csp-nonce]"),s=r?.nonce||r?.getAttribute("nonce");i=Promise.allSettled(t.map(c=>{if(c=We(c),c in ae)return;ae[c]=!0;const l=c.endsWith(".css"),u=l?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${c}"]${u}`))return;const d=document.createElement("link");if(d.rel=l?"stylesheet":qe,l||(d.as="script"),d.crossOrigin="",d.href=c,s&&d.setAttribute("nonce",s),document.head.appendChild(d),l)return new Promise((m,y)=>{d.addEventListener("load",m),d.addEventListener("error",()=>y(new Error(`Unable to preload CSS for ${c}`)))})}))}function a(r){const s=new Event("vite:preloadError",{cancelable:!0});if(s.payload=r,window.dispatchEvent(s),!s.defaultPrevented)throw r}return i.then(r=>{for(const s of r||[])s.status==="rejected"&&a(s.reason);return n().catch(a)})},z={LAST_PATH:"comfyui_datamanager_last_path",VIEW_MODE:"comfyui_datamanager_view_mode",SORT_BY:"comfyui_datamanager_sort_by",REMOTE_CONNECTIONS:"comfyui_datamanager_remote_connections",LAST_CONNECTION:"comfyui_datamanager_last_connection"},p={currentPath:"",selectedFiles:[],currentPreviewFile:null,viewMode:"list",sortBy:"name",sortOrder:"asc",files:[],history:[],historyIndex:-1};function ee(e,n){try{localStorage.setItem(e,JSON.stringify(n))}catch(t){console.warn("[DataManager] Failed to save state:",t)}}function te(e,n){try{const t=localStorage.getItem(e);return t?JSON.parse(t):n}catch(t){return console.warn("[DataManager] Failed to load state:",t),n}}function ne(e){ee(z.LAST_PATH,e)}function he(){return te(z.LAST_PATH,".")}function Ge(e){ee(z.VIEW_MODE,e)}function Ye(){return te(z.VIEW_MODE,"list")}let Xe=null,Ze=null,O=[];const Je=z.REMOTE_CONNECTIONS,Ke=z.LAST_CONNECTION;let N={active:null,saved:[]};function Qe(){try{const e=localStorage.getItem(Je);e&&(N.saved=JSON.parse(e));const n=localStorage.getItem(Ke);n&&(N.active=JSON.parse(n)),window._remoteConnectionsState?(window._remoteConnectionsState.active=N.active,window._remoteConnectionsState.saved=N.saved):window._remoteConnectionsState=N}catch(e){console.warn("[DataManager] Failed to init remote connections:",e)}}Qe();const et=N,tt=Object.freeze(Object.defineProperty({__proto__:null,FileManagerState:p,STORAGE_KEYS:z,fileManagerWindow:Xe,getLastPath:he,getViewMode:Ye,loadState:te,previewFloatingWindows:O,previewModal:Ze,remoteConnectionsState:et,saveLastPath:ne,saveState:ee,saveViewMode:Ge},Symbol.toStringTag,{value:"Module"})),be=[];function oe(e){be.push(e)}function ce(){const e=b();be.forEach(n=>{try{n(e)}catch(t){console.error("[DataManager] Theme listener error:",t)}})}function nt(){const e=new MutationObserver(o=>{let i=!1;for(const a of o)if(a.type==="attributes"){i=!0;break}i&&(k(),ce())});e.observe(document.documentElement,{attributes:!0,attributeFilter:["class","data-theme"]});let n=le();const t=window.setInterval(()=>{const o=le();JSON.stringify(n)!==JSON.stringify(o)&&(n=o,k(),ce())},2e3);return{observer:e,checkInterval:t}}function le(){const e=window.getComputedStyle(document.documentElement);return{bg:e.getPropertyValue("--comfy-menu-bg"),bg2:e.getPropertyValue("--comfy-menu-bg-2"),inputText:e.getPropertyValue("--input-text"),borderColor:e.getPropertyValue("--border-color")}}let de=null;function ot(){de||setTimeout(()=>{try{de=nt()}catch(e){console.error("[DataManager] Theme watcher init failed:",e)}},1e3)}function it(e){if(e.includes("rgb")){const t=e.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);if(t){const o=parseInt(t[1]),i=parseInt(t[2]),a=parseInt(t[3]);return(o*299+i*587+a*114)/1e3>128}}const n=e.replace("#","");if(n.length===3){const t=parseInt(n[0]+n[0],16),o=parseInt(n[1]+n[1],16),i=parseInt(n[2]+n[2],16);return(t*299+o*587+i*114)/1e3>128}if(n.length===6){const t=parseInt(n.substring(0,2),16),o=parseInt(n.substring(2,4),16),i=parseInt(n.substring(4,6),16);return(t*299+o*587+i*114)/1e3>128}return!1}function b(){try{const e=window.getComputedStyle(document.documentElement),n=window.getComputedStyle(document.body),t=e.getPropertyValue("--comfy-menu-bg")?.trim()||"#1a1a1a",o=e.getPropertyValue("--comfy-menu-bg-2")?.trim()||e.getPropertyValue("--comfy-menu-secondary-bg")?.trim()||"#252525",i=it(t),a=e.getPropertyValue("--comfy-menu-bg-3")?.trim();let r,s;i?(r="#f0f0f0",s=e.getPropertyValue("--comfy-input-bg")?.trim()||"#ffffff"):(r=a||"#2a2a2a",s=e.getPropertyValue("--comfy-input-bg")?.trim()||r);const c=e.getPropertyValue("--input-text")?.trim()||"",l=i?"#222222":"#dddddd",u=i?"#666666":"#999999";return{bgPrimary:t,bgSecondary:o,bgTertiary:r,inputBg:s,inputText:l,borderColor:e.getPropertyValue("--border-color")?.trim()||(i?"#dddddd":"#444444"),textPrimary:l,textSecondary:u,accentColor:e.getPropertyValue("--comfy-accent")?.trim()||"#9b59b6",errorColor:"#e74c3c",successColor:"#27ae60",isLight:i}}catch(e){return console.warn("[DataManager] Failed to get ComfyUI theme:",e),{bgPrimary:"#1a1a1a",bgSecondary:"#252525",bgTertiary:"#2a2a2a",inputBg:"#2a2a2a",inputText:"#dddddd",borderColor:"#444444",textPrimary:"#dddddd",textSecondary:"#999999",accentColor:"#9b59b6",errorColor:"#e74c3c",successColor:"#27ae60",isLight:!1}}}function k(){const e=b(),n=e.isLight?"#e0e0e0":"#3a3a3a",t=document.documentElement;t.style.setProperty("--dm-bg-primary",e.bgPrimary),t.style.setProperty("--dm-bg-secondary",e.bgSecondary),t.style.setProperty("--dm-bg-tertiary",e.bgTertiary),t.style.setProperty("--dm-bg-hover",n),t.style.setProperty("--dm-input-bg",e.inputBg),t.style.setProperty("--dm-input-text",e.inputText),t.style.setProperty("--dm-border-color",e.borderColor),t.style.setProperty("--dm-text-primary",e.textPrimary),t.style.setProperty("--dm-text-secondary",e.textSecondary),t.style.setProperty("--dm-accent-color",e.accentColor),t.style.setProperty("--dm-error-color",e.errorColor),t.style.setProperty("--dm-success-color",e.successColor)}function pe(e,n){e&&(e.style.background=`linear-gradient(135deg, ${n.bgSecondary} 0%, ${n.bgPrimary} 100%)`,e.style.borderColor=n.borderColor)}function rt(e={}){const{title:n="Data Manager",icon:t="pi-folder-open",onClose:o=null,onMinimize:i=null,onFullscreen:a=null,onRefresh:r=null}=e,s=b(),c=document.createElement("div");c.className="dm-header dm-preview-header",c.setAttribute("draggable","false"),c.style.cssText=`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 15px;
-    background: linear-gradient(135deg, ${c.bgSecondary} 0%, ${c.bgPrimary} 100%);
-    border-bottom: 1px solid ${c.borderColor};
+    padding: 10px 16px;
+    background: transparent;
+    border-bottom: 0.8px solid ${s.borderColor};
     cursor: move;
     user-select: none;
-  `;const l=document.createElement("div");l.className="dm-traffic-lights",l.style.cssText="display: flex; gap: 8px;";const d=j("pi-times","关闭",o),g=j("pi-minus","最小化",i),m=j("pi-window-maximize","全屏",a);l.appendChild(d),l.appendChild(g),l.appendChild(m);const u=document.createElement("div");u.className="dm-header-title-area",u.style.cssText=`
+    gap: 12px;
+  `;const l=document.createElement("div");l.className="dm-traffic-lights",l.style.cssText="display: flex; gap: 8px;";const u=W("pi-times","关闭",o),d=W("pi-minus","最小化",i),m=W("pi-window-maximize","全屏",a);l.appendChild(u),l.appendChild(d),l.appendChild(m);const y=document.createElement("div");y.className="dm-header-title-area",y.style.cssText=`
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     flex: 1 1 0%;
-    justify-content: center;
-  `;const f=document.createElement("i");f.className=`pi ${n}`;const w=document.createElement("span");w.style.cssText=`
-    max-width: 300px;
+    color: ${s.textPrimary};
+  `;const x=document.createElement("i");x.className=`pi ${t}`,x.style.color=s.textSecondary;const f=document.createElement("span");f.style.cssText=`
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  `,w.textContent=t,u.appendChild(f),u.appendChild(w);const h=document.createElement("div");if(h.style.cssText="display: flex; gap: 8px;",s){const v=qe("pi-refresh","刷新",s);v.style.background="transparent",h.appendChild(v)}return r.appendChild(l),r.appendChild(u),r.appendChild(h),r._updateTheme=()=>{const v=L();oe(r,v)},pe(v=>{oe(r,v)}),r}function j(e,t,n){const o=document.createElement("button");return o.className="comfy-btn dm-traffic-btn",o.innerHTML=`<i class="pi ${e}" style="font-size: 10px;"></i>`,o.style.cssText=`
-    width: 14px;
-    height: 14px;
-    padding: 0px;
+  `,f.textContent=n,y.appendChild(x),y.appendChild(f);const g=document.createElement("div");if(g.style.cssText="display: flex; gap: 8px; align-items: center;",r){const v=st("pi-refresh","刷新",r);g.appendChild(v)}return c.appendChild(l),c.appendChild(y),c.appendChild(g),c._updateTheme=()=>{const v=b();pe(c,v)},oe(v=>{pe(c,v)}),c}function W(e,n,t){const o=b(),i=document.createElement("button");return i.className="comfy-btn dm-traffic-btn",i.innerHTML=`<i class="pi ${e}" style="font-size: 12px;"></i>`,i.style.cssText=`
+    width: 28px;
+    height: 28px;
+    padding: 0;
     background: transparent;
-    border: none;
+    border: 0.8px solid ${o.borderColor};
+    border-radius: 6px;
+    color: ${o.textSecondary};
     cursor: pointer;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: 0.15s;
-  `,o.title=t,n&&(o.onclick=i=>{i.stopPropagation(),n()}),o}function qe(e,t,n){const o=document.createElement("button");return o.className="comfy-btn dm-header-btn",o.innerHTML=`<i class="pi ${e}"></i>`,o.style.cssText=`
-    padding: 6px 10px;
+    transition: all 0.15s ease;
+  `,i.title=n,i.onmouseenter=()=>{i.style.background=o.bgTertiary,i.style.color=o.textPrimary},i.onmouseleave=()=>{i.style.background="transparent",i.style.color=o.textSecondary},t&&(i.onclick=a=>{a.stopPropagation(),t()}),i}function st(e,n,t){const o=b(),i=document.createElement("button");return i.className="comfy-btn dm-header-btn",i.innerHTML=`<i class="pi ${e}" style="font-size: 14px;"></i>`,i.style.cssText=`
+    width: 28px;
+    height: 28px;
+    padding: 0;
     background: transparent;
-    border: none;
+    border: 0.8px solid ${o.borderColor};
+    border-radius: 6px;
+    color: ${o.textSecondary};
     cursor: pointer;
-    border-radius: 4px;
-  `,o.title=t,o.onmouseover=()=>o.style.background="",o.onmouseout=()=>o.style.background="transparent",o.onclick=n,o}function Ge(e){const{onSshConnect:t,onSshDisconnect:n}=e,o=document.createElement("div");o.style.cssText="display: flex; align-items: center; gap: 5px;";const i=document.createElement("select");return i.id="dm-remote-select",i.style.cssText=`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  `,i.title=n,i.onmouseenter=()=>{i.style.background=o.bgTertiary,i.style.color=o.textPrimary},i.onmouseleave=()=>{i.style.background="transparent",i.style.color=o.textSecondary},i.onmouseout=()=>i.style.background="transparent",i.onclick=t,i}function at(e){const{onSshConnect:n,onSshDisconnect:t}=e,o=b(),i=document.createElement("div");i.style.cssText="display: flex; align-items: center; gap: 5px;";const a=document.createElement("select");return a.id="dm-remote-select",a.style.cssText=`
     padding: 8px 12px;
-    border: 1px solid #444;
+    border: 1px solid ${o.borderColor} !important;
     border-radius: 6px;
     font-size: 13px;
     min-width: 150px;
     cursor: pointer;
-  `,V(i),i.onchange=async a=>{const s=a.target.value,r=window._remoteConnectionsState;if(s==="__local__"){r.active=null;try{localStorage.removeItem("comfyui_datamanager_last_connection")}catch{}V(i),A(),n&&n()}else if(s.startsWith("conn_")){const c=s.substring(5),l=r.saved.find(d=>d.id===c);if(l)try{i.disabled=!0;const d=document.createElement("option");d.textContent="连接中...",i.innerHTML="",i.appendChild(d),t&&t({connection_id:c,host:l.host,port:l.port,username:l.username,password:atob(l.password||"")})}catch(d){alert("连接失败: "+d.message),V(i)}}a.target.value=""},o.appendChild(i),o}function V(e,t,n){const o=window._remoteConnectionsState,i=o.active;e.innerHTML="";const a=document.createElement("option");a.value="__local__",a.textContent="本地",e.appendChild(a),o.saved.forEach(s=>{const r=document.createElement("option");r.value=`conn_${s.id}`,r.textContent=s.name||`${s.username}@${s.host}`,i&&i.connection_id===s.id&&(r.style.color="#27ae60"),e.appendChild(r)})}function A(){const e=document.getElementById("dm-connection-indicator"),t=document.getElementById("dm-connection-status"),o=window._remoteConnectionsState.active;e&&(e.style.background=o?"#27ae60":"#666"),t&&(o?t.textContent=`SSH: ${o.username}@${o.host}`:t.textContent="")}function Ye(e){const{onSshConnect:t,onSshDisconnect:n}=e,o=document.createElement("button");return o.className="comfy-btn",o.id="dm-settings-btn",o.innerHTML='<i class="pi pi-cog"></i>',o.style.cssText=`
+    background: ${o.bgTertiary} !important;
+    color: ${o.inputText} !important;
+  `,G(a),a.onchange=async r=>{const s=r.target.value,c=window._remoteConnectionsState;if(s==="__local__"){c.active=null;try{localStorage.removeItem("comfyui_datamanager_last_connection")}catch{}G(a),U(),t&&t()}else if(s.startsWith("conn_")){const l=s.substring(5),u=c.saved.find(d=>d.id===l);if(u)try{a.disabled=!0;const d=document.createElement("option");d.textContent="连接中...",a.innerHTML="",a.appendChild(d),n&&n({connection_id:l,host:u.host,port:u.port,username:u.username,password:atob(u.password||"")})}catch(d){alert("连接失败: "+d.message),G(a)}}r.target.value=""},i.appendChild(a),i}function G(e,n,t){const o=b(),i=window._remoteConnectionsState,a=i.active;e.innerHTML="";const r=document.createElement("option");r.value="__local__",r.textContent="本地",e.appendChild(r),i.saved.forEach(s=>{const c=document.createElement("option");c.value=`conn_${s.id}`,c.textContent=s.name||`${s.username}@${s.host}`,a&&a.connection_id===s.id&&(c.style.color=o.successColor),e.appendChild(c)})}function U(){const e=b(),n=document.getElementById("dm-connection-indicator"),t=document.getElementById("dm-connection-status"),i=window._remoteConnectionsState.active;n&&(n.style.background=i?e.successColor:e.textSecondary),t&&(i?t.textContent=`SSH: ${i.username}@${i.host}`:t.textContent="")}function ct(e){const n=b(),t=document.createElement("button");return t.className="comfy-btn",t.id="dm-new-btn",t.innerHTML='<i class="pi pi-plus"></i>',t.style.cssText=`
     padding: 8px 12px;
-    border: 1px solid #444;
+    border: 1px solid ${n.borderColor} !important;
     border-radius: 6px;
     cursor: pointer;
-    background: transparent;
-    color: #ccc;
-  `,o.title="连接管理",o.onclick=async()=>{const{openSettingsPanel:i}=await $(async()=>{const{openSettingsPanel:a}=await import("./settings.js");return{openSettingsPanel:a}},[]);i({onConnect:a=>{const s=window._remoteConnectionsState;s.active=a;try{localStorage.setItem("comfyui_datamanager_last_connection",JSON.stringify(a))}catch{}A(),t&&t(a)},onDisconnect:async()=>{const a=window._remoteConnectionsState,s=a.active;if(s&&s.connection_id)try{const{sshDisconnect:r}=await $(async()=>{const{sshDisconnect:c}=await import("./ssh.js");return{sshDisconnect:c}},[]);await r(s.connection_id)}catch(r){console.log("[DataManager] SSH disconnect error:",r)}a.active=null;try{localStorage.removeItem("comfyui_datamanager_last_connection")}catch{}A(),n&&n()}})},o}function Je(e={}){const t=document.createElement("div");t.className="dm-toolbar",t.style.cssText=`
+    background: ${n.bgTertiary} !important;
+    color: ${n.textPrimary} !important;
+  `,t.title="新建",t.onclick=()=>{e.onNewFile&&e.onNewFile()},t}function lt(e){const n=b(),t=document.createElement("select");return t.id="dm-sort-select",t.className="dm-select comfy-btn",t.style.cssText=`
+    padding: 8px 12px;
+    border: 1px solid ${n.borderColor} !important;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    background: ${n.bgTertiary} !important;
+    color: ${n.inputText} !important;
+  `,[{value:"name",label:"按名称"},{value:"size",label:"按大小"},{value:"modified",label:"按日期"}].forEach(i=>{const a=document.createElement("option");a.value=i.value,a.textContent=i.label,t.appendChild(a)}),t.onchange=i=>{const a=i.target.value;e.onSortChange&&e.onSortChange(a)},t}function dt(e){const{onSshConnect:n,onSshDisconnect:t}=e,o=b(),i=document.createElement("button");return i.className="comfy-btn",i.id="dm-settings-btn",i.innerHTML='<i class="pi pi-cog"></i>',i.style.cssText=`
+    padding: 8px 12px;
+    border: 1px solid ${o.borderColor} !important;
+    border-radius: 6px;
+    cursor: pointer;
+    background: ${o.bgTertiary} !important;
+    color: ${o.textPrimary} !important;
+  `,i.title="连接管理",i.onclick=async()=>{const{openSettingsPanel:a}=await I(async()=>{const{openSettingsPanel:r}=await import("./settings.js");return{openSettingsPanel:r}},[]);a({onConnect:r=>{const s=window._remoteConnectionsState;s.active=r;try{localStorage.setItem("comfyui_datamanager_last_connection",JSON.stringify(r))}catch{}U(),n&&n(r)},onDisconnect:async()=>{const r=window._remoteConnectionsState,s=r.active;if(s&&s.connection_id)try{const{sshDisconnect:c}=await I(async()=>{const{sshDisconnect:l}=await import("./ssh.js");return{sshDisconnect:l}},[]);await c(s.connection_id)}catch(c){console.log("[DataManager] SSH disconnect error:",c)}r.active=null;try{localStorage.removeItem("comfyui_datamanager_last_connection")}catch{}U(),t&&t()}})},i}function pt(e={}){const n=b(),t=document.createElement("div");t.className="dm-toolbar",t.style.cssText=`
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px 15px;
-    border-bottom: 1px solid;
+    border-bottom: 1px solid ${n.borderColor};
     gap: 15px;
-  `;const n=document.createElement("div");n.style.cssText="display: flex; align-items: center; gap: 10px;";const o=document.createElement("input");o.id="dm-path-input",o.type="text",o.className="dm-input",o.style.cssText=`
-    flex: 1;
-    min-width: 300px;
+  `;const o=document.createElement("div");o.style.cssText="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;";const i=document.createElement("div");i.style.cssText=`
+    display: flex;
+    gap: 5px;
+  `;const a=document.createElement("button");a.id="dm-nav-up-btn",a.className="comfy-btn",a.innerHTML='<i class="pi pi-arrow-up"></i>',a.title="返回上级",a.style.cssText=`
     padding: 8px 12px;
-    border: 1px solid #444;
+    border: 1px solid ${n.borderColor} !important;
+    border-radius: 6px;
+    background: ${n.bgTertiary} !important;
+    color: ${n.textPrimary} !important;
+    cursor: pointer;
+  `,a.onclick=()=>I(()=>Promise.resolve().then(()=>V),void 0).then(d=>d.navigateUp());const r=document.createElement("button");r.id="dm-nav-home-btn",r.className="comfy-btn",r.innerHTML='<i class="pi pi-home"></i>',r.title="返回首页",r.style.cssText=`
+    padding: 8px 12px;
+    border: 1px solid ${n.borderColor} !important;
+    border-radius: 6px;
+    background: ${n.bgTertiary} !important;
+    color: ${n.textPrimary} !important;
+    cursor: pointer;
+  `,r.onclick=()=>I(()=>Promise.resolve().then(()=>V),void 0).then(d=>d.navigateHome()),i.appendChild(a),i.appendChild(r),o.appendChild(i);const s=document.createElement("input");s.id="dm-path-input",s.type="text",s.className="dm-input",s.style.cssText=`
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 1px solid ${n.borderColor} !important;
     border-radius: 6px;
     font-size: 13px;
-    background: #2a2a2a;
-    color: #fff;
-  `,o.value=p.currentPath||".",o.onkeypress=a=>{if(a.key==="Enter"){const{loadDirectory:s}=require("./actions.js");s(a.target.value)}},n.appendChild(o),t.appendChild(n);const i=document.createElement("div");return i.style.cssText="display: flex; align-items: center; gap: 10px;",i.appendChild(Ge(e)),i.appendChild(Ye(e)),t.appendChild(i),setTimeout(()=>A(),100),t}const F={LIST:"/dm/list",PREVIEW:"/dm/preview",INFO:"/dm/info",DELETE:"/dm/delete"},E={MAX_PREVIEW_ROWS:100,DEFAULT_ZOOM_STEP:25,MIN_ZOOM_DISPLAY:25,MAX_ZOOM_DISPLAY:300,FLOATING_Z_INDEX:10001},x={image:{exts:[".jpg",".jpeg",".png",".gif",".bmp",".webp",".svg",".ico",".tiff",".tif",".avif",".heic",".heif",".tga"],icon:"pi-image",color:"#e74c3c"},video:{exts:[".mp4",".webm",".mov",".mkv"],icon:"pi-video",color:"#9b59b6"},videoExternal:{exts:[".avi"],icon:"pi-video",color:"#8e44ad"},audio:{exts:[".mp3",".wav",".flac",".aac",".ogg",".wma",".m4a"],icon:"pi-volume-up",color:"#3498db"},document:{exts:[".pdf",".doc",".docx",".txt",".rtf",".md"],icon:"pi-file",color:"#95a5a6"},spreadsheet:{exts:[".xls",".xlsx",".csv",".ods"],icon:"pi-table",color:"#27ae60"},archive:{exts:[".zip",".rar",".7z",".tar",".gz"],icon:"pi-box",color:"#f39c12"},code:{exts:[".py",".js",".html",".css",".json",".xml",".yaml",".yml",".cpp",".c",".h"],icon:"pi-code",color:"#1abc9c"},folder:{exts:[],icon:"pi-folder",color:"#f1c40f"},unknown:{exts:[],icon:"pi-file",color:"#7f8c8d"}};function B(e){if(e.is_dir)return"folder";const t="."+((e.name||e.path||"").split(".").pop()?.toLowerCase()||"");for(const[n,o]of Object.entries(x))if(o.exts&&o.exts.includes(t))return n;return"unknown"}function jt(e){for(const[t,n]of Object.entries(x))if(n.exts&&n.exts.includes(e))return t;return"unknown"}function Ze(e){if(!e)return"";for(const t of["B","KB","MB","GB"]){if(e<1024)return e.toFixed(1)+" "+t;e/=1024}return e.toFixed(1)+" TB"}function Xe(e){return e?new Date(e).toLocaleString("zh-CN",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):""}function b(e){const t=document.createElement("div");return t.textContent=e,t.innerHTML}function Ke(e="list"){const t=document.createElement("div");t.id="dm-browser-panel",t.className="dm-browser-panel",t.style.cssText=`
+    background: ${n.bgTertiary} !important;
+    color: ${n.inputText} !important;
+  `,s.value=p.currentPath||".",s.onkeypress=d=>{if(d.key==="Enter"){const{loadDirectory:m}=require("./actions.js");m(d.target.value)}},o.appendChild(s),o.appendChild(lt(e)),t.appendChild(o);const c=document.createElement("div");c.style.cssText="display: flex; align-items: center; gap: 10px;";const l=document.createElement("button");l.id="dm-view-toggle-btn",l.className="comfy-btn",l.title="切换视图",l.style.cssText=`
+    padding: 8px 12px;
+    border: 1px solid ${n.borderColor} !important;
+    border-radius: 6px;
+    background: ${n.bgTertiary} !important;
+    color: ${n.textPrimary} !important;
+    cursor: pointer;
+  `;function u(){const d=p.viewMode;l.innerHTML=d==="list"?'<i class="pi pi-th-large"></i>':'<i class="pi pi-list"></i>'}return l.onclick=async()=>{const d=p.viewMode==="list"?"grid":"list";p.viewMode=d;const{saveViewMode:m}=await I(async()=>{const{saveViewMode:g}=await Promise.resolve().then(()=>tt);return{saveViewMode:g}},void 0);m(d),u();const y=document.getElementById("dm-file-list"),x=document.getElementById("dm-browser-panel");if(y)if(d==="grid"){y.style.cssText=`
+          flex: 1;
+          overflow-y: auto;
+          padding: 10px;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+          gap: 10px;
+          align-content: start;
+          justify-content: start;
+        `;const g=x?.querySelector(".dm-list-header");g&&(g.style.display="none")}else{y.style.cssText=`
+          flex: 1;
+          overflow-y: auto;
+          padding: 5px 0;
+        `;const g=x?.querySelector(".dm-list-header");g&&(g.style.display="flex")}const{loadDirectory:f}=await I(async()=>{const{loadDirectory:g}=await Promise.resolve().then(()=>V);return{loadDirectory:g}},void 0);await f(p.currentPath)},u(),c.appendChild(l),c.appendChild(at(e)),c.appendChild(dt(e)),c.appendChild(ct(e)),t.appendChild(c),setTimeout(()=>U(),100),t}const A={LIST:"/dm/list",PREVIEW:"/dm/preview",INFO:"/dm/info",CREATE_FILE:"/dm/create/file",CREATE_DIRECTORY:"/dm/create/directory",DELETE:"/dm/delete"},_={MAX_PREVIEW_ROWS:100,MAX_CODE_LENGTH:5e4,DEFAULT_ZOOM_STEP:25,MIN_ZOOM_DISPLAY:25,MAX_ZOOM_DISPLAY:300,FLOATING_Z_INDEX:10001},w={image:{exts:[".jpg",".jpeg",".png",".gif",".bmp",".webp",".svg",".ico",".tiff",".tif",".avif",".heic",".heif",".tga"],icon:"pi-image",color:"#e74c3c"},video:{exts:[".mp4",".webm",".mov",".mkv"],icon:"pi-video",color:"#9b59b6"},videoExternal:{exts:[".avi"],icon:"pi-video",color:"#8e44ad"},audio:{exts:[".mp3",".wav",".flac",".aac",".ogg",".wma",".m4a"],icon:"pi-volume-up",color:"#3498db"},document:{exts:[".pdf",".doc",".docx",".txt",".rtf",".md"],icon:"pi-file",color:"#95a5a6"},spreadsheet:{exts:[".xls",".xlsx",".csv",".ods"],icon:"pi-table",color:"#27ae60"},archive:{exts:[".zip",".rar",".7z",".tar",".gz"],icon:"pi-box",color:"#f39c12"},code:{exts:[".py",".js",".html",".css",".json",".xml",".yaml",".yml",".cpp",".c",".h"],icon:"pi-code",color:"#1abc9c"},folder:{exts:[],icon:"pi-folder",color:"#f1c40f"},unknown:{exts:[],icon:"pi-file",color:"#7f8c8d"}};function q(e){if(e.is_dir)return"folder";const n="."+((e.name||e.path||"").split(".").pop()?.toLowerCase()||"");for(const[t,o]of Object.entries(w))if(o.exts&&o.exts.includes(n))return t;return"unknown"}function yn(e){for(const[n,t]of Object.entries(w))if(t.exts&&t.exts.includes(e))return n;return"unknown"}function ve(e){if(!e)return"";for(const n of["B","KB","MB","GB"]){if(e<1024)return e.toFixed(1)+" "+n;e/=1024}return e.toFixed(1)+" TB"}function mt(e){return e?new Date(e).toLocaleString("zh-CN",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):""}function E(e){const n=document.createElement("div");return n.textContent=e,n.innerHTML}function ut(e="list"){const n=b(),t=document.createElement("div");t.id="dm-browser-panel",t.className="dm-browser-panel",t.style.cssText=`
     flex: 1;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid;
+    border-right: 1px solid ${n.borderColor};
     overflow: hidden;
-  `,e==="list"&&t.appendChild(Qe());const n=document.createElement("div");return n.id="dm-file-list",e==="grid"?n.style.cssText=`
+  `,e==="list"&&t.appendChild(ft());const o=document.createElement("div");return o.id="dm-file-list",e==="grid"?o.style.cssText=`
       flex: 1;
       overflow-y: auto;
       padding: 10px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
       align-content: start;
-    `:n.style.cssText=`
+      justify-content: start;
+    `:o.style.cssText=`
       flex: 1;
       overflow-y: auto;
       padding: 5px 0;
-    `,n.innerHTML=`
+    `,o.innerHTML=`
     <div class="dm-browser-loading" style="text-align: center; padding: 40px;">
       <i class="pi pi-spin pi-spinner" style="font-size: 24px;"></i>
     </div>
-  `,t.appendChild(n),t}function Qe(){const e=document.createElement("div");e.className="dm-list-header",e.style.cssText=`
+  `,t.appendChild(o),t}function ft(){const e=b(),n=document.createElement("div");n.className="dm-list-header",n.style.cssText=`
     display: flex;
     padding: 10px 15px;
-    border-bottom: 1px solid;
+    border-bottom: 1px solid ${e.borderColor};
     font-size: 12px;
     font-weight: 600;
-  `;const t=(n,o,i)=>{const a=document.createElement("div");return a.className="dm-header-cell",a.dataset.sort=n,a.style.cssText=`${i}; cursor: pointer; display: flex; align-items: center; gap: 5px; user-select: none;`,a.innerHTML=`<span>${o}</span><i class="pi pi-sort" style="font-size: 10px; opacity: 0.5;"></i>`,a.onclick=async()=>{const{toggleSort:s}=await $(async()=>{const{toggleSort:r}=await Promise.resolve().then(()=>wt);return{toggleSort:r}},void 0);s(n)},a};return e.appendChild(t("name","名称","flex: 1;")),e.appendChild(t("size","大小","flex: 0 0 100px;")),e.appendChild(t("modified","修改日期","flex: 0 0 150px;")),e}function ie(e,t){const n=B(e),o=x[n]?.icon||x.unknown.icon,i=x[n]?.color||x.unknown.color,a=e.is_dir?"":Ze(e.size??0)||"",s=e.modified?Xe(String(e.modified)):"";return`
-    <div class="dm-file-item" data-path="${b(e.path||e.name)}" data-is-dir="${e.is_dir||!1}"
+  `;const t=(o,i,a)=>{const r=document.createElement("div");return r.className="dm-header-cell",r.dataset.sort=o,r.style.cssText=`${a}; cursor: pointer; display: flex; align-items: center; gap: 5px; user-select: none;`,r.innerHTML=`<span>${i}</span><i class="pi pi-sort" style="font-size: 10px; opacity: 0.5;"></i>`,r.onclick=async()=>{const{toggleSort:s}=await I(async()=>{const{toggleSort:c}=await Promise.resolve().then(()=>V);return{toggleSort:c}},void 0);s(o)},r};return n.appendChild(t("name","名称","flex: 1;")),n.appendChild(t("size","大小","flex: 0 0 100px;")),n.appendChild(t("modified","修改日期","flex: 0 0 150px;")),n}function me(e,n){const t=b(),o=q(e),i=w[o]?.icon||w.unknown.icon,a=w[o]?.color||w.unknown.color,r=e.is_dir?"":ve(e.size??0)||"",s=e.modified?mt(String(e.modified)):"";return`
+    <div class="dm-file-item" data-path="${E(e.path||e.name)}" data-is-dir="${e.is_dir||!1}"
          style="display: flex; align-items: center; padding: 10px 15px;
-                border-bottom: 1px solid; cursor: pointer;
+                border-bottom: 1px solid ${t.borderColor}; cursor: pointer;
                 transition: background 0.2s;">
       <div style="flex: 1; display: flex; align-items: center; gap: 10px; overflow: hidden;">
-        <i class="pi ${o} dm-file-icon" style="color: ${i}; font-size: 16px;"></i>
-        <span class="dm-file-name" style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${b(e.name)}</span>
+        <i class="pi ${i} dm-file-icon" style="color: ${a}; font-size: 16px;"></i>
+        <span class="dm-file-name" style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${E(e.name)}</span>
       </div>
-      <div class="dm-file-size" style="flex: 0 0 100px; font-size: 12px;">${a}</div>
+      <div class="dm-file-size" style="flex: 0 0 100px; font-size: 12px;">${r}</div>
       <div class="dm-file-modified" style="flex: 0 0 150px; font-size: 12px;">${s}</div>
     </div>
-  `}function ae(e,t){if(t)return`
+  `}function ue(e,n){const t=b();if(n)return`
       <div class="dm-grid-item dm-grid-item-parent" data-path="${e.path}" data-is-dir="true"
            data-name=".."
            style="display: flex; flex-direction: column; align-items: center; justify-content: center;
-                  padding: 12px 8px; height: 90px;
+                  padding: 10px; min-height: 100px;
                   border-radius: 8px; cursor: pointer;
-                  transition: all 0.2s; border: 2px dashed; box-sizing: border-box;">
-        <i class="pi pi-folder-open dm-parent-icon" style="font-size: 40px;"></i>
+                  transition: all 0.2s; border: 2px dashed ${t.borderColor}; box-sizing: border-box;">
+        <i class="pi pi-folder-open dm-parent-icon" style="font-size: 36px;"></i>
         <span class="dm-parent-text" style="font-size: 11px; text-align: center;
                       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                      width: 100%; margin-top: 8px;">返回上级</span>
+                      width: 100%; margin-top: 6px; line-height: 1.3;">返回上级</span>
       </div>
-    `;const n=B(e),o=x[n]?.icon||x.unknown.icon,i=x[n]?.color||x.unknown.color;return`
-    <div class="dm-grid-item" data-path="${b(e.path||e.name)}" data-is-dir="${e.is_dir||!1}"
-         data-name="${b(e.name)}"
-         style="display: flex; flex-direction: column; align-items: center; justify-content: center;
-                padding: 12px 8px; height: 90px;
+    `;const o=q(e),i=w[o]?.icon||w.unknown.icon,a=w[o]?.color||w.unknown.color,r=e.path||e.name;if(o==="image"&&!e.is_dir&&r){const s=`/dm/preview?path=${encodeURIComponent(r)}`;return`
+      <div class="dm-grid-item dm-grid-item-image" data-path="${E(r)}" data-is-dir="false"
+           data-name="${E(e.name)}"
+           style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+                  padding: 8px; min-height: 100px;
+                  border-radius: 8px; cursor: pointer;
+                  transition: all 0.2s; border: 2px solid ${t.borderColor}; box-sizing: border-box;">
+        <div style="width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px; background: ${t.bgTertiary};">
+          <img src="${s}" class="dm-grid-thumbnail" alt="${E(e.name)}"
+               style="width: 100%; height: 100%; object-fit: cover;"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <i class="pi ${i} dm-grid-icon" style="display: none; color: ${a}; font-size: 32px;"></i>
+        </div>
+        <span class="dm-grid-filename" style="font-size: 10px; text-align: center;
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                      width: 100%; margin-top: 6px; line-height: 1.3;">${E(e.name)}</span>
+      </div>
+    `}return`
+    <div class="dm-grid-item" data-path="${E(r)}" data-is-dir="${e.is_dir||!1}"
+         data-name="${E(e.name)}"
+         style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+                padding: 8px; min-height: 100px;
                 border-radius: 8px; cursor: pointer;
-                transition: all 0.2s; border: 2px solid; box-sizing: border-box;">
-      <i class="pi ${o} dm-grid-icon" style="color: ${i}; font-size: 40px;"></i>
-      <span class="dm-grid-filename" style="font-size: 11px; text-align: center;
+                transition: all 0.2s; border: 2px solid ${t.borderColor}; box-sizing: border-box;">
+      <div style="width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;">
+        <i class="pi ${i} dm-grid-icon" style="color: ${a}; font-size: 32px;"></i>
+      </div>
+      <span class="dm-grid-filename" style="font-size: 10px; text-align: center;
                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                    width: 100%; margin-top: 8px;">${b(e.name)}</span>
+                    width: 100%; margin-top: 6px; line-height: 1.3;">${E(e.name)}</span>
     </div>
-  `}const q={png:{type:"IMAGE",label:"PNG 图像",description:"无损压缩，支持透明"},jpg:{type:"IMAGE",label:"JPEG 图像",description:"有损压缩，文件较小"},webp:{type:"IMAGE",label:"WebP 图像",description:"现代格式，高压缩比"},mp4:{type:"VIDEO",label:"MP4 视频",description:"通用视频格式"},webm:{type:"VIDEO",label:"WebM 视频",description:"优化的网络视频"},avi:{type:"VIDEO",label:"AVI 视频",description:"经典视频格式"},mp3:{type:"AUDIO",label:"MP3 音频",description:"通用音频格式"},wav:{type:"AUDIO",label:"WAV 音频",description:"无损音频"},flac:{type:"AUDIO",label:"FLAC 音频",description:"无损压缩音频"},ogg:{type:"AUDIO",label:"OGG 音频",description:"开源音频格式"},latent:{type:"LATENT",label:"Latent",description:"ComfyUI Latent 数据"},json:{type:"DATA",label:"JSON",description:"通用数据格式"},txt:{type:"DATA",label:"文本",description:"纯文本格式"}},et={IMAGE:["png","jpg","webp"],VIDEO:["mp4","webm","avi"],AUDIO:["mp3","wav","flac","ogg"],LATENT:["latent"],MASK:["png"],CONDITIONING:["json"],STRING:["txt","json"]};function tt(e){const t=e.toUpperCase();return et[t]||["json"]}function H(e){return{IMAGE:"#e74c3c",VIDEO:"#9b59b6",AUDIO:"#3498db",LATENT:"#27ae60",MASK:"#f39c12",DATA:"#95a5a6"}[e]||"#95a5a6"}function nt(e){return{IMAGE:"pi-image",VIDEO:"pi-video",AUDIO:"pi-volume-up",LATENT:"pi-cube",MASK:"pi-mask",DATA:"pi-file"}[e]||"pi-file"}function ot(e={}){const{detectedType:t=null,selectedFormat:n=null,onFormatChange:o=null,showTypeIndicator:i=!0,compact:a=!1}=e,s=document.createElement("div");if(s.className="dm-format-selector",s.style.cssText=`
+  `}const J={png:{type:"IMAGE",label:"PNG 图像",description:"无损压缩，支持透明"},jpg:{type:"IMAGE",label:"JPEG 图像",description:"有损压缩，文件较小"},webp:{type:"IMAGE",label:"WebP 图像",description:"现代格式，高压缩比"},mp4:{type:"VIDEO",label:"MP4 视频",description:"通用视频格式"},webm:{type:"VIDEO",label:"WebM 视频",description:"优化的网络视频"},avi:{type:"VIDEO",label:"AVI 视频",description:"经典视频格式"},mp3:{type:"AUDIO",label:"MP3 音频",description:"通用音频格式"},wav:{type:"AUDIO",label:"WAV 音频",description:"无损音频"},flac:{type:"AUDIO",label:"FLAC 音频",description:"无损压缩音频"},ogg:{type:"AUDIO",label:"OGG 音频",description:"开源音频格式"},latent:{type:"LATENT",label:"Latent",description:"ComfyUI Latent 数据"},json:{type:"DATA",label:"JSON",description:"通用数据格式"},txt:{type:"DATA",label:"文本",description:"纯文本格式"}},yt={IMAGE:["png","jpg","webp"],VIDEO:["mp4","webm","avi"],AUDIO:["mp3","wav","flac","ogg"],LATENT:["latent"],MASK:["png"],CONDITIONING:["json"],STRING:["txt","json"]};function gt(e){const n=e.toUpperCase();return yt[n]||["json"]}function xt(e){return{IMAGE:"#e74c3c",VIDEO:"#9b59b6",AUDIO:"#3498db",LATENT:"#27ae60",MASK:"#f39c12",DATA:"#95a5a6"}[e]||"#95a5a6"}function ht(e){return{IMAGE:"pi-image",VIDEO:"pi-video",AUDIO:"pi-volume-up",LATENT:"pi-cube",MASK:"pi-mask",DATA:"pi-file"}[e]||"pi-file"}function bt(e={}){const{detectedType:n=null,selectedFormat:t=null,onFormatChange:o=null,showTypeIndicator:i=!0,compact:a=!1}=e,r=b(),s=document.createElement("div");if(s.className="dm-format-selector",s.style.cssText=`
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding: 15px;
-    background: #252525;
+    background: ${r.bgSecondary};
     border-radius: 8px;
-    border: 1px solid #3a3a3a;
-  `,i&&t){const m=document.createElement("div");m.className="dm-type-indicator",m.style.cssText=`
+    border: 1px solid ${r.borderColor};
+  `,i&&n){const y=document.createElement("div");y.className="dm-type-indicator";const x=xt(n);y.style.cssText=`
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      background: ${H(t)}20;
-      border-left: 3px solid ${H(t)};
+      background: ${x}20;
+      border-left: 3px solid ${x};
       border-radius: 4px;
       font-size: 12px;
-      color: ${H(t)};
-    `,m.innerHTML=`
-      <i class="pi ${nt(t)}"></i>
-      <span style="font-weight: 600;">${t}</span>
-      <span style="color: #888;">检测到</span>
-    `,s.appendChild(m)}const r=document.createElement("div");r.style.cssText=`
+      color: ${x};
+    `,y.innerHTML=`
+      <i class="pi ${ht(n)}"></i>
+      <span style="font-weight: 600;">${n}</span>
+      <span style="color: ${r.textSecondary};">检测到</span>
+    `,s.appendChild(y)}const c=document.createElement("div");c.style.cssText=`
     display: flex;
     flex-direction: column;
     gap: 8px;
-  `;const c=document.createElement("label");c.style.cssText=`
+  `;const l=document.createElement("label");l.style.cssText=`
     font-size: 12px;
-    color: #aaa;
+    color: ${r.textSecondary};
     font-weight: 500;
-  `,c.textContent="输出格式:",r.appendChild(c);const l=t?tt(t):Object.keys(q),d=n||(t?l[0]:"png");if(a){const m=document.createElement("select");m.id="dm-format-select",m.className="comfy-combo",m.style.cssText=`
+  `,l.textContent="输出格式:",c.appendChild(l);const u=n?gt(n):Object.keys(J),d=t||(n?u[0]:"png");if(a){const y=document.createElement("select");y.id="dm-format-select",y.className="comfy-combo",y.style.cssText=`
       width: 100%;
       padding: 8px 12px;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
+      background: ${r.bgTertiary};
+      border: 1px solid ${r.borderColor};
       border-radius: 6px;
-      color: #fff;
+      color: ${r.inputText};
       font-size: 13px;
       cursor: pointer;
-    `,l.forEach(u=>{const f=document.createElement("option");f.value=u,f.textContent=u.toUpperCase(),u===d&&(f.selected=!0),m.appendChild(f)}),m.onchange=u=>{o&&o(u.target.value),R(u.target.value)},r.appendChild(m)}else{const m=document.createElement("div");m.style.cssText=`
+    `,u.forEach(x=>{const f=document.createElement("option");f.value=x,f.textContent=x.toUpperCase(),x===d&&(f.selected=!0),y.appendChild(f)}),y.onchange=x=>{o&&o(x.target.value),Y(x.target.value)},c.appendChild(y)}else{const y=document.createElement("div");y.style.cssText=`
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-    `,m.id="dm-format-buttons",l.forEach(u=>{const f=document.createElement("button");f.className="comfy-btn dm-format-btn",f.dataset.format=u,f.style.cssText=`
+    `,y.id="dm-format-buttons",u.forEach(x=>{const f=document.createElement("button");f.className="comfy-btn dm-format-btn",f.dataset.format=x;const g=x===d;f.style.cssText=`
         padding: 8px 16px;
-        background: ${u===d?"#3a3a3a":"#2a2a2a"};
-        border: 1px solid ${u===d?"#9b59b6":"#3a3a3a"};
+        background: ${r.bgTertiary};
+        border: 1px solid ${g?r.accentColor:r.borderColor};
         border-radius: 6px;
-        color: ${u===d?"#9b59b6":"#fff"};
+        color: ${g?r.accentColor:r.textPrimary};
         font-size: 12px;
-        font-weight: ${u===d?"600":"400"};
+        font-weight: ${g?"600":"400"};
         cursor: pointer;
         transition: all 0.2s;
-      `,f.textContent=u.toUpperCase(),f.onclick=()=>{m.querySelectorAll(".dm-format-btn").forEach(w=>{const h=w;h.style.background="#2a2a2a",h.style.borderColor="#3a3a3a",h.style.color="#fff",h.style.fontWeight="400"}),f.style.background="#3a3a3a",f.style.borderColor="#9b59b6",f.style.color="#9b59b6",f.style.fontWeight="600",o&&o(u),R(u)},m.appendChild(f)}),r.appendChild(m)}s.appendChild(r);const g=document.createElement("div");return g.id="dm-format-description",g.style.cssText=`
+      `,f.textContent=x.toUpperCase(),f.onclick=()=>{y.querySelectorAll(".dm-format-btn").forEach(v=>{const C=v;C.style.background=r.bgTertiary,C.style.borderColor=r.borderColor,C.style.color=r.textPrimary,C.style.fontWeight="400"}),f.style.background=r.bgTertiary,f.style.borderColor=r.accentColor,f.style.color=r.accentColor,f.style.fontWeight="600",o&&o(x),Y(x)},y.appendChild(f)}),c.appendChild(y)}s.appendChild(c);const m=document.createElement("div");return m.id="dm-format-description",m.style.cssText=`
     font-size: 11px;
-    color: #888;
+    color: ${r.textSecondary};
     padding: 8px 12px;
-    background: #1a1a1a;
+    background: ${r.bgPrimary};
     border-radius: 4px;
-  `,g.textContent=q[d]?.description||"",s.appendChild(g),R(d),s}function R(e){const t=document.getElementById("dm-format-description");t&&(t.textContent=q[e]?.description||"")}const it="IMAGE";function at(){try{const e=window.app,n=(e?.graph?._nodes||[]).filter(s=>s.comfyClass==="InputPathConfig");if(n.length===0)return;const a=(n[0].inputs||[]).find(s=>s.name==="file_input");if(a&&a.link){const s=a.link.origin_id,r=s!==void 0?e?.graph?.getNodeById?.(s):void 0;if(r){const c=st(r);ct(c,null,null)}}}catch(e){console.log("[DataManager] Error checking node connection:",e)}}function st(e){const t=e.type||e.comfyClass||"",n={LoadImage:"IMAGE",LoadVideo:"VIDEO",LoadAudio:"AUDIO",EmptyLatentImage:"LATENT",VAEDecode:"IMAGE",CheckpointLoaderSimple:"MODEL"};if(e.outputs&&e.outputs.length>0)for(const o of e.outputs){if(o.type==="IMAGE")return"IMAGE";if(o.type==="LATENT")return"LATENT";if(o.type==="MASK")return"MASK";if(o.type==="VIDEO")return"VIDEO";if(o.type==="AUDIO")return"AUDIO";if(o.type==="MODEL")return"MODEL";if(o.type==="VAE")return"VAE";if(o.type==="CLIP")return"CLIP"}for(const[o,i]of Object.entries(n))if(t.includes(o))return i;return it}function rt(e={}){const{onOpenFloating:t,onCopyPath:n,onDelete:o}=e,i=document.createElement("div");i.id="dm-preview-panel",i.style.cssText=`
+  `,m.textContent=J[d]?.description||"",s.appendChild(m),Y(d),s}function Y(e){const n=document.getElementById("dm-format-description");n&&(n.textContent=J[e]?.description||"")}const vt="IMAGE";function wt(){try{const e=window.app,t=(e?.graph?._nodes||[]).filter(r=>r.comfyClass==="InputPathConfig");if(t.length===0)return;const a=(t[0].inputs||[]).find(r=>r.name==="file_input");if(a&&a.link){const r=a.link.origin_id,s=r!==void 0?e?.graph?.getNodeById?.(r):void 0;if(s){const c=$t(s);Et(c,null,null)}}}catch(e){console.log("[DataManager] Error checking node connection:",e)}}function $t(e){const n=e.type||e.comfyClass||"",t={LoadImage:"IMAGE",LoadVideo:"VIDEO",LoadAudio:"AUDIO",EmptyLatentImage:"LATENT",VAEDecode:"IMAGE",CheckpointLoaderSimple:"MODEL"};if(e.outputs&&e.outputs.length>0)for(const o of e.outputs){if(o.type==="IMAGE")return"IMAGE";if(o.type==="LATENT")return"LATENT";if(o.type==="MASK")return"MASK";if(o.type==="VIDEO")return"VIDEO";if(o.type==="AUDIO")return"AUDIO";if(o.type==="MODEL")return"MODEL";if(o.type==="VAE")return"VAE";if(o.type==="CLIP")return"CLIP"}for(const[o,i]of Object.entries(t))if(n.includes(o))return i;return vt}function Ct(e={}){const{onOpenFloating:n,onCopyPath:t,onDelete:o}=e,i=b(),a=document.createElement("div");a.id="dm-preview-panel",a.style.cssText=`
     flex: 0 0 400px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  `;const a=document.createElement("div");a.className="dm-preview-header",a.style.cssText=`
+  `;const r=document.createElement("div");r.className="dm-preview-header",r.style.cssText=`
     padding: 15px;
-    border-bottom: 1px solid;
+    border-bottom: 1px solid ${i.borderColor};
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-  `,a.innerHTML=`
+  `,r.innerHTML=`
     <h3 class="dm-title" style="margin: 0; font-size: 14px;">
       <i class="pi pi-eye"></i> 预览
     </h3>
     <div style="display: flex; gap: 5px;">
-      <button id="dm-copy-path-btn" class="comfy-btn dm-icon-btn" style="padding: 6px 12px; font-size: 12px;">
+      <button id="dm-copy-path-btn" class="comfy-btn dm-icon-btn" disabled style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;" title="复制路径">
         <i class="pi pi-copy"></i>
       </button>
       <button id="dm-delete-file-btn" class="comfy-btn dm-icon-btn" style="padding: 6px 12px; font-size: 12px;">
@@ -218,7 +302,7 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
         <i class="pi pi-window-maximize"></i>
       </button>
     </div>
-  `,i.appendChild(a);const s=document.createElement("div");s.id="dm-preview-content",s.style.cssText=`
+  `,a.appendChild(r);const s=document.createElement("div");s.id="dm-preview-content",s.style.cssText=`
     flex: 1;
     overflow-y: auto;
     padding: 15px;
@@ -226,35 +310,35 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
     flex-direction: column;
     gap: 15px;
   `,s.innerHTML=`
-    <div style="text-align: center; padding: 40px; color: #666;">
+    <div style="text-align: center; padding: 40px; color: ${i.textSecondary};">
       <i class="pi pi-file" style="font-size: 48px; opacity: 0.5;"></i>
       <div style="margin-top: 15px; font-size: 13px;">选择文件以预览</div>
     </div>
-  `,i.appendChild(s);const r=document.createElement("div");r.id="dm-format-section",r.style.cssText=`
+  `,a.appendChild(s);const c=document.createElement("div");c.id="dm-format-section",c.style.cssText=`
     padding: 15px;
-    background: #1f1f1f;
-    border-top: 1px solid #2a2a2a;
+    background: ${i.bgTertiary};
+    border-top: 1px solid ${i.borderColor};
     display: none;
-  `,r.innerHTML=`
-    <div style="text-align: center; padding: 20px; color: #666;">
+  `,c.innerHTML=`
+    <div style="text-align: center; padding: 20px; color: ${i.textSecondary};">
       <i class="pi pi-cog" style="font-size: 32px; opacity: 0.5;"></i>
       <div style="margin-top: 10px; font-size: 12px;">连接节点以启用格式选择</div>
     </div>
-  `,i.appendChild(r);const c=document.createElement("div");c.id="dm-file-info",c.style.cssText=`
+  `,a.appendChild(c);const l=document.createElement("div");l.id="dm-file-info",l.style.cssText=`
     padding: 15px;
-    background: #252525;
-    border-top: 1px solid #2a2a2a;
+    background: ${i.bgSecondary};
+    border-top: 1px solid ${i.borderColor};
     font-size: 12px;
-    color: #888;
-  `,c.innerHTML='<div style="text-align: center;">No file selected</div>',i.appendChild(c);const l=a.querySelector("#dm-open-floating-preview-btn"),d=a.querySelector("#dm-copy-path-btn"),g=a.querySelector("#dm-delete-file-btn");return l&&t&&(l.onclick=t),d&&n&&(d.onclick=n),g&&o&&(g.onclick=o),i}function ct(e,t=null,n=null){const o=document.getElementById("dm-format-section");if(!o)return;if(o.innerHTML="",!e){o.style.display="none";return}o.style.display="block";const i=ot({detectedType:e,selectedFormat:t,onFormatChange:n,compact:!0});o.appendChild(i)}function lt(){const e=document.createElement("div");e.className="dm-bottom-area",e.style.cssText=`
+    color: ${i.textSecondary};
+  `,l.innerHTML='<div style="text-align: center;">No file selected</div>',a.appendChild(l);const u=r.querySelector("#dm-open-floating-preview-btn"),d=r.querySelector("#dm-copy-path-btn"),m=r.querySelector("#dm-delete-file-btn");return u&&n&&(u.onclick=n),d&&t&&(d.onclick=t),m&&o&&(m.onclick=o),a}function Et(e,n=null,t=null){const o=document.getElementById("dm-format-section");if(!o)return;if(o.innerHTML="",!e){o.style.display="none";return}o.style.display="block";const i=bt({detectedType:e,selectedFormat:n,onFormatChange:t,compact:!0});o.appendChild(i)}function Tt(){const e=b(),n=document.createElement("div");n.className="dm-bottom-area",n.style.cssText=`
     display: flex;
     flex-direction: column;
   `;const t=document.createElement("div");t.id="dm-preview-dock",t.className="dm-preview-dock",t.style.cssText=`
     min-height: 0;
     max-height: 0;
     padding: 0 15px;
-    background: linear-gradient(to bottom, #252525, #1a1a1a);
-    border-top: 1px solid #2a2a2a;
+    background: ${e.bgPrimary};
+    border-top: 0.8px solid ${e.borderColor};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -262,13 +346,22 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
     overflow-x: auto;
     overflow-y: hidden;
     transition: min-height 0.3s ease, max-height 0.3s ease, padding 0.3s ease;
-  `;const n=document.createElement("div");return n.id="dm-status-bar",n.innerHTML=`
-    <div id="dm-connection-status" style="color: #27ae60;"></div>
+  `;const o=document.createElement("div");return o.id="dm-status-bar",o.style.cssText=`
+    padding: 8px 16px;
+    font-size: 12px;
+    color: ${e.textSecondary};
+    background: transparent;
+    border-top: 0.8px solid ${e.borderColor};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  `,o.innerHTML=`
+    <div id="dm-connection-status" style="color: ${e.successColor};"></div>
     <div style="display: flex; align-items: center; gap: 10px;">
       <span id="dm-status-ready">就绪</span>
-      <div id="dm-connection-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: #666; transition: background 0.3s ease;"></div>
+      <div id="dm-connection-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: ${e.textSecondary}; transition: background 0.3s ease;"></div>
     </div>
-  `,e.appendChild(t),e.appendChild(n),setTimeout(()=>{const o=document.getElementById("dm-connection-indicator"),i=document.getElementById("dm-connection-status"),s=window._remoteConnectionsState?.active;if(o&&(o.style.background=s?"#27ae60":"#666"),i&&s){const r=s;i.textContent=`SSH: ${r.username}@${r.host}`}},100),e}function me(e,t){e.draggable=!1,t.draggable=!1,e.addEventListener("dragstart",n=>(n.preventDefault(),n.stopPropagation(),!1)),t.addEventListener("mousedown",n=>{if(n.target&&n.target.tagName==="BUTTON"||n.target.tagName==="I"||e.dataset.fullscreen==="true")return;n.preventDefault();const o=e.getBoundingClientRect(),i=n.clientX-o.left,a=n.clientY-o.top;e.style.transition="none",e.style.transform="none",e.style.left=o.left+"px",e.style.top=o.top+"px",e._isDragging=!0;const s=c=>{if(!e._isDragging)return;const l=c.clientX-i,d=c.clientY-a;e.style.left=Math.max(0,l)+"px",e.style.top=Math.max(0,d)+"px"},r=()=>{e.style.transition="",e._isDragging=!1,document.removeEventListener("mousemove",s),document.removeEventListener("mouseup",r)};document.addEventListener("mousemove",s),document.addEventListener("mouseup",r)})}let k=null;function dt(e={}){const t=document.createElement("div");t.id="dm-file-manager",t.style.cssText=`
+  `,n.appendChild(t),n.appendChild(o),setTimeout(()=>{const i=b(),a=document.getElementById("dm-connection-indicator"),r=document.getElementById("dm-connection-status"),c=window._remoteConnectionsState?.active;if(a&&(a.style.background=c?i.successColor:i.textSecondary),r&&c){const l=c;r.textContent=`SSH: ${l.username}@${l.host}`}},100),n}function we(e,n){e.draggable=!1,n.draggable=!1,e.addEventListener("dragstart",t=>(t.preventDefault(),t.stopPropagation(),!1)),n.addEventListener("mousedown",t=>{if(t.target&&t.target.tagName==="BUTTON"||t.target.tagName==="I"||e.dataset.fullscreen==="true")return;t.preventDefault();const o=e.getBoundingClientRect(),i=t.clientX-o.left,a=t.clientY-o.top;e.style.transition="none",e.style.transform="none",e.style.left=o.left+"px",e.style.top=o.top+"px",e._isDragging=!0;const r=c=>{if(!e._isDragging)return;const l=c.clientX-i,u=c.clientY-a;e.style.left=Math.max(0,l)+"px",e.style.top=Math.max(0,u)+"px"},s=()=>{e.style.transition="",e._isDragging=!1,document.removeEventListener("mousemove",r),document.removeEventListener("mouseup",s)};document.addEventListener("mousemove",r),document.addEventListener("mouseup",s)})}let j=null;function St(e={}){const n=b(),t=document.createElement("div");t.id="dm-file-manager",t.style.cssText=`
     position: fixed;
     top: 50%;
     left: 50%;
@@ -277,36 +370,68 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
     height: 700px;
     max-width: calc(100vw - 40px);
     max-height: calc(100vh - 40px);
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    background: ${n.bgPrimary};
+    border: 0.8px solid ${n.borderColor};
+    border-radius: 8px;
+    box-shadow: rgba(0, 0, 0, 0.4) 1px 1px 8px 0px;
     z-index: 10000;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  `,t.appendChild(We({title:"Data Manager",icon:"pi-folder-open",onClose:e.onClose,onRefresh:e.onRefresh})),t.appendChild(Je(e)),t.appendChild(pt(e)),t.appendChild(lt()),document.body.appendChild(t);const n=t.querySelector(".dm-header");return me(t,n),k=o=>{o.key==="Escape"&&(o.preventDefault(),o.stopPropagation(),e.onClose&&e.onClose())},document.addEventListener("keydown",k,{capture:!0}),t}function se(){k&&(document.removeEventListener("keydown",k,{capture:!0}),k=null);const e=document.getElementById("dm-file-manager");e&&e.remove()}function pt(e){const t=document.createElement("div");t.style.cssText="flex: 1; display: flex; overflow: hidden;";const n=Ke(p.viewMode);t.appendChild(n);const o=rt({onOpenFloating:e.onOpenFloating,onCopyPath:e.onCopyPath,onDelete:e.onDelete});return t.appendChild(o),t}async function mt(e){const t=await fetch(F.LIST,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:e})});if(t?.ok)return await t.json();const n=await t.json().catch(()=>({})),o=n.error||n.message||`HTTP ${t.status}`;throw new Error(`Failed to list directory: ${o}`)}function Vt(e){return`${F.PREVIEW}?path=${encodeURIComponent(e)}`}async function Ht(e){const t=await fetch(F.INFO,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:e})});if(t?.ok)return(await t.json()).info;const n=await t.json().catch(()=>({})),o=n.error||n.message||`HTTP ${t.status}`;throw new Error(`Failed to get file info: ${o}`)}async function ut(e,t=!0){const n=await fetch(F.DELETE,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:e,use_trash:t})});if(n?.ok)return await n.json();const o=await n.json().catch(()=>({error:"Unknown error"}));throw new Error(o.error||"Failed to delete file")}function _(e){const t=document.getElementById("dm-status-bar");t&&(t.textContent=e)}function C(e,t,n){typeof app<"u"&&app.extensionManager?.toast?app.extensionManager.toast.add({severity:e,summary:t,detail:n,life:3e3}):console.log(`[${e.toUpperCase()}] ${t}: ${n}`)}function re(e){const t=e.replace(/\\/g,"/"),n=t.lastIndexOf("/");return n<=0?".":t.substring(0,n)}function ue(e){return e.split(/[/\\]/).pop()||""}function ft(e){return"."+(e.split(".").pop()?.toLowerCase()||"")}async function T(e){const t=window._remoteConnectionsState?.active;if(t){await gt(e,t);return}_(`正在加载: ${e}...`);try{const n=await mt(e);p.files=n.files||[],p.currentPath=n.path,ce(n.path),(p.historyIndex===-1||p.history[p.historyIndex]!==n.path)&&(p.history=p.history.slice(0,p.historyIndex+1),p.history.push(n.path),p.historyIndex=p.history.length-1);const o=document.getElementById("dm-path-input");o&&(o.value=n.path),Z(),_(`${p.files.length} 个项目`)}catch(n){console.error("Load directory error:",n),_("加载错误"),C("error","错误","网络请求失败")}}async function gt(e,t){_(`正在加载远程: ${e}...`);try{const{sshList:n}=await $(async()=>{const{sshList:a}=await import("./ssh.js");return{sshList:a}},[]),o=await n(t.connection_id,e||t.root_path||"/");p.files=o.files||[],p.currentPath=o.path||e;const i=document.getElementById("dm-path-input");i&&(i.value=`[SSH] ${o.path}`),Z(),_(`${p.files.length} 个项目 (远程)`)}catch(n){console.error("Load remote directory error:",n),_("加载错误"),C("error","错误",`远程加载失败: ${n.message}`)}}function Z(){const e=document.getElementById("dm-file-list");if(!e)return;p.selectedFiles=[];const t=[...p.files].sort((o,i)=>{const a=o.is_dir||o.isDir||!1,s=i.is_dir||i.isDir||!1;if(a&&!s)return-1;if(!a&&s)return 1;let r=0;switch(p.sortBy){case"name":r=o.name.localeCompare(i.name);break;case"size":r=(o.size||0)-(i.size||0);break;case"modified":r=new Date(o.modified||0).getTime()-new Date(i.modified||0).getTime();break}return p.sortOrder==="asc"?r:-r});let n="";p.currentPath!=="."&&p.currentPath!=="/"&&(p.viewMode==="list"?n+=ie({name:"..",path:re(p.currentPath),size:0,modified:void 0}):n+=ae({name:"..",path:re(p.currentPath)},!0)),t.forEach(o=>{n+=p.viewMode==="list"?ie(o):ae(o,!1)}),e.innerHTML=n,e.scrollTop=0,e.querySelectorAll(".dm-file-item").forEach(o=>{o.onclick=()=>yt(o),o.ondblclick=()=>ht(o)}),e.querySelectorAll(".dm-grid-item").forEach(o=>{o.onclick=()=>xt(o),o.ondblclick=async()=>{const i=o.dataset.path;if(o.dataset.isDir==="true"&&i)await T(i);else if(i){const{previewFile:s}=await $(async()=>{const{previewFile:r}=await import("./preview-actions.js");return{previewFile:r}},[]);await s(i)}}})}function yt(e){document.querySelectorAll(".dm-file-item").forEach(o=>{o.style.background="transparent"}),e.style.background="#3a3a3a";const t=e.dataset.path||"",n=e.dataset.isDir==="true";p.selectedFiles=[t],!n&&t?(async()=>{const{previewFile:o}=await $(async()=>{const{previewFile:i}=await import("./preview-actions.js");return{previewFile:i}},[]);await o(t)})():bt()}function xt(e){document.querySelectorAll(".dm-grid-item").forEach(o=>{o.style.borderColor="transparent"}),e.style.borderColor="#9b59b6",p.selectedFiles=[e.dataset.path||""];const t=e.dataset.path;!(e.dataset.isDir==="true")&&t&&(async()=>{const{previewFile:o}=await $(async()=>{const{previewFile:i}=await import("./preview-actions.js");return{previewFile:i}},[]);await o(t)})()}function ht(e){const t=e.dataset.path;e.dataset.isDir==="true"&&t?T(t):t&&(async()=>{const{previewFile:o}=await $(async()=>{const{previewFile:i}=await import("./preview-actions.js");return{previewFile:i}},[]);await o(t)})()}function bt(){const e=document.getElementById("dm-preview-content");e&&(e.innerHTML=`
-      <div style="text-align: center; padding: 40px; color: #666;">
+    font-family: Inter, Arial, sans-serif;
+  `;const o=document.createElement("div");o.id="dm-toast-container",o.style.cssText=`
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  `,t.appendChild(o),t.appendChild(rt({title:"Data Manager",icon:"pi-folder-open",onClose:e.onClose,onRefresh:e.onRefresh})),t.appendChild(pt(e)),t.appendChild(_t(e)),t.appendChild(Tt()),document.body.appendChild(t);const i=t.querySelector(".dm-header");return we(t,i),j=a=>{a.key==="Escape"&&(a.preventDefault(),a.stopPropagation(),e.onClose&&e.onClose())},document.addEventListener("keydown",j,{capture:!0}),t}function fe(){j&&(document.removeEventListener("keydown",j,{capture:!0}),j=null);const e=document.getElementById("dm-file-manager");e&&e.remove()}function _t(e){const n=document.createElement("div");n.style.cssText="flex: 1; display: flex; overflow: hidden;";const t=ut(p.viewMode);n.appendChild(t);const o=Ct({onOpenFloating:e.onOpenFloating,onCopyPath:e.onCopyPath,onDelete:e.onDelete});return n.appendChild(o),n}async function $e(e){const n=await fetch(A.LIST,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:e})});if(n?.ok)return await n.json();const t=await n.json().catch(()=>({})),o=t.error||t.message||`HTTP ${n.status}`;throw new Error(`Failed to list directory: ${o}`)}function gn(e){return`${A.PREVIEW}?path=${encodeURIComponent(e)}`}async function It(e){const n=await fetch(A.INFO,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:e})});if(n?.ok)return(await n.json()).info;const t=await n.json().catch(()=>({})),o=t.error||t.message||`HTTP ${n.status}`;throw new Error(`Failed to get file info: ${o}`)}async function Pt(e,n,t=""){const o=await fetch(A.CREATE_FILE,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({directory:e,filename:n,content:t})});if(o?.ok)return await o.json();const i=await o.json().catch(()=>({error:"Unknown error"}));throw new Error(i.error||i.message||"Failed to create file")}async function Mt(e,n){const t=await fetch(A.CREATE_DIRECTORY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({directory:e,dirname:n})});if(t?.ok)return await t.json();const o=await t.json().catch(()=>({error:"Unknown error"}));throw new Error(o.error||o.message||"Failed to create directory")}async function Dt(e,n=!0){const t=await fetch(A.DELETE,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:e,use_trash:n})});if(t?.ok)return await t.json();const o=await t.json().catch(()=>({error:"Unknown error"}));throw new Error(o.error||"Failed to delete file")}function P(e){const n=document.getElementById("dm-status-bar");n&&(n.textContent=e)}function S(e,n,t){if(document.getElementById("dm-toast-container")){kt(e,n,t);return}typeof app<"u"&&app.extensionManager?.toast?app.extensionManager.toast.add({severity:e,summary:n,detail:t,life:3e3}):console.log(`[${e.toUpperCase()}] ${n}: ${t}`)}function kt(e,n,t){const o=document.getElementById("dm-toast-container");if(!o)return;const i=b(),a={success:{bg:i.successColor,icon:"pi-check-circle"},error:{bg:i.errorColor,icon:"pi-exclamation-circle"},warn:{bg:"#f39c12",icon:"pi-exclamation-triangle"},info:{bg:i.bgTertiary,icon:"pi-info-circle"}},r=a[e]||a.info,s=document.createElement("div");s.style.cssText=`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: ${r.bg};
+    color: ${i.textPrimary};
+    border: 1px solid ${i.borderColor};
+    border-radius: 8px;
+    box-shadow: rgba(0, 0, 0, 0.3) 0 4px 12px 0;
+    font-size: 13px;
+    min-width: 280px;
+    max-width: 400px;
+    animation: dmSlideIn 0.3s ease-out;
+    pointer-events: auto;
+  `,s.innerHTML=`
+    <i class="pi ${r.icon}" style="font-size: 18px;"></i>
+    <div style="flex: 1;">
+      <div style="font-weight: 600; margin-bottom: 2px;">${n}</div>
+      <div style="opacity: 0.9; font-size: 12px;">${t}</div>
+    </div>
+  `,o.appendChild(s),setTimeout(()=>{s.style.opacity="0",s.style.transform="translateY(-10px)",s.style.transition="all 0.3s ease-in",setTimeout(()=>s.remove(),300)},3e3)}function K(e){const n=e.replace(/\\/g,"/"),t=n.lastIndexOf("/");return t<=0?".":n.substring(0,t)}function Ce(e){return e.split(/[/\\]/).pop()||""}function Ot(e){return"."+(e.split(".").pop()?.toLowerCase()||"")}async function M(e){const n=window._remoteConnectionsState?.active;if(n){await Lt(e,n);return}P(`正在加载: ${e}...`);try{const t=await $e(e);p.files=t.files||[],p.currentPath=t.path,ne(t.path),(p.historyIndex===-1||p.history[p.historyIndex]!==t.path)&&(p.history=p.history.slice(0,p.historyIndex+1),p.history.push(t.path),p.historyIndex=p.history.length-1);const o=document.getElementById("dm-path-input");o&&(o.value=t.path),R(),P(`${p.files.length} 个项目`)}catch(t){console.error("Load directory error:",t),P("加载错误"),S("error","错误","网络请求失败")}}async function Lt(e,n){P(`正在加载远程: ${e}...`);try{const{sshList:t}=await I(async()=>{const{sshList:a}=await import("./ssh.js");return{sshList:a}},[]),o=await t(n.connection_id,e||n.root_path||"/");p.files=o.files||[],p.currentPath=o.path||e;const i=document.getElementById("dm-path-input");i&&(i.value=`[SSH] ${o.path}`),R(),P(`${p.files.length} 个项目 (远程)`)}catch(t){console.error("Load remote directory error:",t),P("加载错误"),S("error","错误",`远程加载失败: ${t.message}`)}}function R(){const e=document.getElementById("dm-file-list");if(!e)return;p.selectedFiles=[];const n=[...p.files].sort((o,i)=>{const a=o.is_dir||o.isDir||!1,r=i.is_dir||i.isDir||!1;if(a&&!r)return-1;if(!a&&r)return 1;let s=0;switch(p.sortBy){case"name":s=o.name.localeCompare(i.name);break;case"size":s=(o.size||0)-(i.size||0);break;case"modified":s=new Date(o.modified||0).getTime()-new Date(i.modified||0).getTime();break}return p.sortOrder==="asc"?s:-s});let t="";p.currentPath!=="."&&p.currentPath!=="/"&&(p.viewMode==="list"?t+=me({name:"..",path:K(p.currentPath),size:0,modified:void 0}):t+=ue({name:"..",path:K(p.currentPath)},!0)),n.forEach(o=>{t+=p.viewMode==="list"?me(o):ue(o,!1)}),e.innerHTML=t,e.scrollTop=0,e.querySelectorAll(".dm-file-item").forEach(o=>{o.onclick=()=>zt(o),o.ondblclick=()=>At(o)}),e.querySelectorAll(".dm-grid-item").forEach(o=>{o.onclick=()=>Nt(o),o.ondblclick=async()=>{const i=o.dataset.path;if(o.dataset.isDir==="true"&&i)await M(i);else if(i){const{previewFile:r}=await I(async()=>{const{previewFile:s}=await import("./preview-actions.js");return{previewFile:s}},[]);await r(i)}}})}function Ee(){const e=document.getElementById("dm-copy-path-btn");if(!e)return;const n=p.selectedFiles.length>0;e.disabled=!n,e.style.opacity=n?"1":"0.5",e.style.cursor=n?"pointer":"not-allowed"}function zt(e){const n=b();document.querySelectorAll(".dm-file-item").forEach(i=>{i.style.background="transparent"}),e.style.background=`${n.bgTertiary} !important`;const t=e.dataset.path||"",o=e.dataset.isDir==="true";p.selectedFiles=[t],Ee(),!o&&t?(async()=>{const{previewFile:i}=await I(async()=>{const{previewFile:a}=await import("./preview-actions.js");return{previewFile:a}},[]);await i(t)})():Ft()}function Nt(e){const n=b();document.querySelectorAll(".dm-grid-item").forEach(i=>{i.style.borderColor="transparent"}),e.style.borderColor=`${n.accentColor} !important`,p.selectedFiles=[e.dataset.path||""],Ee();const t=e.dataset.path;!(e.dataset.isDir==="true")&&t&&(async()=>{const{previewFile:i}=await I(async()=>{const{previewFile:a}=await import("./preview-actions.js");return{previewFile:a}},[]);await i(t)})()}function At(e){const n=e.dataset.path;e.dataset.isDir==="true"&&n?M(n):n&&(async()=>{const{previewFile:o}=await I(async()=>{const{previewFile:i}=await import("./preview-actions.js");return{previewFile:i}},[]);await o(n)})()}function Ft(){const e=document.getElementById("dm-preview-content");if(e){const n=b();e.innerHTML=`
+      <div style="text-align: center; padding: 40px; color: ${n.textSecondary};">
         <i class="pi pi-folder" style="font-size: 48px; opacity: 0.5;"></i>
         <div style="margin-top: 15px; font-size: 13px;">双击打开目录</div>
       </div>
-    `)}function vt(e){p.sortBy===e?p.sortOrder=p.sortOrder==="asc"?"desc":"asc":(p.sortBy=e,p.sortOrder="asc");const t=document.getElementById("dm-sort-select");t&&(t.value=p.sortBy),Z(),fe()}function fe(){document.querySelectorAll(".dm-header-cell").forEach(t=>{const n=t.querySelector("i");n&&(t.dataset.sort===p.sortBy?(n.className=p.sortOrder==="asc"?"pi pi-sort-amount-up":"pi pi-sort-amount-down",n.style.opacity="1"):(n.className="pi pi-sort",n.style.opacity="0.5"))})}const wt=Object.freeze(Object.defineProperty({__proto__:null,loadDirectory:T,toggleSort:vt,updateHeaderSortIndicators:fe},Symbol.toStringTag,{value:"Module"})),y={keyword:"#569cd6",string:"#ce9178",number:"#b5cea8",boolean:"#569cd6",comment:"#6a9955",function:"#dcdcaa",tag:"#569cd6",attrName:"#9cdcfe",attrValue:"#ce9178"};function ge(e,t){let n=e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");switch(t){case".json":n=ye(n);break;case".py":n=xe(n);break;case".js":case".ts":case".jsx":case".tsx":n=he(n);break;case".html":case".htm":n=be(n);break;case".css":n=ve(n);break;case".yaml":case".yml":n=we(n);break;case".xml":n=Ee(n);break;default:n=Ce(n)}return n}function ye(e){return e.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,function(t){let n=y.number;return/^"/.test(t)?n=/:$/.test(t)?y.attrName:y.string:/true|false|null/.test(t)&&(n=y.boolean),`<span style="color: ${n};">${t}</span>`})}function xe(e){const t=/\b(def|class|import|from|if|elif|else|while|for|in|try|except|finally|with|as|return|yield|raise|pass|break|continue|and|or|not|is|lambda|True|False|None|async|await)\b/g,n=/@[\w.]+/g,o=/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,i=/#.*$/gm,a=/\b(\d+\.?\d*)\b/g,s=/\b([a-zA-Z_]\w*)\s*(?=\()/g;return e.replace(i,`<span style="color: ${y.comment};">$&</span>`).replace(o,`<span style="color: ${y.string};">$&</span>`).replace(t,`<span style="color: ${y.keyword};">$&</span>`).replace(n,`<span style="color: ${y.function};">$&</span>`).replace(s,`<span style="color: ${y.function};">$1</span>(`).replace(a,`<span style="color: ${y.number};">$1</span>`)}function he(e){const t=/\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|class|extends|import|export|from|async|await|try|catch|finally|throw|null|undefined|true|false|in|instanceof|typeof|void)\b/g,n=/`(?:[^`\\]|\\.)*`/g,o=/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,i=/(\/\/.*$|\/\*[\s\S]*?\*\/)/gm,a=/\b(\d+\.?\d*)\b/g,s=/\b([a-zA-Z_]\w*)\s*(?=\()/g,r=/(&gt;|=>)/g;return e.replace(i,`<span style="color: ${y.comment};">$&</span>`).replace(n,`<span style="color: ${y.string};">$&</span>`).replace(o,`<span style="color: ${y.string};">$&</span>`).replace(t,`<span style="color: ${y.keyword};">$&</span>`).replace(s,`<span style="color: ${y.function};">$1</span>(`).replace(r,`<span style="color: ${y.keyword};">$&</span>`).replace(a,`<span style="color: ${y.number};">$1</span>`)}function be(e){return e=e.replace(/(&lt;\/?)([\w-]+)/g,`$1<span style="color: ${y.tag};">$2</span>`),e=e.replace(/([\w-]+)(=)/g,`<span style="color: ${y.attrName};">$1</span>$2`),e=e.replace(/(=)("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,`$1<span style="color: ${y.attrValue};">$2</span>`),e}function ve(e){return e=e.replace(/(\/\*[\s\S]*?\*\/)/g,`<span style="color: ${y.comment};">$1</span>`),e=e.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,`<span style="color: ${y.string};">$1</span>`),e=e.replace(/([\w-]+)(\s*:)/g,`<span style="color: ${y.attrName};">$1</span>$2`),e=e.replace(/(:\s*)([\d.#\w-]+)/g,`$1<span style="color: ${y.attrValue};">$2</span>`),e=e.replace(/([.#]?[\w-]+)(\s*\{)/g,`<span style="color: ${y.tag};">$1</span>$2`),e}function we(e){return e=e.replace(/(#.*$)/gm,`<span style="color: ${y.comment};">$1</span>`),e=e.replace(/^([\w-]+):/gm,`<span style="color: ${y.attrName};">$1</span>:`),e=e.replace(/(:\s*)([\w./-]+)/g,`$1<span style="color: ${y.string};">$2</span>`),e=e.replace(/\b(true|false|null)\b/g,`<span style="color: ${y.boolean};">$1</span>`),e=e.replace(/\b(\d+\.?\d*)\b/g,`<span style="color: ${y.number};">$1</span>`),e}function Ee(e){return e=e.replace(/(&lt;\/?)([\w:]+)/g,`$1<span style="color: ${y.tag};">$2</span>`),e=e.replace(/([\w:]+)(=)/g,`<span style="color: ${y.attrName};">$1</span>$2`),e=e.replace(/(=)("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,`$1<span style="color: ${y.attrValue};">$2</span>`),e}function Ce(e){e=e.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,`<span style="color: ${y.string};">$1</span>`),e=e.replace(/(\/\/.*$)/gm,`<span style="color: ${y.comment};">$1</span>`),e=e.replace(/(\/\*[\s\S]*?\*\/)/g,`<span style="color: ${y.comment};">$1</span>`);const t=/\b(function|return|if|else|for|while|var|let|const|true|false|null|undefined)\b/g;return e=e.replace(t,`<span style="color: ${y.keyword};">$1</span>`),e=e.replace(/\b(\d+\.?\d*)\b/g,`<span style="color: ${y.number};">$1</span>`),e}const Rt=Object.freeze(Object.defineProperty({__proto__:null,highlightCSS:ve,highlightCode:ge,highlightGeneric:Ce,highlightHTML:be,highlightJSON:ye,highlightJavaScript:he,highlightPython:xe,highlightXML:Ee,highlightYAML:we},Symbol.toStringTag,{value:"Module"}));function Et(e){const t=[];let n=[],o="",i=!1;for(let a=0;a<e.length;a++){const s=e[a],r=e[a+1];i?s==='"'?r==='"'?(o+='"',a++):i=!1:o+=s:s==='"'?i=!0:s===","?(n.push(o),o=""):s==="\r"&&r===`
-`?(n.push(o),t.push(n),n=[],o="",a++):s===`
-`?(n.push(o),t.push(n),n=[],o=""):s!=="\r"&&(o+=s)}return n.push(o),(n.length>0||t.length>0)&&t.push(n),t}const Ct={type:"floating",maxRows:E.MAX_PREVIEW_ROWS,height:null},G={floating:{containerClass:"dm-table-container",controlsClass:"dm-table-controls",height:null,hasFullscreen:!1,prefix:"dm-floating-table"},panel:{containerClass:"dm-panel-table-container",controlsClass:"dm-table-controls-panel",height:"400px",hasFullscreen:!0,prefix:"dm-table"}};function $e(e,t={}){const n={...Ct,...t},o=G[n.type||"floating"],i=e.slice(0,n.maxRows||E.MAX_PREVIEW_ROWS),a=e.length>(n.maxRows||E.MAX_PREVIEW_ROWS),s=`${o.prefix}-${Date.now()}`,r=o.height!==null?`height: ${o.height};`:"height: 100%;",c=`position: relative; flex: 1; overflow: hidden; ${r}`;let l=`
-    <div style="display: flex; flex-direction: column; gap: 0; ${n.type==="floating"?"height: 100%;":""}">
-      <div class="${o.containerClass}" style="${c}">
+    `}}function Te(e){p.sortBy===e?p.sortOrder=p.sortOrder==="asc"?"desc":"asc":(p.sortBy=e,p.sortOrder="asc");const n=document.getElementById("dm-sort-select");n&&(n.value=p.sortBy),R(),Se()}function Se(){document.querySelectorAll(".dm-header-cell").forEach(n=>{const t=n.querySelector("i");t&&(n.dataset.sort===p.sortBy?(t.className=p.sortOrder==="asc"?"pi pi-sort-amount-up":"pi pi-sort-amount-down",t.style.opacity="1"):(t.className="pi pi-sort",t.style.opacity="0.5"))})}function Bt(){if(p.currentPath==="."||p.currentPath==="/")return;const e=K(p.currentPath);e!==p.currentPath&&M(e)}function jt(){M(".")}async function Ht(){if(p.historyIndex<=0)return;p.historyIndex--;const e=p.history[p.historyIndex];await _e(e),ie()}async function Rt(){if(p.historyIndex>=p.history.length-1)return;p.historyIndex++;const e=p.history[p.historyIndex];await _e(e),ie()}async function _e(e){const n=window._remoteConnectionsState?.active;if(n){await Vt(e,n);return}P(`正在加载: ${e}...`);try{const t=await $e(e);p.files=t.files||[],p.currentPath=t.path,ne(t.path);const o=document.getElementById("dm-path-input");o&&(o.value=t.path),R(),P(`${p.files.length} 个项目`)}catch(t){console.error("Load directory error:",t),P("加载错误"),S("error","错误","网络请求失败")}}async function Vt(e,n){P(`正在加载远程: ${e}...`);try{const{sshList:t}=await I(async()=>{const{sshList:a}=await import("./ssh.js");return{sshList:a}},[]),o=await t(n.connection_id,e||n.root_path||"/");p.files=o.files||[],p.currentPath=o.path||e;const i=document.getElementById("dm-path-input");i&&(i.value=`[SSH] ${o.path}`),R(),P(`${p.files.length} 个项目 (远程)`)}catch(t){console.error("Load remote directory error:",t),P("加载错误"),S("error","错误",`远程加载失败: ${t.message}`)}}function ie(){const e=document.getElementById("dm-nav-back-btn"),n=document.getElementById("dm-nav-forward-btn");e&&(e.disabled=p.historyIndex<=0,e.style.opacity=p.historyIndex<=0?"0.3":"1"),n&&(n.disabled=p.historyIndex>=p.history.length-1,n.style.opacity=p.historyIndex>=p.history.length-1?"0.3":"1")}const V=Object.freeze(Object.defineProperty({__proto__:null,loadDirectory:M,navigateBack:Ht,navigateForward:Rt,navigateHome:jt,navigateUp:Bt,toggleSort:Te,updateHeaderSortIndicators:Se,updateNavButtons:ie},Symbol.toStringTag,{value:"Module"})),h={keyword:"#569cd6",string:"#ce9178",number:"#b5cea8",boolean:"#569cd6",comment:"#6a9955",function:"#dcdcaa",tag:"#569cd6",attrName:"#9cdcfe",attrValue:"#ce9178"};function Ie(e,n){let t=e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");switch(n){case".json":t=Pe(t);break;case".py":t=Me(t);break;case".js":case".ts":case".jsx":case".tsx":t=De(t);break;case".html":case".htm":t=ke(t);break;case".css":t=Oe(t);break;case".yaml":case".yml":t=Le(t);break;case".xml":t=ze(t);break;default:t=Ne(t)}return t}function Pe(e){return e.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,function(n){let t=h.number;return/^"/.test(n)?t=/:$/.test(n)?h.attrName:h.string:/true|false|null/.test(n)&&(t=h.boolean),`<span style="color: ${t};">${n}</span>`})}function Me(e){const n=/\b(def|class|import|from|if|elif|else|while|for|in|try|except|finally|with|as|return|yield|raise|pass|break|continue|and|or|not|is|lambda|True|False|None|async|await)\b/g,t=/@[\w.]+/g,o=/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,i=/#.*$/gm,a=/\b(\d+\.?\d*)\b/g,r=/\b([a-zA-Z_]\w*)\s*(?=\()/g;return e.replace(i,`<span style="color: ${h.comment};">$&</span>`).replace(o,`<span style="color: ${h.string};">$&</span>`).replace(n,`<span style="color: ${h.keyword};">$&</span>`).replace(t,`<span style="color: ${h.function};">$&</span>`).replace(r,`<span style="color: ${h.function};">$1</span>(`).replace(a,`<span style="color: ${h.number};">$1</span>`)}function De(e){const n=/\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|class|extends|import|export|from|async|await|try|catch|finally|throw|null|undefined|true|false|in|instanceof|typeof|void)\b/g,t=/`(?:[^`\\]|\\.)*`/g,o=/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,i=/(\/\/.*$|\/\*[\s\S]*?\*\/)/gm,a=/\b(\d+\.?\d*)\b/g,r=/\b([a-zA-Z_]\w*)\s*(?=\()/g,s=/(&gt;|=>)/g;return e.replace(i,`<span style="color: ${h.comment};">$&</span>`).replace(t,`<span style="color: ${h.string};">$&</span>`).replace(o,`<span style="color: ${h.string};">$&</span>`).replace(n,`<span style="color: ${h.keyword};">$&</span>`).replace(r,`<span style="color: ${h.function};">$1</span>(`).replace(s,`<span style="color: ${h.keyword};">$&</span>`).replace(a,`<span style="color: ${h.number};">$1</span>`)}function ke(e){return e=e.replace(/(&lt;\/?)([\w-]+)/g,`$1<span style="color: ${h.tag};">$2</span>`),e=e.replace(/([\w-]+)(=)/g,`<span style="color: ${h.attrName};">$1</span>$2`),e=e.replace(/(=)("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,`$1<span style="color: ${h.attrValue};">$2</span>`),e}function Oe(e){return e=e.replace(/(\/\*[\s\S]*?\*\/)/g,`<span style="color: ${h.comment};">$1</span>`),e=e.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,`<span style="color: ${h.string};">$1</span>`),e=e.replace(/([\w-]+)(\s*:)/g,`<span style="color: ${h.attrName};">$1</span>$2`),e=e.replace(/(:\s*)([\d.#\w-]+)/g,`$1<span style="color: ${h.attrValue};">$2</span>`),e=e.replace(/([.#]?[\w-]+)(\s*\{)/g,`<span style="color: ${h.tag};">$1</span>$2`),e}function Le(e){return e=e.replace(/(#.*$)/gm,`<span style="color: ${h.comment};">$1</span>`),e=e.replace(/^([\w-]+):/gm,`<span style="color: ${h.attrName};">$1</span>:`),e=e.replace(/(:\s*)([\w./-]+)/g,`$1<span style="color: ${h.string};">$2</span>`),e=e.replace(/\b(true|false|null)\b/g,`<span style="color: ${h.boolean};">$1</span>`),e=e.replace(/\b(\d+\.?\d*)\b/g,`<span style="color: ${h.number};">$1</span>`),e}function ze(e){return e=e.replace(/(&lt;\/?)([\w:]+)/g,`$1<span style="color: ${h.tag};">$2</span>`),e=e.replace(/([\w:]+)(=)/g,`<span style="color: ${h.attrName};">$1</span>$2`),e=e.replace(/(=)("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,`$1<span style="color: ${h.attrValue};">$2</span>`),e}function Ne(e){e=e.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,`<span style="color: ${h.string};">$1</span>`),e=e.replace(/(\/\/.*$)/gm,`<span style="color: ${h.comment};">$1</span>`),e=e.replace(/(\/\*[\s\S]*?\*\/)/g,`<span style="color: ${h.comment};">$1</span>`);const n=/\b(function|return|if|else|for|while|var|let|const|true|false|null|undefined)\b/g;return e=e.replace(n,`<span style="color: ${h.keyword};">$1</span>`),e=e.replace(/\b(\d+\.?\d*)\b/g,`<span style="color: ${h.number};">$1</span>`),e}const xn=Object.freeze(Object.defineProperty({__proto__:null,highlightCSS:Oe,highlightCode:Ie,highlightGeneric:Ne,highlightHTML:ke,highlightJSON:Pe,highlightJavaScript:De,highlightPython:Me,highlightXML:ze,highlightYAML:Le},Symbol.toStringTag,{value:"Module"}));function Ae(e){return new Promise((n,t)=>{if(document.querySelector(`script[src="${e}"]`)){n();return}const o=document.createElement("script");o.src=e,o.onload=()=>n(),o.onerror=t,document.head.appendChild(o)})}function Ut(e){const n=[];let t=[],o="",i=!1;for(let a=0;a<e.length;a++){const r=e[a],s=e[a+1];i?r==='"'?s==='"'?(o+='"',a++):i=!1:o+=r:r==='"'?i=!0:r===","?(t.push(o),o=""):r==="\r"&&s===`
+`?(t.push(o),n.push(t),t=[],o="",a++):r===`
+`?(t.push(o),n.push(t),t=[],o=""):r!=="\r"&&(o+=r)}return t.push(o),(t.length>0||n.length>0)&&n.push(t),n}const qt={type:"floating",maxRows:_.MAX_PREVIEW_ROWS,height:null},Q={floating:{containerClass:"dm-table-container",controlsClass:"dm-table-controls",height:null,hasFullscreen:!1,prefix:"dm-floating-table"},panel:{containerClass:"dm-panel-table-container",controlsClass:"dm-table-controls-panel",height:null,hasFullscreen:!0,prefix:"dm-table"}};function Fe(e,n={}){const t={...qt,...n},o=Q[t.type||"floating"],i=t.hasFullscreen!==void 0?t.hasFullscreen:o.hasFullscreen,a=e.slice(0,t.maxRows||_.MAX_PREVIEW_ROWS),r=e.length>(t.maxRows||_.MAX_PREVIEW_ROWS),s=`${o.prefix}-${Date.now()}`,c=t.path||"",l=o.height!==null?`height: ${o.height};`:"height: 100%;",u=`position: relative; flex: 1; overflow: hidden; ${l}`;let d=`
+    <div style="display: flex; flex-direction: column; gap: 0; ${t.type==="floating"?"height: 100%;":""}">
+      <div class="${o.containerClass}" style="${u}">
         <div id="${s}-wrapper" class="dm-table-wrapper"
-             style="width: 100%; overflow: auto; padding: 15px; ${r}">
-          <table id="${s}" class="dm-data-table"
+             style="width: 100%; overflow: auto; padding: 15px; ${l}">
+          <table id="${s}" class="dm-data-table" ${c?`data-table-path="${E(c)}"`:""}
                  style="width: 100%; border-collapse: collapse; font-size: 12px; transform-origin: top left;">
-  `;if(i.forEach((d,g)=>{const m=g===0;l+="<tr>",d.forEach(u=>{const f=b(String(u??""));m?l+=`<th class="dm-table-header">${f}</th>`:l+=`<td class="dm-table-cell">${f}</td>`}),l+="</tr>"}),l+=`
+  `;if(a.forEach((m,y)=>{const x=y===0;d+="<tr>",m.forEach(f=>{const g=E(String(f??""));x?d+=`<th class="dm-table-header">${g}</th>`:d+=`<td class="dm-table-cell">${g}</td>`}),d+="</tr>"}),d+=`
           </table>
         </div>
       </div>
-      ${$t(s,o)}
+      ${Wt(s,o)}
     </div>
-  `,a){const d=n.maxRows||E.MAX_PREVIEW_ROWS;l=l.replace("</div>",`<div class="dm-table-truncated" style="text-align: center; padding: 10px; font-size: 11px;">... (仅显示前 ${d} 行，共 ${e.length} 行)</div></div>`)}return setTimeout(()=>Te(s,n.type||"floating"),0),l}function $t(e,t){let n=`
-    <div id="${e}-controls" class="${t.controlsClass}" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; flex-shrink: 0;">
+  `,r){const m=t.maxRows||_.MAX_PREVIEW_ROWS;d=d.replace("</div>",`<div class="dm-table-truncated" style="text-align: center; padding: 10px; font-size: 11px;">... (仅显示前 ${m} 行，共 ${e.length} 行)</div></div>`)}return setTimeout(()=>Be(s,t.type||"floating",i,c),0),d}function Wt(e,n){let t=`
+    <div id="${e}-controls" class="${n.controlsClass}" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; flex-shrink: 0;">
       <button class="comfy-btn dm-table-zoom-out-btn" data-table-id="${e}" title="缩小">
         <i class="pi pi-search-minus"></i>
       </button>
@@ -317,53 +442,54 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
       <button class="comfy-btn dm-table-fit-btn" data-table-id="${e}" title="自动缩放">
         <i class="pi pi-arrows-alt"></i>
       </button>
-  `;return t.hasFullscreen&&(n+=`
+  `;return n.hasFullscreen&&(t+=`
       <button class="comfy-btn dm-table-fullscreen-btn" data-table-id="${e}" title="全屏">
         <i class="pi pi-window-maximize"></i>
       </button>
-    `),n+="</div>",n}function Te(e,t="floating"){const n=document.getElementById(e);if(!n)return;const o=G[t]||G.floating;let i=100,a=!1;const s=n,r=document.getElementById(`${e}-wrapper`),c=document.getElementById(`${e}-zoom`),l=document.querySelector(`.dm-table-zoom-in-btn[data-table-id="${e}"]`),d=document.querySelector(`.dm-table-zoom-out-btn[data-table-id="${e}"]`),g=document.querySelector(`.dm-table-fit-btn[data-table-id="${e}"]`),m=o.hasFullscreen?document.querySelector(`.dm-table-fullscreen-btn[data-table-id="${e}"]`):null;function u(){s.style.transform=`scale(${i/100})`,c&&(c.textContent=`${i}%`),r&&(r.style.width=i>100?`${i}%`:"100%")}l&&l.addEventListener("click",()=>{i=Math.min(i+E.DEFAULT_ZOOM_STEP,E.MAX_ZOOM_DISPLAY),u()}),d&&d.addEventListener("click",()=>{i=Math.max(i-E.DEFAULT_ZOOM_STEP,E.MIN_ZOOM_DISPLAY),u()}),g&&g.addEventListener("click",()=>{const f=r?.clientWidth||400,w=s.scrollWidth,h=Math.min(Math.floor(f/w*100),100);i=Math.max(h,E.MIN_ZOOM_DISPLAY),u()}),m&&m.addEventListener("click",()=>{a=!a,a?n.parentElement?.requestFullscreen():document.exitFullscreen()})}function Se(e){return`
+    `),t+="</div>",t}function Be(e,n="floating",t,o){const i=document.getElementById(e);if(!i)return;const a=Q[n]||Q.floating,r=t!==void 0?t:a.hasFullscreen;let s=100;const c=i,l=document.getElementById(`${e}-wrapper`),u=document.getElementById(`${e}-zoom`),d=document.querySelector(`.dm-table-zoom-in-btn[data-table-id="${e}"]`),m=document.querySelector(`.dm-table-zoom-out-btn[data-table-id="${e}"]`),y=document.querySelector(`.dm-table-fit-btn[data-table-id="${e}"]`),x=r?document.querySelector(`.dm-table-fullscreen-btn[data-table-id="${e}"]`):null;function f(){c.style.transform=`scale(${s/100})`,u&&(u.textContent=`${s}%`),l&&(l.style.width=s>100?`${s}%`:"100%")}d&&d.addEventListener("click",()=>{s=Math.min(s+_.DEFAULT_ZOOM_STEP,_.MAX_ZOOM_DISPLAY),f()}),m&&m.addEventListener("click",()=>{s=Math.max(s-_.DEFAULT_ZOOM_STEP,_.MIN_ZOOM_DISPLAY),f()}),y&&y.addEventListener("click",()=>{const g=l?.clientWidth||400,v=c.scrollWidth,C=Math.min(Math.floor(g/v*100),100);s=Math.max(C,_.MIN_ZOOM_DISPLAY),f()}),x&&x.addEventListener("click",async()=>{const g=o||c.getAttribute("data-table-path");if(g){const v=g.split(/[\\/]/).pop()||g,{openFloatingPreview:C}=await I(async()=>{const{openFloatingPreview:T}=await Promise.resolve().then(()=>on);return{openFloatingPreview:T}},void 0);C(g,v)}})}function je(e){return`
     <div style="text-align: center; padding: 40px; color: #e74c3c;">
       <i class="pi pi-exclamation-triangle" style="font-size: 48px;"></i>
       <div style="margin-top: 15px; font-size: 13px;">表格解析失败</div>
-      <div style="margin-top: 5px; font-size: 11px;">${b(e)}</div>
+      <div style="margin-top: 5px; font-size: 11px;">${E(e)}</div>
     </div>
-  `}async function _e(e,t){const n=await fetch(`/dm/preview?path=${encodeURIComponent(e)}`);if(!n.ok)throw new Error("Failed to load file");if(t===".csv"){const o=await n.text();return Et(o)}throw new Error("Excel format requires SheetJS library")}const Ut=Object.freeze(Object.defineProperty({__proto__:null,createTableErrorHTML:Se,createTableHTML:$e,parseSpreadsheet:_e,setupTableControls:Te},Symbol.toStringTag,{value:"Module"}));function Tt(e){return new Promise((t,n)=>{if(document.querySelector(`script[src="${e}"]`)){t();return}const o=document.createElement("script");o.src=e,o.onload=()=>t(),o.onerror=n,document.head.appendChild(o)})}async function Ie(e,t,n,o=1){e.innerHTML=`
+  `}async function He(e,n){const t=await fetch(`/dm/preview?path=${encodeURIComponent(e)}`);if(!t.ok)throw new Error("Failed to load file");if(n===".csv"){const o=await t.text();return Ut(o)}if(n===".xls"||n===".xlsx"){const o=window;typeof o.XLSX>"u"&&await Ae("https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js");const i=await t.arrayBuffer(),a=o.XLSX,r=a.read(i,{type:"array"}),s=r.SheetNames[0],c=r.Sheets[s];return a.utils.sheet_to_json(c,{header:1})}throw new Error("Unsupported spreadsheet format")}const hn=Object.freeze(Object.defineProperty({__proto__:null,createTableErrorHTML:je,createTableHTML:Fe,parseSpreadsheet:He,setupTableControls:Be},Symbol.toStringTag,{value:"Module"}));async function Gt(e,n,t,o=1,i){const a=b();e.innerHTML=`
     <div class="dm-loading" style="text-align: center; padding: 20px;">
       <i class="pi pi-spin pi-spinner" style="font-size: 24px;"></i>
       <div style="margin-top: 10px;">正在加载...</div>
     </div>
-  `;try{let i="";if(x.image.exts.includes(n))i=`
-        <img src="${`/dm/preview?path=${encodeURIComponent(t)}`}"
-             class="dm-zoomable-image dm-preview-image"
-             style="max-width: 100%; max-height: 400px;
-                    border-radius: 8px; border: 1px solid;
-                    transform-origin: center center;
-                    will-change: transform;"
-             onerror="this.parentElement.innerHTML='<div class=\\'dm-error-message\\' style=\\'padding: 20px;\\'>无法加载图像</div>'"
-             onload="this.style.opacity=1; this.style.display='block';">
-      `;else if(x.audio.exts.includes(n)){const a=`/dm/preview?path=${encodeURIComponent(t)}`,s=`dm-preview-audio-${Date.now()}`;i=`
+  `;try{let r="";if(w.image.exts.includes(t)){const s=`/dm/preview?path=${encodeURIComponent(n)}`;r=`
+        <div style="display: flex; flex-direction: column; gap: 0; height: 100%;">
+          <div class="dm-floating-image-container" style="position: relative; overflow: hidden; flex: 1; display: flex; align-items: center; justify-content: center;">
+            <img id="${i||`dm-floating-image-${Date.now()}`}" src="${s}"
+                 class="dm-zoomable-image dm-preview-image"
+                 style="width: auto; height: auto; max-width: 100%; max-height: 100%;
+                        border-radius: 8px; border: 1px solid;
+                        transform-origin: center center;
+                        will-change: transform; cursor: grab;"
+                 onerror="this.parentElement.innerHTML='<div class=\\'dm-error-message\\' style=\\'padding: 20px;\\'>无法加载图像</div>'"
+                 onload="this.style.opacity=1; this.style.display='block';">
+          </div>
+        </div>
+      `}else if(w.audio.exts.includes(t)){const s=`/dm/preview?path=${encodeURIComponent(n)}`,c=i||`dm-preview-audio-${Date.now()}`,l=E(n.split(/[/\\]/).pop()||""),u=t.toLowerCase();r=`
         <div class="dm-audio-preview" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
           <i class="pi pi-volume-up dm-audio-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-          <div class="dm-preview-filename" style="margin-bottom: 15px; font-size: 14px;">${b(t.split(/[/\\]/).pop()||"")}</div>
-          <audio id="${s}" preload="metadata" style="width: 100%; max-width: 400px;">
-            <source src="${a}">
+          <div class="dm-preview-filename" style="margin-bottom: 15px; font-size: 14px;">${l}</div>
+          <audio id="${c}" data-audio-id="${c}" preload="metadata" style="width: 100%; max-width: 400px; display: none;">
+            <source src="${s}" type="${u===".mp3"?"audio/mpeg":u===".wav"?"audio/wav":u===".flac"?"audio/flac":u===".aac"?"audio/aac":u===".ogg"?"audio/ogg":u===".m4a"?"audio/mp4":"audio/mpeg"}">
             您的浏览器不支持音频播放
           </audio>
         </div>
-      `}else if(x.video.exts.includes(n)){const a=`/dm/preview?path=${encodeURIComponent(t)}`;i=`
-        <div class="dm-video-preview" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-          <video id="${`dm-preview-video-${Date.now()}`}"
-                 preload="metadata"
-                 style="width: 100%; height: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">
-            <source src="${a}">
-            您的浏览器不支持视频播放
+      `}else if(w.video.exts.includes(t)){const s=`/dm/preview?path=${encodeURIComponent(n)}`,c=i||`dm-preview-video-${Date.now()}`;r=`
+        <div class="dm-video-preview-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: ${a.bgPrimary};">
+          <video id="${c}" data-video-id="${c}" preload="metadata" style="width: 100%; height: 100%; display: block; object-fit: contain;">
+            <source src="${s}" type="video/mp4">
           </video>
         </div>
-      `}else if(x.videoExternal&&x.videoExternal.exts.includes(n)){const a=n.toUpperCase().replace(".","");i=`
+      `}else if(w.videoExternal&&w.videoExternal.exts.includes(t)){const s=t.toUpperCase().replace(".","");r=`
         <div class="dm-external-video" style="text-align: center; padding: 40px;">
           <i class="pi pi-video dm-external-video-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-          <div class="dm-preview-filename" style="font-size: 16px; margin-bottom: 8px;">${b(t.split(/[\\/]/).pop()||"")}</div>
-          <div class="dm-external-video-type" style="font-size: 14px; font-weight: 600; margin-bottom: 15px;">${a} 格式</div>
+          <div class="dm-preview-filename" style="font-size: 16px; margin-bottom: 8px;">${E(n.split(/[\\/]/).pop()||"")}</div>
+          <div class="dm-external-video-type" style="font-size: 14px; font-weight: 600; margin-bottom: 15px;">${s} 格式</div>
           <div class="dm-external-video-desc" style="margin-top: 10px; font-size: 12px; max-width: 300px; margin-left: auto; margin-right: auto;">
             此格式需要使用外部播放器打开<br>
             <span class="dm-external-video-sub">（VLC、Windows Media Player 等）</span>
@@ -372,21 +498,21 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
             提示：点击下方"打开"按钮可用外部播放器播放
           </div>
         </div>
-      `}else if(x.code.exts.includes(n)){const a=await fetch(`/dm/preview?path=${encodeURIComponent(t)}`);if(a.ok){const s=await a.text();i=`
+      `}else if(w.code.exts.includes(t)){const s=await fetch(`/dm/preview?path=${encodeURIComponent(n)}`);if(s.ok){const c=await s.text();r=`
           <div class="dm-code-preview" style="width: 100%; padding: 15px;
                       font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.5;
                       overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 0;">
-            <pre class="dm-code-content" style="margin: 0; white-space: pre-wrap;">${ge(s,n)}</pre>
+            <pre class="dm-code-content" style="margin: 0; white-space: pre-wrap;">${Ie(c,t)}</pre>
           </div>
-        `}else throw new Error("Failed to load file")}else if(x.document.exts.includes(n)){const a=`/dm/preview?path=${encodeURIComponent(t)}`,s=n===".pdf",r=n===".md",c=n===".docx";if(n===".doc")i=`
+        `}else throw new Error("Failed to load file")}else if(w.document.exts.includes(t)){const s=`/dm/preview?path=${encodeURIComponent(n)}`,c=t===".pdf",l=t===".md",u=t===".docx";if(t===".doc")r=`
           <div class="dm-doc-unsupported" style="text-align: center; padding: 40px;">
             <i class="pi pi-file-word dm-doc-unsupported-icon" style="font-size: 64px; margin-bottom: 15px;"></i>
-            <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${b(t.split(/[/\\]/).pop()||"")}</div>
+            <div class="dm-preview-filename" style="margin-top: 15px; font-size: 14px;">${E(n.split(/[/\\]/).pop()||"")}</div>
             <div class="dm-unsupported-message" style="margin-top: 10px; font-size: 12px;">.doc 格式暂不支持预览</div>
             <div class="dm-unsupported-sub" style="margin-top: 5px; font-size: 11px;">请转换为 .docx 或点击"打开"按钮</div>
           </div>
-        `;else if(c)try{const d=await fetch(a);if(d.ok){const g=await d.arrayBuffer();typeof window.mammoth>"u"&&await Tt("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js");const m=window.mammoth;if(typeof m<"u"){const u=m.convertToHtml({arrayBuffer:g}),f=`dm-doc-content-${Date.now()}`;i=`
-                <div id="${f}" class="dm-document-content dm-docx-content"
+        `;else if(u)try{const m=await fetch(s);if(m.ok){const y=await m.arrayBuffer();if(typeof window.mammoth>"u"){console.log("[DataManager] Loading mammoth.js...");try{await Ae("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"),console.log("[DataManager] mammoth.js loaded successfully")}catch(f){throw console.error("[DataManager] Failed to load mammoth.js:",f),new Error("无法加载 mammoth.js，请检查网络连接")}}const x=window.mammoth;if(x){const f=x.convertToHtml({arrayBuffer:y}),g=`dm-doc-content-${Date.now()}`;r=`
+                <div id="${g}" class="dm-document-content dm-docx-content"
                      style="width: 100%; height: 100%;
                             font-family: 'Segoe UI', Arial, sans-serif;
                             font-size: 13px;
@@ -395,51 +521,73 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
                             box-sizing: border-box;
                             padding: 20px;">
                   <style>
-                    #${f} img { max-width: 100%; height: auto; display: inline-block; margin: 10px 0; }
-                    #${f} p { word-wrap: break-word; overflow-wrap: break-word; margin: 0.5em 0; }
-                    #${f} table { max-width: 100%; overflow: auto; display: block; margin: 10px 0; }
+                    #${g} img { max-width: 100%; height: auto; display: inline-block; margin: 10px 0; }
+                    #${g} p { word-wrap: break-word; overflow-wrap: break-word; margin: 0.5em 0; }
+                    #${g} table { max-width: 100%; overflow: auto; display: block; margin: 10px 0; }
                   </style>
-                  ${u.value}
+                  ${f.value}
                 </div>
-              `}else throw new Error("mammoth.js not available")}else throw new Error("Failed to load file")}catch(d){console.error("[DataManager] DOCX preview error:",d),i=`
+              `}else throw new Error("mammoth.js 加载后未找到全局变量")}else throw new Error("Failed to load file")}catch(m){console.error("[DataManager] DOCX preview error:",m),r=`
             <div class="dm-preview-error" style="text-align: center; padding: 40px;">
               <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
-              <div class="dm-preview-filename" style="margin-top: 15px;">${b(t.split(/[/\\]/).pop()||"")}</div>
+              <div class="dm-preview-filename" style="margin-top: 15px;">${E(n.split(/[/\\]/).pop()||"")}</div>
               <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
-              <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${b(d.message)}</div>
+              <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${E(m.message)}</div>
             </div>
-          `}else if(s)i=`
+          `}else if(c)r=`
           <div style="width: 100%; height: 100%; overflow: hidden;">
-            <embed id="dm-floating-pdf-embed" src="${a}" type="application/pdf"
+            <embed id="dm-floating-pdf-embed" src="${s}" type="application/pdf"
                    style="width: 100%; height: 100%; border: none; display: block;" />
           </div>
-        `;else if(r){const g=await(await fetch(a)).text();i=`
-          <div class="dm-markdown-preview" style="padding: 20px; font-size: 13px; line-height: 1.6; overflow-y: auto; max-height: 100%;">
-            <pre style="white-space: pre-wrap; word-wrap: break-word;">${b(g)}</pre>
+        `;else if(l)r=`
+          <div style="width: 100%; height: 100%; border: 1px solid ${a.borderColor}; overflow: hidden;">
+            <iframe src="${s}" style="width: 100%; height: 100%; border: none;"></iframe>
           </div>
-        `}else i=`
+        `;else if(t===".txt"||t===".rtf")try{const m=await fetch(s);if(m.ok){const y=await m.text();r=`
+              <div id="${`dm-doc-content-${Date.now()}`}" class="dm-document-content dm-text-content"
+                   style="width: 100%; height: 100%;
+                          font-family: 'Consolas', 'Monaco', monospace;
+                          font-size: 13px;
+                          line-height: 1.6;
+                          overflow: auto;
+                          word-break: break-word;
+                          white-space: pre-wrap;
+                          padding: 15px;">${E(y)}</div>
+            `}else throw new Error("Failed to load file")}catch(m){console.error("[DataManager] Text preview error:",m),r=`
+            <div class="dm-preview-error" style="text-align: center; padding: 40px;">
+              <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
+              <div class="dm-preview-filename" style="margin-top: 15px;">${E(n.split(/[/\\]/).pop()||"")}</div>
+              <div class="dm-error-title" style="margin-top: 10px; font-size: 12px;">预览加载失败</div>
+              <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${E(m.message)}</div>
+            </div>
+          `}else{const m=E(n.split(/[/\\]/).pop()||"");r=`
           <div style="text-align: center; padding: 40px;">
-            <i class="pi pi-file" style="font-size: 64px; color: #888;"></i>
-            <div style="margin-top: 15px; font-size: 14px;">${b(t.split(/[/\\]/).pop()||"")}</div>
-            <div style="margin-top: 8px; font-size: 12px; color: #888;">点击"打开"按钮查看文档</div>
+            <i class="pi pi-file" style="font-size: 64px; color: ${a.textSecondary};"></i>
+            <div style="margin-top: 15px; font-size: 14px;">${m}</div>
+            <div style="margin-top: 8px; font-size: 12px; color: ${a.textSecondary};">点击"打开"按钮查看文档</div>
           </div>
-        `}else if(x.spreadsheet.exts.includes(n))try{const a=await _e(t,n);i=$e(a,{type:"floating"})}catch(a){i=Se(a.message)}else{const a=t.split(/[/\\]/).pop()||"",s=B({name:t}),r=x[s]?.icon||x.unknown.icon,c=x[s]?.color||x.unknown.color;i=`
+        `}}else if(w.spreadsheet.exts.includes(t))try{const s=await He(n,t);r=Fe(s,{type:"floating",hasFullscreen:!0,path:n})}catch(s){r=je(s.message)}else{const s=n.split(/[/\\]/).pop()||"",c=q({name:n}),l=w[c]?.icon||w.unknown.icon,u=w[c]?.color||w.unknown.color;r=`
         <div style="text-align: center; padding: 30px;">
-          <i class="pi ${r}" style="font-size: 64px; color: ${c};"></i>
-          <div style="margin-top: 15px; color: #fff; font-size: 14px;">${b(a)}</div>
-          <div style="margin-top: 8px; color: #888; font-size: 12px;">此文件类型不支持预览</div>
+          <i class="pi ${l}" style="font-size: 64px; color: ${u};"></i>
+          <div style="margin-top: 15px; color: ${a.textPrimary}; font-size: 14px;">${E(s)}</div>
+          <div style="margin-top: 8px; color: ${a.textSecondary}; font-size: 12px;">此文件类型不支持预览</div>
         </div>
-      `}e.innerHTML=i}catch(i){e.innerHTML=`
+      `}e.innerHTML=r,Yt(e,n)}catch(r){e.innerHTML=`
       <div class="dm-preview-error" style="text-align: center; padding: 40px;">
         <i class="pi pi-exclamation-triangle dm-error-icon" style="font-size: 48px;"></i>
         <div class="dm-error-title" style="margin-top: 15px; font-size: 14px;">加载失败</div>
-        <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${b(i.message)}</div>
+        <div class="dm-error-detail" style="margin-top: 5px; font-size: 11px;">${E(r.message)}</div>
       </div>
-    `}}function X(){const e=document.getElementById("dm-preview-dock");if(!e)return;e.innerHTML="";const t=I.filter(n=>n.minimized);if(t.length===0){e.style.minHeight="0",e.style.maxHeight="0",e.style.padding="0 15px";return}e.style.minHeight="60px",e.style.maxHeight="60px",e.style.padding="10px 15px",t.forEach(n=>{const o=document.createElement("div");o.className="dm-dock-thumbnail",o.style.cssText=`
+    `}}async function Yt(e,n){const t=e.parentElement?.querySelector(".dm-floating-file-info");if(t)try{const o=await It(n);t.innerHTML=`
+      <div style="display: flex; justify-content: space-between; gap: 15px;">
+        <span>${E(o.name)}</span>
+        <span>${ve(o.size)}</span>
+      </div>
+    `}catch{t.innerHTML='<span style="opacity: 0.5;">无法获取文件信息</span>'}}function re(){const e=document.getElementById("dm-preview-dock");if(!e)return;const n=b();e.innerHTML="";const t=O.filter(o=>o.minimized);if(t.length===0){e.style.minHeight="0",e.style.maxHeight="0",e.style.padding="0 15px";return}e.style.minHeight="60px",e.style.maxHeight="60px",e.style.padding="10px 15px",t.forEach(o=>{const i=document.createElement("div");i.className="dm-dock-thumbnail",i.style.cssText=`
       width: 80px;
       height: 50px;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
+      background: ${n.bgSecondary};
+      border: 1px solid ${n.borderColor};
       border-radius: 6px;
       cursor: pointer;
       display: flex;
@@ -448,42 +596,50 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
       justify-content: center;
       gap: 4px;
       transition: all 0.2s;
-    `,o.title=`${n.fileName} - 点击恢复`,o.innerHTML=`
-      <i class="pi ${n.fileConfig.icon}" style="color: ${n.fileConfig.color}; font-size: 16px;"></i>
-      <span style="color: #aaa; font-size: 9px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${n.fileName}</span>
-    `,o.onmouseover=()=>{o.style.background="#3a3a3a",o.style.borderColor=n.fileConfig.color},o.onmouseout=()=>{o.style.background="#2a2a2a",o.style.borderColor="#3a3a3a"},o.onclick=()=>St(n.window),e.appendChild(o)})}function St(e){e.minimized=!1,e.style.display="flex",X()}const _t=1;function P(e,t,n){const o=document.createElement("button");return o.className="comfy-btn",o.innerHTML=`<i class="pi ${e}"></i>`,o.style.cssText="padding: 6px 10px; background: transparent; border: none; color: #888; cursor: pointer; border-radius: 4px;",o.title=t,o.onmouseover=()=>o.style.background="#3a3a3a",o.onmouseout=()=>o.style.background="transparent",o.onclick=n,o}function Me(e,t){const n=I.find(K=>K.path===e);if(n){n.window.focus();return}const o=ft(e),i=B({name:e}),a=x[i]||x.unknown,s=x.image.exts.includes(o),r=x.video.exts.includes(o),c=x.audio.exts.includes(o),l=o===".pdf",d=o===".md",g=l||d||x.document.exts.includes(o),m=x.code.exts.includes(o),u=x.spreadsheet.exts.includes(o),f=document.createElement("div");f.id=`dm-preview-${Date.now()}`,f.className="dm-floating-preview",f.style.cssText=`
+    `,i.title=`${o.fileName} - 点击恢复`,i.innerHTML=`
+      <i class="pi ${o.fileConfig.icon}" style="color: ${o.fileConfig.color}; font-size: 16px;"></i>
+      <span style="color: ${n.textSecondary}; font-size: 9px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${o.fileName}</span>
+    `,i.onmouseover=()=>{i.style.background=n.bgTertiary,i.style.borderColor=o.fileConfig.color},i.onmouseout=()=>{i.style.background=n.bgSecondary,i.style.borderColor=n.borderColor},i.onclick=()=>Xt(o.window),e.appendChild(i)})}function Xt(e){e.style.display="flex";const n=O.find(t=>t.window===e);n&&(n.minimized=!1),re()}const Zt=1,ye=13,ge=12;function D(e,n,t){const o=b(),i=document.createElement("button");return i.className="comfy-btn",i.innerHTML=`<i class="pi ${e}"></i>`,i.style.cssText=`padding: 6px 10px; background: transparent; border: none; color: ${o.textSecondary}; cursor: pointer; border-radius: 4px;`,i.title=n,i.onmouseover=()=>i.style.background=o.bgTertiary,i.onmouseout=()=>i.style.background="transparent",i.onclick=t,i}function Re(e,n){const t=O.find(Ue=>Ue.path===e);if(t){t.window.focus();return}const o=b(),i=Ot(e),a=q({name:e}),r=w[a]||w.unknown,s=w.image.exts.includes(i),c=w.video.exts.includes(i),l=w.audio.exts.includes(i),u=i===".pdf",d=i===".md",m=u||d||w.document.exts.includes(i),y=w.code.exts.includes(i),x=w.spreadsheet.exts.includes(i),f=document.createElement("div");f.id=`dm-preview-${Date.now()}`,f.className="dm-floating-preview",f.style.cssText=`
     position: fixed;
     top: 100px;
     right: 50px;
     width: 500px;
     height: 600px;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
+    background: ${o.bgPrimary};
+    border: 1px solid ${o.borderColor};
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    z-index: ${E.FLOATING_Z_INDEX};
+    z-index: ${_.FLOATING_Z_INDEX};
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  `;const w=It(t,a,s,r,c,g,m,u,f);f.appendChild(w);const h=document.createElement("div");h.id=`dm-preview-content-${Date.now()}`,h.style.cssText=`
+  `;const g=Jt(n,r,s,c,l,m,y,x,f);f.appendChild(g);const v=document.createElement("div");v.id=`dm-preview-content-${Date.now()}`,v.style.cssText=`
     flex: 1;
     overflow: auto;
     display: flex;
     align-items: center;
     justify-content: center;
-  `,f.appendChild(h);const v=Mt(e,o,s,r,c,l,d,m,u,h);f.appendChild(v),document.body.appendChild(f),z(),me(f,w);const N={path:e,fileName:t,fileConfig:a,window:f,minimized:!1};I.push(N),Ie(h,e,o,_t),_(`已打开预览: ${t}`)}function It(e,t,n,o,i,a,s,r,c,l){const d=L(),g=d.isLight?"#222":"#fff",m=document.createElement("div");m.className="dm-preview-header",m.style.cssText=`
+    background: ${o.bgPrimary};
+  `,f.appendChild(v);const{toolbar:C,mediaId:T}=en(e,i,s,c,l,u,d,y,x,v,f);f.appendChild(C);const $=document.createElement("div");$.id=`dm-fileinfo-${Date.now()}`,$.className="dm-floating-file-info",$.style.cssText=`
+    padding: 10px 15px;
+    background: ${o.bgSecondary};
+    border-top: 1px solid ${o.borderColor};
+    font-size: 12px;
+    color: ${o.textSecondary};
+    text-align: center;
+  `,$.innerHTML='<span style="opacity: 0.5;">正在加载...</span>',f.appendChild($),document.body.appendChild(f),k(),we(f,g);const F={path:e,fileName:n,fileConfig:r,window:f,minimized:!1};O.push(F),Gt(v,e,i,Zt,T),P(`已打开预览: ${n}`)}function Jt(e,n,t,o,i,a,r,s,c,l){const u=b(),d=u.isLight?"#222":"#fff",m=document.createElement("div");m.className="dm-preview-header",m.style.cssText=`
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 15px;
-    background: linear-gradient(135deg, ${d.bgSecondary} 0%, ${d.bgPrimary} 100%);
-    border-bottom: 1px solid ${d.borderColor};
+    background: linear-gradient(135deg, ${u.bgSecondary} 0%, ${u.bgPrimary} 100%);
+    border-bottom: 1px solid ${u.borderColor};
     cursor: move;
     user-select: none;
-  `;const u=document.createElement("div");u.className="dm-traffic-lights",u.style.cssText="display: flex; gap: 8px;";const f=U("pi-times",g,"关闭",()=>Dt(c));u.appendChild(f);const w=U("pi-minus",g,"最小化",()=>Pt(c));if(u.appendChild(w),n||o||i||a||s||r){const v=U("pi-window-maximize",g,"全屏",()=>Ot(c));u.appendChild(v)}m.appendChild(u);const h=document.createElement("div");return h.className="dm-header-title-area",h.style.cssText="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; flex: 1; justify-content: center;",h.innerHTML=`
-    <i class="pi ${t.icon}" style="color: ${t.color};"></i>
+  `;const y=document.createElement("div");y.className="dm-traffic-lights",y.style.cssText="display: flex; gap: 8px;";const x=X("pi-times",d,"关闭",()=>tn(c));y.appendChild(x);const f=X("pi-minus",d,"最小化",()=>nn(c));if(y.appendChild(f),t||o||i||a||r||s){const v=X("pi-window-maximize",d,"全屏",()=>H(c));y.appendChild(v)}m.appendChild(y);const g=document.createElement("div");return g.className="dm-header-title-area",g.style.cssText="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; flex: 1; justify-content: center;",g.innerHTML=`
+    <i class="pi ${n.icon}" style="color: ${n.color};"></i>
     <span style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${e}</span>
-  `,m.appendChild(h),pe(v=>{const N=v.isLight?"#222":"#fff";m.style.background=`linear-gradient(135deg, ${v.bgSecondary} 0%, ${v.bgPrimary} 100%)`,m.style.borderColor=v.borderColor,h.style.color=N,m.querySelectorAll(".dm-traffic-btn").forEach(Pe=>{Pe.style.color=N})}),m}function U(e,t,n,o){const i=document.createElement("button");return i.className="comfy-btn dm-traffic-btn",i.innerHTML=`<i class="pi ${e}" style="font-size: 10px; color: ${t};"></i>`,i.style.cssText=`
+  `,m.appendChild(g),oe(v=>{const C=v.isLight?"#222":"#fff";m.style.background=`linear-gradient(135deg, ${v.bgSecondary} 0%, ${v.bgPrimary} 100%)`,m.style.borderColor=v.borderColor,g.style.color=C,m.querySelectorAll(".dm-traffic-btn").forEach($=>{$.style.color=C})}),m}function X(e,n,t,o){const i=document.createElement("button");return i.className="comfy-btn dm-traffic-btn",i.innerHTML=`<i class="pi ${e}" style="font-size: 10px; color: ${n};"></i>`,i.style.cssText=`
     width: 14px;
     height: 14px;
     padding: 0px;
@@ -495,45 +651,73 @@ import{app as S}from"../../scripts/app.js";const Oe="modulepreload",ke=function(
     align-items: center;
     justify-content: center;
     transition: 0.15s;
-  `,i.title=n,i.onclick=a=>{a.stopPropagation(),o()},i}function Mt(e,t,n,o,i,a,s,r,c,l,d){const g=document.createElement("div");g.style.cssText=`
+  `,i.title=t,i.onclick=a=>{a.stopPropagation(),o()},i}function Kt(e,n,t,o,i){const a=b();let r=ye;e.appendChild(i());const s=o("pi-minus","减小字号",()=>{r=Math.max(8,r-1),d()});e.appendChild(s);const c=document.createElement("span");c.style.cssText=`min-width: 30px; text-align: center; color: ${a.textSecondary};`,c.textContent=r.toString(),e.appendChild(c);const l=o("pi-plus","增大字号",()=>{r=Math.min(32,r+1),d()});e.appendChild(l);const u=o("pi-undo","重置字号",()=>{r=ye,d()});e.appendChild(u);function d(){c.textContent=r.toString();const m=n.querySelector(".dm-document-content, .dm-docx-content");m&&(m.style.fontSize=`${r}px`)}}function Qt(e,n,t,o,i){const a=b();let r=ge;e.appendChild(i());const s=o("pi-minus","减小字号",()=>{r=Math.max(8,r-1),d()});e.appendChild(s);const c=document.createElement("span");c.style.cssText=`min-width: 30px; text-align: center; color: ${a.textSecondary};`,c.textContent=r.toString(),e.appendChild(c);const l=o("pi-plus","增大字号",()=>{r=Math.min(32,r+1),d()});e.appendChild(l);const u=o("pi-undo","重置字号",()=>{r=ge,d()});e.appendChild(u);function d(){c.textContent=r.toString();const m=n.querySelector(".dm-code-content");m&&(m.style.fontSize=`${r}px`)}}function Ve(e,n,t,o,i,a,r,s){const c=b(),l=n.querySelector(`#${s}`);if(!l){setTimeout(()=>Ve(e,n,t,o,i,a,r,s),50);return}const u=document.createElement("span");u.className="dm-media-time",u.style.cssText=`min-width: 80px; text-align: center; color: ${c.textSecondary}; font-size: 11px; font-family: monospace;`,u.textContent="0:00 / 0:00",u.id=`${s}-time`,e.appendChild(u),e.appendChild(a());const d=i("pi-volume-up","音量",()=>{l.muted?(l.muted=!1,d.innerHTML='<i class="pi pi-volume-up"></i>',d.title="音量"):(l.muted=!0,d.innerHTML='<i class="pi pi-volume-off"></i>',d.title="静音")});e.appendChild(d),l.addEventListener("volumechange",()=>{l.muted||l.volume===0?d.innerHTML='<i class="pi pi-volume-off"></i>':l.volume<.5?d.innerHTML='<i class="pi pi-volume-down"></i>':d.innerHTML='<i class="pi pi-volume-up"></i>'}),e.appendChild(a());const m=i("pi-play","播放",()=>{l.paused?l.play().then(()=>{m.innerHTML='<i class="pi pi-pause"></i>',m.title="暂停"}).catch(f=>console.error("[DataManager] 播放失败:",f)):(l.pause(),m.innerHTML='<i class="pi pi-play"></i>',m.title="播放")});e.appendChild(m),l.addEventListener("play",()=>{m.innerHTML='<i class="pi pi-pause"></i>',m.title="暂停"}),l.addEventListener("pause",()=>{m.innerHTML='<i class="pi pi-play"></i>',m.title="播放"});function y(f){if(isNaN(f))return"0:00";const g=Math.floor(f/60),v=Math.floor(f%60);return`${g}:${v.toString().padStart(2,"0")}`}if(l.addEventListener("loadedmetadata",()=>{u.textContent=`0:00 / ${y(l.duration)}`}),l.addEventListener("timeupdate",()=>{u.textContent=`${y(l.currentTime)} / ${y(l.duration||0)}`}),o){e.appendChild(a());const f=i("pi-arrows-alt","全屏",()=>{H(r)});e.appendChild(f)}e.appendChild(a());const x=i("pi-external-link","打开",()=>{window.open(`/dm/preview?path=${encodeURIComponent(t)}`,"_blank")});e.appendChild(x)}function en(e,n,t,o,i,a,r,s,c,l,u){const d=b(),m=document.createElement("div");m.className="dm-preview-toolbar",m.style.cssText=`
+    padding: 12px 16px;
+    background: linear-gradient(to bottom, ${d.bgTertiary}, ${d.bgSecondary});
+    border-top: 1px solid ${d.borderColor};
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px;
-    border-top: 1px solid #2a2a2a;
-    background: #1f1f1f;
-  `;const m=P("pi-external-link","打开",()=>{window.open(`/dm/preview?path=${encodeURIComponent(e)}`,"_blank")});if(g.appendChild(m),n){const f=P("pi-search-plus","放大",()=>{}),w=P("pi-search-minus","缩小",()=>{}),h=P("pi-arrows-alt","适应",()=>{});g.appendChild(f),g.appendChild(w),g.appendChild(h)}const u=P("pi-refresh","刷新",()=>{Ie(l,e,t)});return g.appendChild(u),g}function Dt(e){const t=I.findIndex(n=>n.window===e);t>-1&&I.splice(t,1),e.remove(),X()}function Pt(e,t,n,o){const i=I.find(a=>a.window===e);i&&(i.minimized=!0),e.style.display="none",X()}function Ot(e){e.dataset.fullscreen==="true"?(e.dataset.fullscreen="false",e.style.top="100px",e.style.right="50px",e.style.width="500px",e.style.height="600px"):(e.dataset.fullscreen="true",e.style.top="0",e.style.right="0",e.style.width="100vw",e.style.height="100vh",e.style.borderRadius="0")}const Wt=Object.freeze(Object.defineProperty({__proto__:null,openFloatingPreview:Me},Symbol.toStringTag,{value:"Module"})),kt=2,De=typeof S.ui<"u"&&S.ui!==null&&S.ui?.version&&typeof S.ui.version=="object"&&S.ui.version.major&&S.ui.version.major>=kt;console.log(`[DataManager] Extension loading, Node V${De?"3":"1"} detected`);let W=null;const Lt={name:"ComfyUI.DataManager",commands:[{id:"data-manager.open",label:"Open Data Manager",icon:"pi pi-folder-open",function:()=>O()}],keybindings:[{combo:{key:"d",ctrl:!0,shift:!0},commandId:"data-manager.open"}],actionBarButtons:[{icon:"pi pi-folder",tooltip:"文件管理器 (Ctrl+Shift+D)",class:"dm-actionbar-btn",onClick:()=>O()}],async setup(){const e=document.createElement("style");e.textContent=`
+    font-size: 12px;
+    color: ${d.textSecondary};
+  `;const y=document.createElement("div");y.style.cssText="display: flex; gap: 8px; align-items: center; flex-shrink: 0;";const x=document.createElement("div");x.style.cssText="flex: 1; text-align: center; overflow: hidden; padding: 0 20px;";const f=document.createElement("div");f.style.cssText="display: flex; gap: 8px; align-items: center; flex-shrink: 0;";function g(){const T=document.createElement("div");return T.style.cssText=`width: 1px; height: 16px; background: ${d.borderColor}; margin: 0 4px;`,T}t&&y.appendChild(g()),(n===".txt"||n===".rtf"||n===".md"||n===".docx")&&Kt(y,l,n,D,g),s&&Qt(y,l,n,D,g);const v=document.createElement("div");v.className="dm-file-path",v.style.cssText=`overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: ${d.textSecondary};`,v.textContent=e,v.title=e,x.appendChild(v),f.appendChild(g());let C;if(t)C=`dm-floating-image-${Date.now()}`,se(f,C,l,e,D,g);else if(o||i)C=o?`dm-preview-video-${Date.now()}`:`dm-preview-audio-${Date.now()}`,Ve(f,l,e,o,D,g,u,C);else{const T=D("pi-external-link","打开",()=>{window.open(`/dm/preview?path=${encodeURIComponent(e)}`,"_blank")});f.appendChild(T)}if(a){f.appendChild(g());const T=D("pi-arrows-alt","PDF 全屏",()=>{const $=document.getElementById("dm-floating-pdf-embed");$&&$.requestFullscreen?$.requestFullscreen().catch(F=>console.error("[DataManager] PDF 全屏失败:",F)):$&&$.webkitRequestFullscreen&&$.webkitRequestFullscreen()});f.appendChild(T)}if(n===".md"||n===".txt"||n===".rtf"){f.appendChild(g());const T=D("pi-arrows-alt","全屏预览",()=>H(u));f.appendChild(T)}if(s){f.appendChild(g());const T=D("pi-arrows-alt","全屏预览",()=>H(u));f.appendChild(T)}if(c){f.appendChild(g());const T=D("pi-arrows-alt","全屏预览",()=>H(u));f.appendChild(T)}return m.appendChild(y),m.appendChild(x),m.appendChild(f),{toolbar:m,mediaId:C}}function se(e,n,t,o,i,a){const r=b(),s=t.querySelector(`#${n}`);if(!s){setTimeout(()=>se(e,n,t,o,i,a),50);return}let c=100,l=0,u=0;const d=document.createElement("span");d.id=`${n}-zoom`,d.className="dm-zoom-level",d.style.cssText=`min-width: 45px; text-align: center; font-size: 13px; color: ${r.textSecondary};`,d.textContent="100%",e.appendChild(d);function m(){const $=c/100;s.style.transform=`translate(${l}px, ${u}px) scale(${$})`,d.textContent=`${c}%`,c>100?(s.style.maxWidth="none",s.style.maxHeight="none"):(s.style.maxWidth="100%",s.style.maxHeight="100%")}const y=i("pi-search-minus","缩小",()=>{c=Math.max(c-_.DEFAULT_ZOOM_STEP,_.MIN_ZOOM_DISPLAY),m()});e.appendChild(y);const x=i("pi-search-plus","放大",()=>{c=Math.min(c+_.DEFAULT_ZOOM_STEP,_.MAX_ZOOM_DISPLAY),m()});e.appendChild(x);const f=i("pi-undo","重置",()=>{c=100,l=0,u=0,m()});e.appendChild(f),e.appendChild(a());const g=i("pi-external-link","打开",()=>{window.open(`/dm/preview?path=${encodeURIComponent(o)}`,"_blank")});e.appendChild(g);const v=s.parentElement;v&&v.addEventListener("wheel",$=>{$.preventDefault();const F=$.deltaY>0?-25:_.DEFAULT_ZOOM_STEP;c=Math.max(_.MIN_ZOOM_DISPLAY,Math.min(_.MAX_ZOOM_DISPLAY,c+F)),m()},{passive:!1});let C=!1,T={x:0,y:0};s.addEventListener("mousedown",$=>{c<=100||(C=!0,T={x:$.clientX-l,y:$.clientY-u},s.style.cursor="grabbing")}),document.addEventListener("mousemove",$=>{C&&(l=$.clientX-T.x,u=$.clientY-T.y,m())}),document.addEventListener("mouseup",()=>{C&&(C=!1,s.style.cursor="grab")})}function tn(e){const n=O.findIndex(t=>t.window===e);n>-1&&O.splice(n,1),e.remove(),re()}function nn(e,n,t,o){const i=O.find(a=>a.window===e);i&&(i.minimized=!0),e.style.display="none",re()}function H(e){e.dataset.fullscreen==="true"?(e.dataset.fullscreen="false",e.style.top="100px",e.style.right="50px",e.style.width="500px",e.style.height="600px"):(e.dataset.fullscreen="true",e.style.top="0",e.style.right="0",e.style.width="100vw",e.style.height="100vh",e.style.borderRadius="0")}const on=Object.freeze(Object.defineProperty({__proto__:null,openFloatingPreview:Re,setupImageToolbarControls:se},Symbol.toStringTag,{value:"Module"})),rn=2,sn=typeof L.ui<"u"&&L.ui!==null&&L.ui?.version&&typeof L.ui.version=="object"&&L.ui.version.major&&L.ui.version.major>=rn;console.log(`[DataManager] Extension loading, Node V${sn?"3":"1"} detected`);let Z=null;const an={name:"ComfyUI.DataManager",commands:[{id:"data-manager.open",label:"Open Data Manager",icon:"pi pi-folder-open",function:()=>B()}],keybindings:[{combo:{key:"d",ctrl:!0,shift:!0},commandId:"data-manager.open"}],actionBarButtons:[{icon:"pi pi-folder",tooltip:"文件管理器 (Ctrl+Shift+D)",class:"dm-actionbar-btn",onClick:()=>B()}],async setup(){window.FileManagerState=p,k();const e=document.createElement("style");e.textContent=`
       .dm-actionbar-btn {
         width: 32px !important;
         height: 32px !important;
         border: none !important;
         border-radius: 6px !important;
-        background: rgba(255, 255, 255, 0.05) !important;
-        color: rgba(255, 255, 255, 0.9) !important;
+        background: var(--dm-bg-tertiary, #f0f0f0) !important;
+        color: var(--dm-text-primary, #222222) !important;
         margin-right: 0.5rem !important;
         transition: all 0.2s ease !important;
       }
       .dm-actionbar-btn:hover {
-        background: rgba(255, 255, 255, 0.15) !important;
+        background: var(--dm-bg-hover, #e0e0e0) !important;
       }
       .dm-actionbar-btn i {
-        color: rgba(255, 255, 255, 0.9) !important;
+        color: var(--dm-text-primary, #222222) !important;
       }
-    `,document.head.appendChild(e);const t=()=>{const i=document.querySelector(".dm-actionbar-btn"),a=Array.from(document.querySelectorAll("button")).find(c=>c.getAttribute("aria-label")==="Expand job queue");if(!i||!a)return!1;const s=a.parentElement;return a.previousElementSibling!==i||i.parentElement!==s?(s.insertBefore(i,a),console.log("[DataManager] Button position fixed"),!0):!1};let n=0;new MutationObserver(i=>{const a=Date.now();if(a-n<100)return;n=a,i.some(r=>{if(r.type==="childList"){for(const c of r.addedNodes)if(c.nodeType===1){const l=c;if(l.classList?.contains("actionbar-container")||l.classList?.contains("dm-actionbar-btn")||l.querySelector?.(".dm-actionbar-btn")||l.querySelector?.('[aria-label="Expand job queue"]'))return!0}}return!!r.target.closest?.(".actionbar-container")})&&requestAnimationFrame(t)}).observe(document.body,{childList:!0,subtree:!0}),setInterval(()=>{t()},2e3),console.log("[DataManager] Extension setup completed"),Re()},async nodeCreated(e){const t=e;if(t.comfyClass==="DataManagerCore"){if(console.log("[DataManager] DataManagerCore node created, IS_NODE_V3:",De),t.addDOMWidget){const n=document.createElement("div");n.style.cssText=`
+    `,document.head.appendChild(e);const n=()=>{try{k();const r=document.documentElement.style.getPropertyValue("--dm-bg-tertiary")}catch(a){console.warn("[DataManager] Theme apply error:",a)}};n(),setTimeout(n,0),setTimeout(n,100),setTimeout(n,500);const t=()=>{const a=document.querySelector(".dm-actionbar-btn"),r=Array.from(document.querySelectorAll("button")).find(l=>l.getAttribute("aria-label")==="Expand job queue");if(!a||!r)return!1;k();const s=r.parentElement;return r.previousElementSibling!==a||a.parentElement!==s?(s.insertBefore(a,r),!0):!1};let o=0;new MutationObserver(a=>{const r=Date.now();if(r-o<100)return;o=r,a.some(c=>{if(c.type==="childList"){for(const l of c.addedNodes)if(l.nodeType===1){const u=l;if(u.classList?.contains("actionbar-container")||u.classList?.contains("dm-actionbar-btn")||u.querySelector?.(".dm-actionbar-btn")||u.querySelector?.('[aria-label="Expand job queue"]'))return!0}}return!!c.target.closest?.(".actionbar-container")})&&requestAnimationFrame(t)}).observe(document.body,{childList:!0,subtree:!0}),setInterval(()=>{t()},2e3),console.log("[DataManager] Extension setup completed"),ot(),oe(a=>{document.querySelectorAll(".dm-node-open-btn").forEach(r=>{const s=r;s.style.background=a.bgTertiary,s.style.borderColor=a.borderColor,s.style.color=a.textPrimary})})},async nodeCreated(e){const n=e;if(n.comfyClass==="DataManagerCore"){if(n.addDOMWidget){k();const t=b(),o=document.createElement("div");o.style.cssText=`
           display: flex;
           justify-content: center;
           padding: 10px;
-        `;const o=document.createElement("button");o.className="comfy-btn",o.innerHTML='<i class="pi pi-folder-open"></i> 打开文件管理器',o.style.cssText=`
+        `;const i=document.createElement("button");i.className="comfy-btn dm-node-open-btn",i.innerHTML='<i class="pi pi-folder-open"></i> 打开文件管理器',i.style.cssText=`
           padding: 12px 24px;
           font-size: 14px;
-          background: #6c757d;
-          border: none;
+          background: ${t.bgTertiary};
+          border: 1px solid ${t.borderColor};
           border-radius: 8px;
-          color: white;
+          color: ${t.textPrimary};
           cursor: pointer;
           transition: all 0.2s;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        `,o.onmouseover=()=>{o.style.background="#5a6268",o.style.transform="translateY(-1px)",o.style.boxShadow="0 4px 8px rgba(0,0,0,0.15)"},o.onmouseout=()=>{o.style.background="#6c757d",o.style.transform="translateY(0)",o.style.boxShadow="0 2px 4px rgba(0,0,0,0.1)"},o.onclick=i=>{i.stopPropagation(),O()},n.appendChild(o),t.addDOMWidget("dm_open_btn","dm_open_btn",n,{minWidth:200,minHeight:50})}}else if(t.comfyClass==="InputPathConfig")console.log("[DataManager] InputPathConfig node created"),t._dmFormatSelectorEnabled=!1;else if(t.comfyClass==="OutputPathConfig"){console.log("[DataManager] OutputPathConfig node created");const n=t;n._dmOutputType="STRING",n._dmFilePath=""}},getNodeMenuItems(e){return e.comfyClass==="DataManagerCore"?[{content:"打开文件管理器",callback:()=>O()}]:[]},getCanvasMenuItems(){return[null,{content:"Data Manager",callback:()=>O()}]}};function O(){W&&se();const e=le();e&&e!=="."?(p.currentPath=e,console.log("[DataManager] Restored last path:",e)):p.currentPath=".",W=dt({onRefresh:()=>T(p.currentPath),onClose:()=>{se(),W=null},onOpenFloating:()=>{const n=p.selectedFiles[0];n&&Me(n,ue(n))},onCopyPath:()=>zt(),onDelete:()=>At(),onSshConnect:async n=>{const o=n,i=window._remoteConnectionsState;i.active=n;try{localStorage.setItem("comfyui_datamanager_last_connection",JSON.stringify(n))}catch{}await T(o.root_path||"/"),C("success","已连接",`SSH: ${o.username}@${o.host}`)},onSshDisconnect:async()=>{const n=window._remoteConnectionsState,o=n.active;if(o&&o.connection_id)try{const{sshDisconnect:i}=await $(async()=>{const{sshDisconnect:a}=await import("./ssh.js");return{sshDisconnect:a}},[]);await i(o.connection_id)}catch(i){console.log("[DataManager] SSH disconnect error:",i)}n.active=null;try{localStorage.removeItem("comfyui_datamanager_last_connection")}catch{}await T("."),C("info","已断开","SSH 连接已断开")}}),z(),T(p.currentPath),setTimeout(()=>{Nt()},500)}function Nt(){try{at()}catch(e){console.log("[DataManager] Error in checkAndUpdateFormatSelector:",e)}}function zt(){const e=p.selectedFiles;if(e.length===0){C("warn","未选择","请先选择文件");return}const t=e.join(`
-`);navigator.clipboard.writeText(t).then(()=>{C("success","已复制",`已复制 ${e.length} 个文件路径`)}).catch(()=>{C("error","复制失败","无法访问剪贴板")})}async function At(){const e=p.selectedFiles;if(e.length===0){C("warn","未选择","请先选择文件");return}const t=e.length===1?`确定删除 "${ue(e[0])}"?`:`确定删除 ${e.length} 个项目?`;if(confirm(t))try{for(const n of e)await ut(n,!0);C("success","已删除",`已删除 ${e.length} 个项目`),T(p.currentPath)}catch(n){C("error","删除失败",n.message)}}S.registerExtension(Lt);export{x as F,$ as _,jt as a,Vt as b,ue as c,Ht as d,b as e,Ze as f,ft as g,ge as h,ye as i,xe as j,he as k,be as l,ve as m,we as n,Ee as o,Ce as p,$e as q,Se as r,Te as s,_e as t,_ as u,Bt as v,Rt as w,Ut as x,Wt as y};
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        `,i.onmouseover=()=>{i.style.background=t.bgSecondary,i.style.transform="translateY(-1px)",i.style.borderColor=t.accentColor,i.style.boxShadow="0 4px 8px rgba(0, 0, 0, 0.3)"},i.onmouseout=()=>{i.style.background=t.bgTertiary,i.style.transform="translateY(0)",i.style.borderColor=t.borderColor,i.style.boxShadow="0 2px 4px rgba(0, 0, 0, 0.2)"},i.onclick=a=>{a.stopPropagation(),B()},o.appendChild(i),n.addDOMWidget("dm_open_btn","dm_open_btn",o,{minWidth:200,minHeight:50})}}else if(n.comfyClass==="InputPathConfig")n._dmFormatSelectorEnabled=!1;else if(n.comfyClass==="OutputPathConfig"){const t=n;t._dmOutputType="STRING",t._dmFilePath=""}},getNodeMenuItems(e){return e.comfyClass==="DataManagerCore"?[{content:"打开文件管理器",callback:()=>B()}]:[]},getCanvasMenuItems(){return[null,{content:"Data Manager",callback:()=>B()}]}};function B(){Z&&fe();const e=he();e&&e!=="."?p.currentPath=e:p.currentPath=".",Z=St({onRefresh:()=>M(p.currentPath),onClose:()=>{fe(),Z=null},onOpenFloating:()=>{const t=p.selectedFiles[0];t&&Re(t,Ce(t))},onCopyPath:()=>ln(),onDelete:()=>dn(),onSortChange:t=>{Te(t)},onNewFile:()=>pn(),onSshConnect:async t=>{const o=t,i=window._remoteConnectionsState;i.active=t;try{localStorage.setItem("comfyui_datamanager_last_connection",JSON.stringify(t))}catch{}await M(o.root_path||"/"),S("success","已连接",`SSH: ${o.username}@${o.host}`)},onSshDisconnect:async()=>{const t=window._remoteConnectionsState,o=t.active;if(o&&o.connection_id)try{const{sshDisconnect:i}=await I(async()=>{const{sshDisconnect:a}=await import("./ssh.js");return{sshDisconnect:a}},[]);await i(o.connection_id)}catch(i){console.log("[DataManager] SSH disconnect error:",i)}t.active=null;try{localStorage.removeItem("comfyui_datamanager_last_connection")}catch{}await M("."),S("info","已断开","SSH 连接已断开")}}),k(),M(p.currentPath),setTimeout(()=>{cn()},500)}function cn(){try{wt()}catch(e){console.log("[DataManager] Error in checkAndUpdateFormatSelector:",e)}}function ln(){const e=p.selectedFiles;if(e.length===0){S("warn","未选择","请先选择文件");return}const n=e.join(`
+`);navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(n).then(()=>{S("success","已复制",`已复制 ${e.length} 个文件路径`)}).catch(()=>{xe(n)}):xe(n)}function xe(e){const n=document.createElement("textarea");n.value=e,n.style.position="fixed",n.style.left="-999999px",n.style.top="-999999px",document.body.appendChild(n),n.focus(),n.select();try{document.execCommand("copy")?S("success","已复制",`已复制 ${p.selectedFiles.length} 个文件路径`):S("error","复制失败","无法复制到剪贴板")}catch(t){console.error("[DataManager] Fallback copy failed:",t),S("error","复制失败","无法访问剪贴板")}document.body.removeChild(n)}async function dn(){const e=p.selectedFiles;if(e.length===0){S("warn","未选择","请先选择文件");return}const n=e.length===1?`确定删除 "${Ce(e[0])}"?`:`确定删除 ${e.length} 个项目?`;if(confirm(n))try{for(const t of e)await Dt(t,!0);S("success","已删除",`已删除 ${e.length} 个项目`),M(p.currentPath)}catch(t){S("error","删除失败",t.message)}}function pn(){const{getComfyTheme:e}=require("../utils/theme.js"),n=e(),t=document.createElement("div");t.style.cssText=`
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7); z-index: 10001;
+    display: flex; align-items: center; justify-content: center;
+  `;const o=document.createElement("div");o.style.cssText=`
+    background: ${n.bgSecondary}; border-radius: 12px; padding: 24px;
+    width: 400px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  `,o.innerHTML=`
+    <h3 style="margin: 0 0 20px 0; color: ${n.textPrimary};">新建</h3>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <button id="dm-new-file-btn" class="comfy-btn"
+              style="flex: 1; padding: 15px; background: ${n.bgTertiary}; border: 1px solid ${n.borderColor};
+                     border-radius: 8px; color: ${n.textPrimary}; cursor: pointer;">
+        <i class="pi pi-file" style="display: block; font-size: 24px; margin-bottom: 8px;"></i>
+        文件
+      </button>
+      <button id="dm-new-folder-btn" class="comfy-btn"
+              style="flex: 1; padding: 15px; background: ${n.bgTertiary}; border: 1px solid ${n.borderColor};
+                     border-radius: 8px; color: ${n.textPrimary}; cursor: pointer;">
+        <i class="pi pi-folder" style="display: block; font-size: 24px; margin-bottom: 8px;"></i>
+        文件夹
+      </button>
+    </div>
+    <button class="comfy-btn" id="dm-cancel-new-btn"
+            style="width: 100%; padding: 10px; background: transparent;
+                   border: 1px solid ${n.borderColor}; border-radius: 6px; color: ${n.textSecondary}; cursor: pointer;">
+      取消
+    </button>
+  `,t.appendChild(o),document.body.appendChild(t);const i=o.querySelector("#dm-new-file-btn"),a=o.querySelector("#dm-new-folder-btn"),r=o.querySelector("#dm-cancel-new-btn");i.onclick=()=>{t.remove(),mn()},a.onclick=()=>{t.remove(),un()},r.onclick=()=>t.remove(),t.onclick=s=>{s.target===t&&t.remove()}}async function mn(){const e=prompt("输入文件名:","new_file.txt");if(e)try{await Pt(p.currentPath,e,""),await M(p.currentPath),S("success","成功",`文件已创建: ${e}`)}catch(n){console.error("创建文件失败:",n),S("error","错误",`创建文件失败: ${n.message}`)}}async function un(){const e=prompt("输入文件夹名称:","新建文件夹");if(e)try{await Mt(p.currentPath,e),await M(p.currentPath),S("success","成功",`文件夹已创建: ${e}`)}catch(n){console.error("创建文件夹失败:",n),S("error","错误",`创建文件夹失败: ${n.message}`)}}L.registerExtension(an);export{on as A,w as F,_ as L,I as _,yn as a,gn as b,b as c,Ce as d,E as e,It as f,Ot as g,ve as h,Ie as i,Pe as j,Me as k,Ae as l,De as m,ke as n,Oe as o,Le as p,ze as q,Ne as r,Fe as s,Be as t,P as u,je as v,He as w,tt as x,xn as y,hn as z};
 //# sourceMappingURL=extension.js.map

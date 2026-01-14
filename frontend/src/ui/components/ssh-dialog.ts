@@ -2,41 +2,13 @@
  * ComfyUI Data Manager - SSH Dialog Component
  */
 
+import { getComfyTheme, type ComfyTheme } from '../../utils/theme.js';
+
 /**
  * SSH dialog options
  */
 export interface SshDialogOptions {
   onConnect?: (result: unknown) => void;
-}
-
-/**
- * Theme colors interface
- */
-interface ThemeColors {
-  bgPrimary: string;
-  bgSecondary: string;
-  textPrimary: string;
-  textSecondary: string;
-  borderColor: string;
-  accentColor: string;
-  successColor: string;
-  errorColor: string;
-}
-
-/**
- * Get theme colors
- */
-function getThemeColors(): ThemeColors {
-  return {
-    bgPrimary: '#1e1e1e',
-    bgSecondary: '#2d2d2d',
-    textPrimary: '#e0e0e0',
-    textSecondary: '#999',
-    borderColor: '#444',
-    accentColor: '#3498db',
-    successColor: '#27ae60',
-    errorColor: '#e74c3c'
-  };
 }
 
 /**
@@ -62,12 +34,12 @@ export function createSshDialog(options: SshDialogOptions = {}): HTMLElement {
     z-index: 10001;
   `;
 
-  const colors = getThemeColors();
+  const theme = getComfyTheme();
 
   const modal = document.createElement("div");
   modal.style.cssText = `
-    background: ${colors.bgPrimary};
-    border: 1px solid ${colors.borderColor};
+    background: ${theme.bgPrimary};
+    border: 1px solid ${theme.borderColor};
     border-radius: 12px;
     padding: 20px;
     width: 380px;
@@ -187,11 +159,13 @@ export function createSshDialog(options: SshDialogOptions = {}): HTMLElement {
  * Create input field
  */
 function createInput(label: string, id: string, type: string, placeholder: string): HTMLElement {
+  const theme = getComfyTheme();
+
   const container = document.createElement("div");
   container.style.cssText = "display: flex; flex-direction: column; gap: 4px;";
 
   const labelEl = document.createElement("label");
-  labelEl.style.cssText = "font-size: 12px; color: #aaa;";
+  labelEl.style.cssText = `font-size: 12px; color: ${theme.textSecondary};`;
   labelEl.textContent = label;
 
   const input = document.createElement("input");
@@ -201,11 +175,11 @@ function createInput(label: string, id: string, type: string, placeholder: strin
   input.placeholder = placeholder;
   input.style.cssText = `
     padding: 8px 10px;
-    border: 1px solid #444;
+    border: 1px solid ${theme.borderColor};
     border-radius: 4px;
     font-size: 14px;
-    background: #2a2a2a;
-    color: #fff;
+    background: ${theme.inputBg};
+    color: ${theme.inputText};
   `;
 
   container.appendChild(labelEl);

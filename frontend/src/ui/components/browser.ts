@@ -3,8 +3,9 @@
  */
 
 import { FILE_TYPES } from '../../core/constants.js';
-import { getFileType } from '../../utils/file-type.js';
+import { getFileType, getTypeByExt } from '../../utils/file-type.js';
 import { formatDate, formatSize, escapeHtml } from '../../utils/format.js';
+import { getComfyTheme } from '../../utils/theme.js';
 import type { FileItem } from '../../core/state.js';
 
 /**
@@ -13,6 +14,7 @@ import type { FileItem } from '../../core/state.js';
  * @returns Panel element
  */
 export function createBrowserPanel(viewMode: 'list' | 'grid' = 'list'): HTMLElement {
+  const theme = getComfyTheme();
   const panel = document.createElement("div");
   panel.id = "dm-browser-panel";
   panel.className = "dm-browser-panel";
@@ -20,7 +22,7 @@ export function createBrowserPanel(viewMode: 'list' | 'grid' = 'list'): HTMLElem
     flex: 1;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid;
+    border-right: 1px solid ${theme.borderColor};
     overflow: hidden;
   `;
 
@@ -36,9 +38,10 @@ export function createBrowserPanel(viewMode: 'list' | 'grid' = 'list'): HTMLElem
       overflow-y: auto;
       padding: 10px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
       align-content: start;
+      justify-content: start;
     `;
   } else {
     content.style.cssText = `
@@ -62,12 +65,13 @@ export function createBrowserPanel(viewMode: 'list' | 'grid' = 'list'): HTMLElem
  * @returns Header element
  */
 function createListHeader(): HTMLElement {
+  const theme = getComfyTheme();
   const header = document.createElement("div");
   header.className = "dm-list-header";
   header.style.cssText = `
     display: flex;
     padding: 10px 15px;
-    border-bottom: 1px solid;
+    border-bottom: 1px solid ${theme.borderColor};
     font-size: 12px;
     font-weight: 600;
   `;
@@ -99,6 +103,7 @@ function createListHeader(): HTMLElement {
  * @returns HTML string
  */
 export function createFileListItem(file: FileItem, isParent: boolean): string {
+  const theme = getComfyTheme();
   const fileType = getFileType(file);
   const icon = FILE_TYPES[fileType]?.icon || FILE_TYPES.unknown.icon;
   const color = FILE_TYPES[fileType]?.color || FILE_TYPES.unknown.color;
@@ -109,7 +114,7 @@ export function createFileListItem(file: FileItem, isParent: boolean): string {
   return `
     <div class="dm-file-item" data-path="${escapeHtml(file.path || file.name)}" data-is-dir="${file.is_dir || false}"
          style="display: flex; align-items: center; padding: 10px 15px;
-                border-bottom: 1px solid; cursor: pointer;
+                border-bottom: 1px solid ${theme.borderColor}; cursor: pointer;
                 transition: background 0.2s;">
       <div style="flex: 1; display: flex; align-items: center; gap: 10px; overflow: hidden;">
         <i class="pi ${icon} dm-file-icon" style="color: ${color}; font-size: 16px;"></i>
@@ -128,19 +133,21 @@ export function createFileListItem(file: FileItem, isParent: boolean): string {
  * @returns HTML string
  */
 export function createFileGridItem(file: FileItem, isParent: boolean): string {
+  const theme = getComfyTheme();
+
   // Parent directory uses special style
   if (isParent) {
     return `
       <div class="dm-grid-item dm-grid-item-parent" data-path="${file.path}" data-is-dir="true"
            data-name=".."
            style="display: flex; flex-direction: column; align-items: center; justify-content: center;
-                  padding: 12px 8px; height: 90px;
+                  padding: 10px; min-height: 100px;
                   border-radius: 8px; cursor: pointer;
-                  transition: all 0.2s; border: 2px dashed; box-sizing: border-box;">
-        <i class="pi pi-folder-open dm-parent-icon" style="font-size: 40px;"></i>
+                  transition: all 0.2s; border: 2px dashed ${theme.borderColor}; box-sizing: border-box;">
+        <i class="pi pi-folder-open dm-parent-icon" style="font-size: 36px;"></i>
         <span class="dm-parent-text" style="font-size: 11px; text-align: center;
                       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                      width: 100%; margin-top: 8px;">返回上级</span>
+                      width: 100%; margin-top: 6px; line-height: 1.3;">返回上级</span>
       </div>
     `;
   }
@@ -149,17 +156,43 @@ export function createFileGridItem(file: FileItem, isParent: boolean): string {
   const icon = FILE_TYPES[fileType]?.icon || FILE_TYPES.unknown.icon;
   const color = FILE_TYPES[fileType]?.color || FILE_TYPES.unknown.color;
 
+  // For image files, show actual thumbnail instead of icon
+  const filePath = file.path || file.name;
+  if (fileType === 'image' && !file.is_dir && filePath) {
+    const thumbUrl = `/dm/preview?path=${encodeURIComponent(filePath)}`;
+    return `
+      <div class="dm-grid-item dm-grid-item-image" data-path="${escapeHtml(filePath)}" data-is-dir="false"
+           data-name="${escapeHtml(file.name)}"
+           style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+                  padding: 8px; min-height: 100px;
+                  border-radius: 8px; cursor: pointer;
+                  transition: all 0.2s; border: 2px solid ${theme.borderColor}; box-sizing: border-box;">
+        <div style="width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px; background: ${theme.bgTertiary};">
+          <img src="${thumbUrl}" class="dm-grid-thumbnail" alt="${escapeHtml(file.name)}"
+               style="width: 100%; height: 100%; object-fit: cover;"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <i class="pi ${icon} dm-grid-icon" style="display: none; color: ${color}; font-size: 32px;"></i>
+        </div>
+        <span class="dm-grid-filename" style="font-size: 10px; text-align: center;
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                      width: 100%; margin-top: 6px; line-height: 1.3;">${escapeHtml(file.name)}</span>
+      </div>
+    `;
+  }
+
   return `
-    <div class="dm-grid-item" data-path="${escapeHtml(file.path || file.name)}" data-is-dir="${file.is_dir || false}"
+    <div class="dm-grid-item" data-path="${escapeHtml(filePath)}" data-is-dir="${file.is_dir || false}"
          data-name="${escapeHtml(file.name)}"
-         style="display: flex; flex-direction: column; align-items: center; justify-content: center;
-                padding: 12px 8px; height: 90px;
+         style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+                padding: 8px; min-height: 100px;
                 border-radius: 8px; cursor: pointer;
-                transition: all 0.2s; border: 2px solid; box-sizing: border-box;">
-      <i class="pi ${icon} dm-grid-icon" style="color: ${color}; font-size: 40px;"></i>
-      <span class="dm-grid-filename" style="font-size: 11px; text-align: center;
+                transition: all 0.2s; border: 2px solid ${theme.borderColor}; box-sizing: border-box;">
+      <div style="width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;">
+        <i class="pi ${icon} dm-grid-icon" style="color: ${color}; font-size: 32px;"></i>
+      </div>
+      <span class="dm-grid-filename" style="font-size: 10px; text-align: center;
                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                    width: 100%; margin-top: 8px;">${escapeHtml(file.name)}</span>
+                    width: 100%; margin-top: 6px; line-height: 1.3;">${escapeHtml(file.name)}</span>
     </div>
   `;
 }

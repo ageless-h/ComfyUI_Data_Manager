@@ -3,6 +3,8 @@
  */
 
 import { createFormatSelector, type FormatSelectorOptions } from './format-selector.js';
+import { getComfyTheme } from '../../utils/theme.js';
+import { FileManagerState } from '../../core/state.js';
 
 // ==================== Constants ====================
 const DEFAULT_DETECTED_TYPE = "IMAGE";
@@ -95,6 +97,7 @@ function detectTypeFromSourceNode(node: { type?: string; comfyClass?: string; ou
  */
 export function createPreviewPanel(callbacks: PreviewCallbacks = {}): HTMLElement {
   const { onOpenFloating, onCopyPath, onDelete } = callbacks;
+  const theme = getComfyTheme();
 
   const panel = document.createElement("div");
   panel.id = "dm-preview-panel";
@@ -109,7 +112,7 @@ export function createPreviewPanel(callbacks: PreviewCallbacks = {}): HTMLElemen
   header.className = "dm-preview-header";
   header.style.cssText = `
     padding: 15px;
-    border-bottom: 1px solid;
+    border-bottom: 1px solid ${theme.borderColor};
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -120,7 +123,7 @@ export function createPreviewPanel(callbacks: PreviewCallbacks = {}): HTMLElemen
       <i class="pi pi-eye"></i> 预览
     </h3>
     <div style="display: flex; gap: 5px;">
-      <button id="dm-copy-path-btn" class="comfy-btn dm-icon-btn" style="padding: 6px 12px; font-size: 12px;">
+      <button id="dm-copy-path-btn" class="comfy-btn dm-icon-btn" disabled style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;" title="复制路径">
         <i class="pi pi-copy"></i>
       </button>
       <button id="dm-delete-file-btn" class="comfy-btn dm-icon-btn" style="padding: 6px 12px; font-size: 12px;">
@@ -144,7 +147,7 @@ export function createPreviewPanel(callbacks: PreviewCallbacks = {}): HTMLElemen
     gap: 15px;
   `;
   content.innerHTML = `
-    <div style="text-align: center; padding: 40px; color: #666;">
+    <div style="text-align: center; padding: 40px; color: ${theme.textSecondary};">
       <i class="pi pi-file" style="font-size: 48px; opacity: 0.5;"></i>
       <div style="margin-top: 15px; font-size: 13px;">选择文件以预览</div>
     </div>
@@ -156,12 +159,12 @@ export function createPreviewPanel(callbacks: PreviewCallbacks = {}): HTMLElemen
   formatSection.id = "dm-format-section";
   formatSection.style.cssText = `
     padding: 15px;
-    background: #1f1f1f;
-    border-top: 1px solid #2a2a2a;
+    background: ${theme.bgTertiary};
+    border-top: 1px solid ${theme.borderColor};
     display: none;
   `;
   formatSection.innerHTML = `
-    <div style="text-align: center; padding: 20px; color: #666;">
+    <div style="text-align: center; padding: 20px; color: ${theme.textSecondary};">
       <i class="pi pi-cog" style="font-size: 32px; opacity: 0.5;"></i>
       <div style="margin-top: 10px; font-size: 12px;">连接节点以启用格式选择</div>
     </div>
@@ -173,10 +176,10 @@ export function createPreviewPanel(callbacks: PreviewCallbacks = {}): HTMLElemen
   infoSection.id = "dm-file-info";
   infoSection.style.cssText = `
     padding: 15px;
-    background: #252525;
-    border-top: 1px solid #2a2a2a;
+    background: ${theme.bgSecondary};
+    border-top: 1px solid ${theme.borderColor};
     font-size: 12px;
-    color: #888;
+    color: ${theme.textSecondary};
   `;
   infoSection.innerHTML = '<div style="text-align: center;">No file selected</div>';
   panel.appendChild(infoSection);
@@ -243,6 +246,7 @@ export function hideFormatSelector(): void {
  * @returns Status bar element
  */
 export function createStatusBar(): HTMLElement {
+  const theme = getComfyTheme();
   // Create bottom area container (contains Dock and status bar)
   const bottomArea = document.createElement("div");
   bottomArea.className = "dm-bottom-area";
@@ -259,8 +263,8 @@ export function createStatusBar(): HTMLElement {
     min-height: 0;
     max-height: 0;
     padding: 0 15px;
-    background: linear-gradient(to bottom, #252525, #1a1a1a);
-    border-top: 1px solid #2a2a2a;
+    background: ${theme.bgPrimary};
+    border-top: 0.8px solid ${theme.borderColor};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -273,11 +277,21 @@ export function createStatusBar(): HTMLElement {
   // Create status bar
   const bar = document.createElement("div");
   bar.id = "dm-status-bar";
+  bar.style.cssText = `
+    padding: 8px 16px;
+    font-size: 12px;
+    color: ${theme.textSecondary};
+    background: transparent;
+    border-top: 0.8px solid ${theme.borderColor};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  `;
   bar.innerHTML = `
-    <div id="dm-connection-status" style="color: #27ae60;"></div>
+    <div id="dm-connection-status" style="color: ${theme.successColor};"></div>
     <div style="display: flex; align-items: center; gap: 10px;">
       <span id="dm-status-ready">就绪</span>
-      <div id="dm-connection-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: #666; transition: background 0.3s ease;"></div>
+      <div id="dm-connection-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: ${theme.textSecondary}; transition: background 0.3s ease;"></div>
     </div>
   `;
 
@@ -286,12 +300,13 @@ export function createStatusBar(): HTMLElement {
 
   // Delay update connection status
   setTimeout(() => {
+    const currentTheme = getComfyTheme();
     const indicator = document.getElementById("dm-connection-indicator");
     const statusText = document.getElementById("dm-connection-status");
     const state = (window as unknown as { _remoteConnectionsState: { active: unknown } })._remoteConnectionsState;
     const active = state?.active;
     if (indicator) {
-      (indicator as HTMLElement).style.background = active ? '#27ae60' : '#666';
+      (indicator as HTMLElement).style.background = active ? currentTheme.successColor : currentTheme.textSecondary;
     }
     if (statusText && active) {
       const conn = active as { username?: string; host?: string };
@@ -301,6 +316,3 @@ export function createStatusBar(): HTMLElement {
 
   return bottomArea;
 }
-
-// Import FileManagerState for currentPath reference
-import { FileManagerState } from '../../core/state.js';
