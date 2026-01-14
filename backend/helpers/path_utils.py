@@ -86,7 +86,7 @@ def get_path_type(path: str) -> PathType:
 
 
 def parse_unc_path(path: str) -> Optional[Tuple[str, str, str]]:
-    """解析 UNC 路径
+    r"""解析 UNC 路径
 
     Args:
         path: UNC 路径，如 \\server\share\folder\file

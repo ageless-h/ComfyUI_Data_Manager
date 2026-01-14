@@ -202,56 +202,6 @@ def test_parse_target_path():
 
 
 # ============================================================================
-# 测试 get_format_for_type
-# ============================================================================
-
-def test_get_format_for_type():
-    """测试 get_format_for_type 函数"""
-    print("\n" + "="*60)
-    print("测试 get_format_for_type 函数")
-    print("="*60)
-
-    get_format_for_type = nodes_v3.get_format_for_type
-
-    # 测试 IMAGE 类型
-    print("\n[测试 1] get_format_for_type (IMAGE)")
-    formats, default_ext = get_format_for_type("IMAGE")
-    assert "png" in formats, f"应该包含 png 格式: {formats}"
-    assert default_ext == "png", f"默认扩展名应该是 png: {default_ext}"
-    print(f"  格式: {formats}, 默认: {default_ext}")
-    print("  ✓ get_format_for_type (IMAGE) 测试通过")
-
-    # 测试 VIDEO 类型
-    print("\n[测试 2] get_format_for_type (VIDEO)")
-    formats, default_ext = get_format_for_type("VIDEO")
-    assert "mp4" in formats, f"应该包含 mp4 格式: {formats}"
-    print(f"  格式: {formats}, 默认: {default_ext}")
-    print("  ✓ get_format_for_type (VIDEO) 测试通过")
-
-    # 测试 AUDIO 类型
-    print("\n[测试 3] get_format_for_type (AUDIO)")
-    formats, default_ext = get_format_for_type("AUDIO")
-    assert "mp3" in formats, f"应该包含 mp3 格式: {formats}"
-    print(f"  格式: {formats}, 默认: {default_ext}")
-    print("  ✓ get_format_for_type (AUDIO) 测试通过")
-
-    # 测试 LATENT 类型
-    print("\n[测试 4] get_format_for_type (LATENT)")
-    formats, default_ext = get_format_for_type("LATENT")
-    print(f"  格式: {formats}, 默认: {default_ext}")
-    print("  ✓ get_format_for_type (LATENT) 测试通过")
-
-    # 测试 CONDITIONING 类型
-    print("\n[测试 5] get_format_for_type (CONDITIONING)")
-    formats, default_ext = get_format_for_type("CONDITIONING")
-    print(f"  格式: {formats}, 默认: {default_ext}")
-    print("  ✓ get_format_for_type (CONDITIONING) 测试通过")
-
-    print("\n✓ get_format_for_type 函数测试全部通过")
-    return True
-
-
-# ============================================================================
 # 测试 save_latent
 # ============================================================================
 
@@ -339,7 +289,6 @@ def main():
 
     results.append(("save_image", test_save_image()))
     results.append(("parse_target_path", test_parse_target_path()))
-    results.append(("get_format_for_type", test_get_format_for_type()))
     results.append(("save_latent", test_save_latent()))
     results.append(("save_conditioning", test_save_conditioning()))
 

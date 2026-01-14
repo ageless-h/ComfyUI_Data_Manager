@@ -120,7 +120,7 @@ def list_files(directory: str, pattern: str = "*.*", recursive: bool = False, in
 
 
 def _list_unc_files(unc_path: str, pattern: str = "*.*", recursive: bool = False, include_dirs: bool = True) -> List[Dict[str, Any]]:
-    """列出 UNC 路径（Windows 共享文件夹）中的文件和子目录
+    r"""列出 UNC 路径（Windows 共享文件夹）中的文件和子目录
 
     Args:
         unc_path: UNC 路径，如 \\server\share\folder

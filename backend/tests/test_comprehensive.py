@@ -296,30 +296,8 @@ def test_nodes_v3_constants():
     print(f"  IMAGE default: {image_config['default']}")
     print("  ✓ TYPE_FORMAT_MAP 结构测试通过")
 
-    # 测试 get_format_for_type
-    print("\n[测试 3] get_format_for_type")
-    from ComfyUI_Data_Manager.core.nodes_v3 import get_format_for_type
-
-    formats, default = get_format_for_type('IMAGE')
-    assert isinstance(formats, list), "应返回格式列表"
-    assert isinstance(default, str), "应返回默认格式"
-    assert 'png' in formats, "应有 png 格式"
-    assert default == 'png', f"默认格式应为 png，实际为 {default}"
-    print(f"  IMAGE formats: {formats}, default: {default}")
-
-    formats, default = get_format_for_type('VIDEO')
-    assert default == 'mp4', f"VIDEO 默认格式应为 mp4，实际为 {default}"
-    print(f"  VIDEO formats: {formats}, default: {default}")
-
-    # 测试未知类型
-    formats, default = get_format_for_type('UNKNOWN')
-    assert formats == ['json'], f"未知类型应返回 ['json']，实际为 {formats}"
-    assert default == 'json', f"未知类型默认应为 json，实际为 {default}"
-    print(f"  UNKNOWN formats: {formats}, default: {default}")
-    print("  ✓ get_format_for_type 测试通过")
-
     # 测试 parse_target_path
-    print("\n[测试 4] parse_target_path")
+    print("\n[测试 3] parse_target_path")
     from ComfyUI_Data_Manager.core.nodes_v3 import parse_target_path
 
     # 测试带扩展名的路径

@@ -742,23 +742,6 @@ def detect_type_from_extension(file_path: str) -> str:
     return EXTENSION_TO_TYPE_MAP.get(ext, "STRING")
 
 
-def get_format_for_type(detected_type: str) -> tuple[list[str], str]:
-    """获取指定类型支持的格式列表
-
-    Args:
-        detected_type: 检测到的类型（如 IMAGE、VIDEO 等）
-
-    Returns:
-        (格式列表, 默认格式)
-    """
-    type_key = detected_type.upper()
-    if type_key in TYPE_FORMAT_MAP:
-        config = TYPE_FORMAT_MAP[type_key]
-        return config["formats"], config["default"]
-    # 默认返回 JSON 格式
-    return ["json"], "json"
-
-
 # ============================================================================
 # 定义所有支持的 ComfyUI 数据类型
 # ============================================================================
