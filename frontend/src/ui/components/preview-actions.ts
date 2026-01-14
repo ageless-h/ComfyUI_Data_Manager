@@ -35,6 +35,34 @@ export {
 } from '../../utils/table.js'
 
 /**
+ * Clean mammoth.js output to remove internal function references
+ * mammoth.js sometimes includes internal object references like `function(){return value.call(this._target())}`
+ * in the HTML output, which need to be filtered out.
+ */
+function cleanMammothOutput(html: unknown): string {
+  // Ensure input is a string
+  if (typeof html !== 'string') {
+    return String(html ?? '')
+  }
+
+  let cleaned = html
+
+  // Remove function() {...} patterns (including multi-line)
+  const functionPattern = /function\s*\(\s*\)\s*\{[\s\S]*?\}/g
+  cleaned = cleaned.replace(functionPattern, '')
+
+  // Remove specific mammoth internal references
+  const targetPattern = /function\s*\(\s*\)\s*\{\s*(return\s+)?[\w.]*\.?(?:_?target|value)\s*(?:\.call\([^)]*\))?[\s;]*\}/g
+  cleaned = cleaned.replace(targetPattern, '')
+
+  // Remove any remaining object-like patterns (e.g., {value:..., _target:...})
+  const objectPattern = /\{[^}]*_target[^}]*\}/g
+  cleaned = cleaned.replace(objectPattern, '')
+
+  return cleaned
+}
+
+/**
  * Preview file
  * @param path - File path
  */
@@ -368,12 +396,22 @@ async function createDocumentPreviewHTML(
 
       const mammoth = (
         window as unknown as {
-          mammoth?: { convertToHtml(options: { arrayBuffer: ArrayBuffer }): { value: string } }
+          mammoth?: {
+            convertToHtml: (options: { arrayBuffer: ArrayBuffer }) => Promise<{
+              value: string
+              messages: unknown[]
+            }>
+          }
         }
       ).mammoth
       if (!mammoth) throw new Error('mammoth.js not available')
 
-      const result = mammoth.convertToHtml({ arrayBuffer: buffer })
+      // mammoth.convertToHtml returns a Promise, so we need to await it
+      const result = await mammoth.convertToHtml({ arrayBuffer: buffer })
+      const rawHtml = result.value
+
+      // Clean mammoth output to remove internal function references
+      const cleanedHtml = cleanMammothOutput(rawHtml)
       const contentId = `dm-doc-content-${Date.now()}`
 
       return `
@@ -385,7 +423,7 @@ async function createDocumentPreviewHTML(
               #${contentId} p { word-wrap: break-word; overflow-wrap: break-word; margin: 0.5em 0; }
               #${contentId} table { max-width: 100%; overflow: auto; display: block; margin: 10px 0; }
             </style>
-            ${result.value}
+            ${cleanedHtml}
           </div>
           <div class="dm-doc-controls" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px;">
             <button class="comfy-btn dm-doc-fullscreen-btn" data-doc-path="${escapeHtml(path)}" title="全屏">
@@ -395,6 +433,7 @@ async function createDocumentPreviewHTML(
         </div>
       `
     } catch (error) {
+      console.error('[DataManager] DOCX preview error:', error)
       return `
         <div style="text-align: center; padding: 40px; color: #e74c3c;">
           <i class="pi pi-exclamation-triangle" style="font-size: 48px;"></i>

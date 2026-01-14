@@ -19,6 +19,34 @@ import { getFileInfo } from '../../api/endpoints/file.js'
 import { getComfyTheme } from '../../utils/theme.js'
 
 /**
+ * Clean mammoth.js output to remove internal function references
+ * mammoth.js sometimes includes internal object references like `function(){return value.call(this._target())}`
+ * in the HTML output, which need to be filtered out.
+ */
+function cleanMammothOutput(html: unknown): string {
+  // Ensure input is a string
+  if (typeof html !== 'string') {
+    return String(html ?? '')
+  }
+
+  let cleaned = html
+
+  // Remove function() {...} patterns (including multi-line)
+  const functionPattern = /function\s*\(\s*\)\s*\{[\s\S]*?\}/g
+  cleaned = cleaned.replace(functionPattern, '')
+
+  // Remove specific mammoth internal references
+  const targetPattern = /function\s*\(\s*\)\s*\{\s*(return\s+)?[\w.]*\.?(?:_?target|value)\s*(?:\.call\([^)]*\))?[\s;]*\}/g
+  cleaned = cleaned.replace(targetPattern, '')
+
+  // Remove any remaining object-like patterns (e.g., {value:..., _target:...})
+  const objectPattern = /\{[^}]*_target[^}]*\}/g
+  cleaned = cleaned.replace(objectPattern, '')
+
+  return cleaned
+}
+
+/**
  * Load preview content into container
  * @param content - Content container element
  * @param path - File path
@@ -192,12 +220,20 @@ export async function loadPreviewContent(
             const mammoth = (
               window as unknown as {
                 mammoth?: {
-                  convertToHtml: (options: { arrayBuffer: ArrayBuffer }) => { value: string }
+                  convertToHtml: (options: { arrayBuffer: ArrayBuffer }) => Promise<{
+                    value: string
+                    messages: unknown[]
+                  }>
                 }
               }
             ).mammoth
             if (mammoth) {
-              const result = mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
+              // mammoth.convertToHtml returns a Promise, so we need to await it
+              const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
+              const rawHtml = result.value
+
+              // Clean mammoth output to remove internal function references
+              const cleanedHtml = cleanMammothOutput(rawHtml)
               const contentId = `dm-doc-content-${Date.now()}`
               previewHTML = `
                 <div id="${contentId}" class="dm-document-content dm-docx-content"
@@ -213,7 +249,7 @@ export async function loadPreviewContent(
                     #${contentId} p { word-wrap: break-word; overflow-wrap: break-word; margin: 0.5em 0; }
                     #${contentId} table { max-width: 100%; overflow: auto; display: block; margin: 10px 0; }
                   </style>
-                  ${result.value}
+                  ${cleanedHtml}
                 </div>
               `
             } else {
