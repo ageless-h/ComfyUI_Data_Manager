@@ -39,7 +39,7 @@ def test_parse_target_path():
     print("测试 parse_target_path 函数")
     print("="*60)
 
-    from core.nodes_v3 import parse_target_path
+    from backend.core.nodes_v3 import parse_target_path
 
     # 测试完整文件路径
     print("\n[测试 1] 完整文件路径")
@@ -73,7 +73,7 @@ def test_save_image():
     print("测试 save_image 函数")
     print("="*60)
 
-    from core.nodes_v3 import save_image
+    from backend.core.nodes_v3 import save_image
 
     # 创建测试图像张量
     test_tensor = create_test_image()
@@ -144,7 +144,7 @@ def test_input_path_config_execute():
     print("测试 InputPathConfig.execute 方法")
     print("="*60)
 
-    from core.nodes_v3 import InputPathConfig
+    from backend.core.nodes_v3 import InputPathConfig
 
     # 创建测试图像张量 (模拟 ComfyUI 图像格式)
     # ComfyUI 图像通常是 [H, W, C] 或 [B, H, W, C] 格式
@@ -218,7 +218,7 @@ def test_dict_input():
     print("测试字典类型输入（ComfyUI 图像格式）")
     print("="*60)
 
-    from core.nodes_v3 import InputPathConfig
+    from backend.core.nodes_v3 import InputPathConfig
 
     # 模拟 ComfyUI 的图像格式
     # LoadImage 节点输出: {tensor: numpy_array, ...}

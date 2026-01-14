@@ -19,7 +19,7 @@ from comfy_api.latest import ComfyExtension, io, InputImpl, Types
 from typing_extensions import override
 from fractions import Fraction
 
-from ..utils import save_file, list_files, get_file_info, get_file_category
+from ..helpers import save_file, list_files, get_file_info, get_file_category
 
 
 # ============================================================================

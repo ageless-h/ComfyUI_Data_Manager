@@ -18,7 +18,7 @@ def test_imports():
     print("=" * 60)
 
     try:
-        from utils import file_ops, path_utils, formatters, info
+        from backend.helpers import file_ops, path_utils, formatters, info
         print("✅ utils 模块导入成功")
         print(f"  - file_ops: {file_ops}")
         print(f"  - path_utils: {path_utils}")
@@ -29,7 +29,7 @@ def test_imports():
         return False
 
     try:
-        from api.routes import files, operations, metadata
+        from backend.api.routes import files, operations, metadata
         print("✅ api.routes 模块导入成功（注意：aiohttp 依赖在 ComfyUI 环境中可用）")
     except ImportError as e:
         if 'aiohttp' in str(e):
@@ -47,7 +47,7 @@ def test_util_functions():
     print("测试 2: 工具函数")
     print("=" * 60)
 
-    from utils import path_utils, formatters, info
+    from backend.helpers import path_utils, formatters, info
 
     # 测试路径工具
     test_path = "/path/to/test/file.txt"
@@ -73,7 +73,7 @@ def test_api_handler():
 
     try:
         # 导入模块（会触发 aiohttp 错误，但我们可以捕获）
-        from api.routes import metadata
+        from backend.api.routes import metadata
         print("✅ metadata 模块导入成功")
 
         # 检查函数存在

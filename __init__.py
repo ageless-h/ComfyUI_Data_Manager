@@ -22,7 +22,7 @@ except ImportError:
 # 根据可用 API 导入相应模块
 if HAS_V3:
     # 使用 V3 API (Node 2.0)
-    from .core.nodes_v3 import comfy_entrypoint
+    from .backend.core.nodes_v3 import comfy_entrypoint
 
     WEB_DIRECTORY = "./web"
 
@@ -30,7 +30,7 @@ if HAS_V3:
 
 else:
     # 使用 V1 API (Node 1.0) - 向后兼容
-    from .core.nodes_v1 import (
+    from .backend.core.nodes_v1 import (
         NODE_CLASS_MAPPINGS,
         NODE_DISPLAY_NAME_MAPPINGS,
         WEB_DIRECTORY
@@ -44,7 +44,7 @@ else:
 
 # 注册 API 路由（同时支持 V1 和 V3）
 try:
-    from .api import register_api_routes
+    from .backend.api import register_api_routes
     register_api_routes()
 except Exception as e:
     logger.warning(f"[DataManager] Failed to register API routes: {e}")

@@ -15,7 +15,7 @@ from pathlib import Path
 
 # 添加 ComfyUI 目录到 sys.path 以支持 comfy_api 导入
 # 这必须在 conftest 加载时完成，否则会导致父包 __init__.py 导入失败
-comfy_ui_path = Path(__file__).parent.parent.parent.parent
+comfy_ui_path = Path(__file__).parent.parent.parent.parent.parent
 if str(comfy_ui_path) not in sys.path:
     sys.path.insert(0, str(comfy_ui_path))
 
@@ -147,8 +147,8 @@ def skip_if_no_paramiko():
     """如果 paramiko 未安装，跳过测试"""
     try:
         import importlib.util
-        project_root = Path(__file__).parent.parent
-        ssh_fs_path = project_root / "utils" / "ssh_fs.py"
+        project_root = Path(__file__).parent.parent.parent
+        ssh_fs_path = project_root / "backend" / "helpers" / "ssh_fs.py"
         spec = importlib.util.spec_from_file_location("ssh_fs_check", str(ssh_fs_path))
         ssh_fs = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(ssh_fs)
@@ -176,8 +176,8 @@ def reset_ssh_connection_pool():
     import importlib.util
 
     # 加载 ssh_fs 模块来访问连接池
-    project_root = Path(__file__).parent.parent
-    ssh_fs_path = project_root / "utils" / "ssh_fs.py"
+    project_root = Path(__file__).parent.parent.parent
+    ssh_fs_path = project_root / "backend" / "helpers" / "ssh_fs.py"
 
     # 为每个测试使用唯一的模块名称，避免缓存冲突
     import hashlib
