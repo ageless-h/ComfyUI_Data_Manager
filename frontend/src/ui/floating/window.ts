@@ -22,6 +22,79 @@ const DEFAULT_IMAGE_SCALE = 1
 const DEFAULT_DOC_FONT_SIZE = 13
 const DEFAULT_CODE_FONT_SIZE = 12
 
+// Font size control limits
+const FONT_SIZE_MIN = 8
+const FONT_SIZE_MAX = 32
+const FONT_SIZE_DISPLAY_MIN_WIDTH = 30
+
+// Icon class names
+const ICONS = {
+  MINUS: 'pi-minus',
+  PLUS: 'pi-plus',
+  UNDO: 'pi-undo',
+  SEARCH_MINUS: 'pi-search-minus',
+  SEARCH_PLUS: 'pi-search-plus',
+  EXTERNAL_LINK: 'pi-external-link',
+  ARROWS_ALT: 'pi-arrows-alt',
+  VOLUME_UP: 'pi-volume-up',
+  VOLUME_DOWN: 'pi-volume-down',
+  VOLUME_OFF: 'pi-volume-off',
+  PLAY: 'pi-play',
+  PAUSE: 'pi-pause',
+  TIMES: 'pi-times',
+  WINDOW_MAXIMIZE: 'pi-window-maximize',
+} as const
+
+// Button titles
+const TITLES = {
+  DECREASE_FONT: '减小字号',
+  INCREASE_FONT: '增大字号',
+  RESET_FONT: '重置字号',
+  ZOOM_OUT: '缩小',
+  ZOOM_IN: '放大',
+  RESET_ZOOM: '重置',
+  OPEN: '打开',
+  FULLSCREEN: '全屏',
+  PDF_FULLSCREEN: 'PDF 全屏',
+  DOC_FULLSCREEN: '全屏预览',
+  VOLUME: '音量',
+  MUTE: '静音',
+  PLAY: '播放',
+  PAUSE: '暂停',
+  CLOSE: '关闭',
+  MINIMIZE: '最小化',
+} as const
+
+// CSS selectors
+const SELECTORS = {
+  DOCUMENT_CONTENT: '.dm-document-content, .dm-docx-content',
+  CODE_CONTENT: '.dm-code-content',
+} as const
+
+// Display sizes (reserved for future use)
+const _DISPLAY_SIZES = {
+  TIME_MIN_WIDTH: 80,
+  ZOOM_MIN_WIDTH: 45,
+  SEPARATOR_HEIGHT: 16,
+  SEPARATOR_HEIGHT_LARGE: 20,
+  SEPARATOR_WIDTH: 1,
+} as const
+
+// Font sizes (reserved for future use)
+const _FONT_SIZES = {
+  TIME_DISPLAY: 11,
+  TOOLBAR: 12,
+  ZOOM_DISPLAY: 13,
+  TRAFFIC_ICON: 10,
+} as const
+
+// Button settings (reserved for future use)
+const _BUTTON_PADDING = '6px 10px'
+const _TRAFFIC_BUTTON_SIZE = 14
+
+// Zoom settings (reserved for future use)
+const _DEFAULT_ZOOM_LEVEL = 100
+
 /**
  * Create floating preview window toolbar button
  */
@@ -165,7 +238,7 @@ export function openFloatingPreview(path: string, fileName: string): void {
   ;(previewFloatingWindows as FloatingWindowData[]).push(windowData)
 
   // Load content (pass mediaId for image/video/audio files)
-  loadPreviewContent(content, path, ext, DEFAULT_IMAGE_SCALE, mediaId)
+  void loadPreviewContent(content, path, ext, DEFAULT_IMAGE_SCALE, mediaId)
 
   updateStatus(`已打开预览: ${fileName}`)
 }
@@ -251,7 +324,7 @@ function createPreviewHeader(
     // Update button colors
     const btns = header.querySelectorAll('.dm-traffic-btn')
     btns.forEach((btn) => {
-      ;(btn as HTMLElement).style.color = newTextColor
+      (btn as HTMLElement).style.color = newTextColor
     })
   })
 
@@ -294,95 +367,58 @@ function createTrafficLightButton(
 }
 
 /**
- * Add document font size controls to toolbar
+ * Font size control configuration
  */
-function addDocumentFontSizeControls(
-  toolbarLeft: HTMLElement,
-  content: HTMLElement,
-  ext: string,
-  createToolbarButton: (icon: string, title: string, onClick: () => void) => HTMLElement,
-  createToolbarSeparator: () => HTMLElement
-): void {
-  const theme = getComfyTheme()
-  let fontSize = DEFAULT_DOC_FONT_SIZE
-
-  toolbarLeft.appendChild(createToolbarSeparator())
-
-  const fontDownBtn = createToolbarButton('pi-minus', '减小字号', () => {
-    fontSize = Math.max(8, fontSize - 1)
-    updateFontSize()
-  })
-  toolbarLeft.appendChild(fontDownBtn)
-
-  const fontDisplay = document.createElement('span')
-  fontDisplay.style.cssText = `min-width: 30px; text-align: center; color: ${theme.textSecondary};`
-  fontDisplay.textContent = fontSize.toString()
-  toolbarLeft.appendChild(fontDisplay)
-
-  const fontUpBtn = createToolbarButton('pi-plus', '增大字号', () => {
-    fontSize = Math.min(32, fontSize + 1)
-    updateFontSize()
-  })
-  toolbarLeft.appendChild(fontUpBtn)
-
-  const resetBtn = createToolbarButton('pi-undo', '重置字号', () => {
-    fontSize = DEFAULT_DOC_FONT_SIZE
-    updateFontSize()
-  })
-  toolbarLeft.appendChild(resetBtn)
-
-  function updateFontSize(): void {
-    fontDisplay.textContent = fontSize.toString()
-    const textElement = content.querySelector('.dm-document-content, .dm-docx-content')
-    if (textElement) {
-      ;(textElement as HTMLElement).style.fontSize = `${fontSize}px`
-    }
-  }
+interface FontSizeConfig {
+  defaultSize: number
+  minSize: number
+  maxSize: number
+  selector: string
 }
 
 /**
- * Add code font size controls to toolbar
+ * Add font size controls to toolbar (unified for document and code)
  */
-function addCodeFontSizeControls(
+function addFontSizeControls(
   toolbarLeft: HTMLElement,
   content: HTMLElement,
-  ext: string,
+  config: FontSizeConfig,
   createToolbarButton: (icon: string, title: string, onClick: () => void) => HTMLElement,
   createToolbarSeparator: () => HTMLElement
 ): void {
   const theme = getComfyTheme()
-  let fontSize = DEFAULT_CODE_FONT_SIZE
+  let fontSize = config.defaultSize
 
   toolbarLeft.appendChild(createToolbarSeparator())
 
-  const fontDownBtn = createToolbarButton('pi-minus', '减小字号', () => {
-    fontSize = Math.max(8, fontSize - 1)
+  const fontDownBtn = createToolbarButton(ICONS.MINUS, TITLES.DECREASE_FONT, () => {
+    fontSize = Math.max(config.minSize, fontSize - 1)
     updateFontSize()
   })
   toolbarLeft.appendChild(fontDownBtn)
 
   const fontDisplay = document.createElement('span')
-  fontDisplay.style.cssText = `min-width: 30px; text-align: center; color: ${theme.textSecondary};`
+  fontDisplay.style.cssText = `min-width: ${FONT_SIZE_DISPLAY_MIN_WIDTH}px; text-align: center; color: ${theme.textSecondary};`
   fontDisplay.textContent = fontSize.toString()
   toolbarLeft.appendChild(fontDisplay)
 
-  const fontUpBtn = createToolbarButton('pi-plus', '增大字号', () => {
-    fontSize = Math.min(32, fontSize + 1)
+  const fontUpBtn = createToolbarButton(ICONS.PLUS, TITLES.INCREASE_FONT, () => {
+    fontSize = Math.min(config.maxSize, fontSize + 1)
     updateFontSize()
   })
   toolbarLeft.appendChild(fontUpBtn)
 
-  const resetBtn = createToolbarButton('pi-undo', '重置字号', () => {
-    fontSize = DEFAULT_CODE_FONT_SIZE
+  const resetBtn = createToolbarButton(ICONS.UNDO, TITLES.RESET_FONT, () => {
+    fontSize = config.defaultSize
     updateFontSize()
   })
   toolbarLeft.appendChild(resetBtn)
 
   function updateFontSize(): void {
     fontDisplay.textContent = fontSize.toString()
-    const codeElement = content.querySelector('.dm-code-content')
-    if (codeElement) {
-      ;(codeElement as HTMLElement).style.fontSize = `${fontSize}px`
+    const targetElement = content.querySelector(config.selector)
+    if (targetElement) {
+      (targetElement as HTMLElement).style.fontSize = `${fontSize}px`
     }
   }
 }
@@ -576,18 +612,22 @@ function createPreviewToolbar(
 
   // Document font size controls (txt/rtf/md/docx)
   if (ext === '.txt' || ext === '.rtf' || ext === '.md' || ext === '.docx') {
-    addDocumentFontSizeControls(
-      toolbarLeft,
-      content,
-      ext,
-      createToolbarButton,
-      createToolbarSeparator
-    )
+    addFontSizeControls(toolbarLeft, content, {
+      defaultSize: DEFAULT_DOC_FONT_SIZE,
+      minSize: FONT_SIZE_MIN,
+      maxSize: FONT_SIZE_MAX,
+      selector: SELECTORS.DOCUMENT_CONTENT,
+    }, createToolbarButton, createToolbarSeparator)
   }
 
   // Code font size controls
   if (isCode) {
-    addCodeFontSizeControls(toolbarLeft, content, ext, createToolbarButton, createToolbarSeparator)
+    addFontSizeControls(toolbarLeft, content, {
+      defaultSize: DEFAULT_CODE_FONT_SIZE,
+      minSize: FONT_SIZE_MIN,
+      maxSize: FONT_SIZE_MAX,
+      selector: SELECTORS.CODE_CONTENT,
+    }, createToolbarButton, createToolbarSeparator)
   }
 
   // ===== Center Section: File Path =====
@@ -642,13 +682,17 @@ function createPreviewToolbar(
   if (isPDF) {
     toolbarRight.appendChild(createToolbarSeparator())
     const pdfFullscreenBtn = createToolbarButton('pi-arrows-alt', 'PDF 全屏', () => {
-      const embed = document.getElementById('dm-floating-pdf-embed')
-      if (embed && (embed as any).requestFullscreen) {
-        ;(embed as any)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      const embed = document.getElementById('dm-floating-pdf-embed') as HTMLElement & {
+        requestFullscreen?: () => Promise<void>
+        webkitRequestFullscreen?: () => void
+      }
+      if (embed && embed.requestFullscreen) {
+        void embed
           .requestFullscreen()
           .catch((err: Error) => console.error('[DataManager] PDF 全屏失败:', err))
-      } else if (embed && (embed as any).webkitRequestFullscreen) {
-        ;(embed as any).webkitRequestFullscreen()
+      } else if (embed && embed.webkitRequestFullscreen) {
+        void embed.webkitRequestFullscreen()
       }
     })
     toolbarRight.appendChild(pdfFullscreenBtn)
@@ -722,10 +766,10 @@ export function setupVideoToolbarControls(
   // Play/Pause button
   const playBtn = createToolbarButton('pi-play', '播放', () => {
     if (video.paused) {
-      video.play().then(() => {
+      void video.play().then(() => {
         playBtn.innerHTML = '<i class="pi pi-pause"></i>'
         playBtn.title = '暂停'
-      })
+      }).catch((err: Error) => console.error('[DataManager] 播放失败:', err))
     } else {
       video.pause()
       playBtn.innerHTML = '<i class="pi pi-play"></i>'
@@ -755,7 +799,7 @@ export function setupVideoToolbarControls(
   // Fullscreen button
   const fullscreenBtn = createToolbarButton('pi-arrows-alt', '视频全屏', () => {
     if (video.requestFullscreen) {
-      video.requestFullscreen()
+      void video.requestFullscreen().catch((err: Error) => console.error('[DataManager] 全屏失败:', err))
     }
   })
   toolbar.appendChild(fullscreenBtn)
@@ -926,7 +970,7 @@ function closeFloatingPreview(window: HTMLElement): void {
   // Remove from floating windows array
   const idx = (previewFloatingWindows as FloatingWindowData[]).findIndex((w) => w.window === window)
   if (idx > -1) {
-    ;(previewFloatingWindows as FloatingWindowData[]).splice(idx, 1)
+    (previewFloatingWindows as FloatingWindowData[]).splice(idx, 1)
   }
 
   // Remove window element
@@ -941,9 +985,9 @@ function closeFloatingPreview(window: HTMLElement): void {
  */
 function minimizeFloatingPreview(
   window: HTMLElement,
-  path: string,
-  fileName: string,
-  fileConfig: { icon: string; color: string }
+  _path: string,
+  _fileName: string,
+  _fileConfig: { icon: string; color: string }
 ): void {
   const windowData = (previewFloatingWindows as FloatingWindowData[]).find(
     (w) => w.window === window
