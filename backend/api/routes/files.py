@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from ...utils import list_files, get_file_info
+from ...helpers import list_files, get_file_info
 
 
 async def list_files_handler(request):

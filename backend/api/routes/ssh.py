@@ -10,7 +10,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
-from ...utils.ssh_fs import (
+from ...helpers.ssh_fs import (
     is_available,
     connect,
     disconnect,
