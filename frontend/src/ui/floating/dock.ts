@@ -1,0 +1,90 @@
+/**
+ * ComfyUI Data Manager - Floating Dock Management
+ */
+
+import { updateStatus } from '../../utils/helpers.js';
+import { previewFloatingWindows } from '../../core/state.js';
+
+/**
+ * Floating window data interface
+ */
+export interface FloatingWindowData {
+  path: string;
+  fileName: string;
+  fileConfig: { icon: string; color: string };
+  window: HTMLElement;
+  minimized: boolean;
+}
+
+/**
+ * Update Dock panel
+ */
+export function updateDock(): void {
+  const dock = document.getElementById("dm-preview-dock");
+  if (!dock) return;
+
+  // Clear Dock
+  dock.innerHTML = "";
+
+  // Get minimized windows
+  const minimizedWindows = (previewFloatingWindows as FloatingWindowData[]).filter(w => w.minimized);
+  if (minimizedWindows.length === 0) {
+    (dock as HTMLElement).style.minHeight = "0";
+    (dock as HTMLElement).style.maxHeight = "0";
+    (dock as HTMLElement).style.padding = "0 15px";
+    return;
+  }
+
+  // Show Dock
+  (dock as HTMLElement).style.minHeight = "60px";
+  (dock as HTMLElement).style.maxHeight = "60px";
+  (dock as HTMLElement).style.padding = "10px 15px";
+
+  // Add thumbnail for each minimized window
+  minimizedWindows.forEach(w => {
+    const thumbnail = document.createElement("div");
+    thumbnail.className = "dm-dock-thumbnail";
+    thumbnail.style.cssText = `
+      width: 80px;
+      height: 50px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.2s;
+    `;
+    thumbnail.title = `${w.fileName} - 点击恢复`;
+    thumbnail.innerHTML = `
+      <i class="pi ${w.fileConfig.icon}" style="color: ${w.fileConfig.color}; font-size: 16px;"></i>
+      <span style="color: #aaa; font-size: 9px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${w.fileName}</span>
+    `;
+    thumbnail.onmouseover = () => {
+      (thumbnail as HTMLElement).style.background = "#3a3a3a";
+      (thumbnail as HTMLElement).style.borderColor = w.fileConfig.color;
+    };
+    thumbnail.onmouseout = () => {
+      (thumbnail as HTMLElement).style.background = "#2a2a2a";
+      (thumbnail as HTMLElement).style.borderColor = "#3a3a3a";
+    };
+    thumbnail.onclick = () => restoreFloatingPreview(w.window);
+
+    dock.appendChild(thumbnail);
+  });
+}
+
+/**
+ * Restore minimized floating preview window
+ * @param window - Floating window element
+ */
+export function restoreFloatingPreview(window: HTMLElement): void {
+  // Window restore logic is implemented in window.ts
+  // This is a placeholder for the actual restore functionality
+  (window as unknown as { minimized?: boolean }).minimized = false;
+  (window as HTMLElement).style.display = "flex";
+  updateDock();
+}

@@ -10,16 +10,17 @@ export type SortOrder = 'asc' | 'desc';
 
 export interface FileItem {
   name: string;
-  path: string;
-  size: number;
-  modified: number;
-  isDir: boolean;
+  path?: string;
+  size?: number;
+  modified?: number | string;
+  is_dir?: boolean;
+  isDir?: boolean;  // Alias for compatibility
   type?: string;
 }
 
 export interface FileManagerStateData {
   currentPath: string;
-  selectedFiles: FileItem[];
+  selectedFiles: string[];  // Array of file paths (strings)
   currentPreviewFile: string | null;
   viewMode: ViewMode;
   sortBy: SortBy;
@@ -108,7 +109,7 @@ export function getViewMode(): ViewMode {
 
 export let fileManagerWindow: Window | null = null;
 export let previewModal: HTMLElement | null = null;
-export let previewFloatingWindows: Window[] = [];
+export let previewFloatingWindows: unknown[] = [];  // Will contain FloatingWindowData objects
 
 // ==================== SSH Remote Connection State ====================
 
