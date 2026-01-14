@@ -17,44 +17,42 @@ if str(comfy_ui_path) not in sys.path:
     sys.path.insert(0, str(comfy_ui_path))
 
 # 直接加载 ssh_fs 模块，避免触发 custom_nodes 包初始化
-project_root = Path(__file__).parent.parent
-ssh_fs_path = project_root / "utils" / "ssh_fs.py"
+project_root = Path(__file__).parent.parent.parent
+ssh_fs_path = project_root / "backend" / "helpers" / "ssh_fs.py"
 spec = importlib.util.spec_from_file_location("ssh_fs", str(ssh_fs_path))
 ssh_fs = importlib.util.module_from_spec(spec)
 sys.modules["ssh_fs"] = ssh_fs
 spec.loader.exec_module(ssh_fs)
 
 # 创建模拟的包层级结构以支持相对导入
-# api -> routes -> ssh (需要 ...utils.ssh_fs)
+# backend -> api -> routes -> ssh (需要 ...helpers.ssh_fs)
 mock_api = type(sys)("mock_api")
 mock_routes = type(sys)("mock_routes")
-mock_utils = type(sys)("mock_utils")
-mock_utils.ssh_fs = ssh_fs
-mock_routes.utils = mock_utils
+mock_helpers = type(sys)("mock_helpers")
+mock_helpers.ssh_fs = ssh_fs
+mock_routes.helpers = mock_helpers
 mock_api.routes = mock_routes
 
 # 注入到 sys.modules
-sys.modules["custom_nodes.ComfyUI_Data_Manager.utils"] = mock_utils
-sys.modules["custom_nodes.ComfyUI_Data_Manager.utils.ssh_fs"] = ssh_fs
-sys.modules["custom_nodes.ComfyUI_Data_Manager.api"] = mock_api
-sys.modules["custom_nodes.ComfyUI_Data_Manager.api.routes"] = mock_routes
-sys.modules["custom_nodes.ComfyUI_Data_Manager"] = type(sys)("mock_package")
-sys.modules["custom_nodes.ComfyUI_Data_Manager.api"] = mock_api
-sys.modules["custom_nodes.ComfyUI_Data_Manager.api.routes"] = mock_routes
+sys.modules["custom_nodes.ComfyUI_Data_Manager.helpers"] = mock_helpers
+sys.modules["custom_nodes.ComfyUI_Data_Manager.helpers.ssh_fs"] = ssh_fs
+sys.modules["custom_nodes.ComfyUI_Data_Manager.backend"] = type(sys)("mock_package")
+sys.modules["custom_nodes.ComfyUI_Data_Manager.backend.api"] = mock_api
+sys.modules["custom_nodes.ComfyUI_Data_Manager.backend.api.routes"] = mock_routes
 
 # 读取 ssh.py 内容并替换相对导入为绝对导入
-ssh_routes_path = project_root / "api" / "routes" / "ssh.py"
+ssh_routes_path = project_root / "backend" / "api" / "routes" / "ssh.py"
 with open(ssh_routes_path, "r", encoding="utf-8") as f:
     ssh_routes_code = f.read()
 
 # 替换相对导入
 ssh_routes_code = ssh_routes_code.replace(
-    "from ...utils.ssh_fs import (",
+    "from ...helpers.ssh_fs import (",
     "from ssh_fs import ("
 )
 ssh_routes_code = ssh_routes_code.replace(
-    "from ...utils import (",
-    "from mock_utils import ("
+    "from ...helpers import (",
+    "from mock_helpers import ("
 )
 
 # 动态创建模块
@@ -73,7 +71,7 @@ ssh_routes.__dict__.update({
     "logging": __import__("logging"),
     "os": __import__("os"),
     "ssh_fs": ssh_fs,
-    "mock_utils": mock_utils,
+    "mock_helpers": mock_helpers,
 })
 
 # 执行修改后的代码
@@ -522,7 +520,7 @@ class TestSSHListHostsHandler:
         mock_get.start()
 
         # Mock aiohttp web.json_response
-        with patch("api.routes.ssh.web.json_response") as mock_json_response:
+        with patch("backend.api.routes.ssh.web.json_response") as mock_json_response:
             mock_response = Mock()
             mock_response.status = 200
             mock_response.body = json.dumps({"success": True, "hosts": [], "count": 0}).encode()
@@ -544,7 +542,7 @@ class TestSSHListHostsHandler:
         mock_get.start()
 
         # Mock aiohttp web.json_response
-        with patch("api.routes.ssh.web.json_response") as mock_json_response:
+        with patch("backend.api.routes.ssh.web.json_response") as mock_json_response:
             mock_response = Mock()
             mock_response.status = 200
             mock_response.body = json.dumps({"success": True, "hosts": mock_hosts, "count": 2}).encode()
