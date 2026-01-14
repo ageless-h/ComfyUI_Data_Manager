@@ -71,10 +71,37 @@ git clone https://github.com/your-repo/ComfyUI_Data_Manager.git
 
 ## 测试
 
+### 后端测试
+
 ```bash
 cd tests
 python test_data_manager.py
 ```
+
+### 前端测试
+
+前端代码使用 Vitest 进行测试：
+
+```bash
+cd frontend
+
+# 运行所有测试
+npm test
+
+# 运行测试（CI模式）
+npm run test:ci
+
+# 监视模式
+npm run test:watch
+
+# 生成覆盖率报告
+npm run test:coverage
+
+# 打开测试 UI
+npm run test:ui
+```
+
+测试详情请参阅 [docs/testing.md](docs/testing.md)
 
 ## 项目结构
 
@@ -89,9 +116,19 @@ ComfyUI_Data_Manager/
 │   └── formatters.py  # 格式化工具
 ├── api/               # HTTP API 端点
 │   └── routes/        # API 路由
-├── web/               # 前端扩展
+├── frontend/          # 前端代码（TypeScript + Vite）
+│   ├── src/          # 源代码
+│   │   ├── api/      # API 客户端
+│   │   ├── core/     # 状态管理
+│   │   ├── ui/       # UI 组件
+│   │   └── utils/    # 工具函数
+│   ├── tests/        # 测试文件
+│   └── vitest.config.ts  # Vitest 配置
+├── web/               # 前端扩展构建产物
 │   └── extension.js   # 文件管理器 UI
-└── tests/             # 测试文件
+├── tests/             # 后端测试文件
+└── docs/              # 文档
+    └── testing.md     # 测试指南
 ```
 
 ## 贡献

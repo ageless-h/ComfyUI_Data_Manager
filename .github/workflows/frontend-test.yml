@@ -1,0 +1,72 @@
+name: Frontend Tests
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-test.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm run test:ci
+
+      - name: Generate coverage report
+        working-directory: ./frontend
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./frontend/coverage/coverage-final.json
+          flags: frontend
+          name: frontend-coverage-node-${{ matrix.node-version }}
+          fail_ci_if_error: false
+
+      - name: Check coverage threshold
+        working-directory: ./frontend
+        run: |
+          # Check if coverage meets 70% threshold
+          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          echo "Coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "Coverage $COVERAGE% is below 70% threshold"
+            exit 1
+          fi
+          echo "Coverage check passed"
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-node-${{ matrix.node-version }}
+          path: frontend/coverage/
+          retention-days: 7

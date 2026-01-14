@@ -72,9 +72,14 @@ function createRemoteSelector(callbacks: ToolbarCallbacks): HTMLElement {
       try {
         localStorage.removeItem('comfyui_datamanager_last_connection');
       } catch (err) {}
-      updateRemoteOptions(select, onSshConnect, onSshDisconnect);
+      // 更新界面
       updateConnectionStatus();
-      if (onSshDisconnect) onSshDisconnect();
+      // 在回调后再刷新下拉框，避免状态不一致
+      if (onSshDisconnect) {
+        await onSshDisconnect();
+        // 断开连接后刷新下拉框，确保选中本地
+        updateRemoteOptions(select, onSshConnect, onSshDisconnect);
+      }
     } else if (value.startsWith('conn_')) {
       // Connect to saved device
       const connId = value.substring(5);
@@ -87,20 +92,44 @@ function createRemoteSelector(callbacks: ToolbarCallbacks): HTMLElement {
           select.innerHTML = "";
           select.appendChild(opt);
 
-          if (onSshConnect) onSshConnect({
-            connection_id: connId,
-            host: savedConn.host,
-            port: savedConn.port,
-            username: savedConn.username,
-            password: atob(savedConn.password || "")
-          });
+          // 先调用 SSH API 连接
+          const { sshConnect } = await import('../../api/ssh.js');
+          const result = await sshConnect(
+            savedConn.host || '',
+            savedConn.port || 22,
+            savedConn.username || '',
+            atob(savedConn.password || '')
+          );
+
+          // 连接成功，更新状态
+          const connectionData = {
+            ...savedConn,
+            connection_id: result.connection_id,
+            root_path: result.root_path
+          };
+
+          state.active = connectionData;
+          try {
+            localStorage.setItem('comfyui_datamanager_last_connection', JSON.stringify(connectionData));
+          } catch (err) {}
+
+          // 更新连接状态指示器
+          updateConnectionStatus();
+
+          // 调用连接回调（会加载远程目录）
+          if (onSshConnect) await onSshConnect(connectionData);
+
+          // 连接成功后再刷新下拉框，确保选中状态正确
+          select.disabled = false; // 恢复下拉框可用状态
+          updateRemoteOptions(select, onSshConnect, onSshDisconnect);
         } catch (err) {
           alert("连接失败: " + (err as Error).message);
+          select.disabled = false;
           updateRemoteOptions(select, onSshConnect, onSshDisconnect);
         }
       }
     }
-    (e.target as HTMLSelectElement).value = "";
+    // 不再清空值，让 updateRemoteOptions 处理选中状态
   };
 
   container.appendChild(select);
@@ -122,18 +151,30 @@ function updateRemoteOptions(select: HTMLSelectElement, onSshConnect?: (result: 
   const localOpt = document.createElement("option");
   localOpt.value = "__local__";
   localOpt.textContent = "本地";
+  // 如果没有活动连接，选中本地
+  if (!active) {
+    localOpt.selected = true;
+  }
   select.appendChild(localOpt);
 
   // Saved connections
+  let selectedValue = "__local__"; // 默认选中本地
   state.saved.forEach(conn => {
     const opt = document.createElement("option");
     opt.value = `conn_${conn.id}`;
     opt.textContent = conn.name || `${conn.username}@${conn.host}`;
-    if (active && active.connection_id === conn.id) {
+    // 修复：比较 active.id 和 conn.id，而不是 active.connection_id
+    // 因为每次连接会生成新的 connection_id，但 id 保持不变
+    if (active && active.id === conn.id) {
       (opt as HTMLOptionElement).style.color = theme.successColor;
+      opt.selected = true;
+      selectedValue = opt.value;
     }
     select.appendChild(opt);
   });
+
+  // 确保下拉框的值与选中的选项一致
+  select.value = selectedValue;
 }
 
 /**
@@ -264,6 +305,11 @@ function createSettingsButton(callbacks: ToolbarCallbacks): HTMLElement {
           localStorage.setItem('comfyui_datamanager_last_connection', JSON.stringify(result));
         } catch (err) {}
         updateConnectionStatus();
+        // 刷新远程设备选择下拉框
+        const select = document.getElementById("dm-remote-select") as HTMLSelectElement;
+        if (select) {
+          updateRemoteOptions(select, onSshConnect, onSshDisconnect);
+        }
         if (onSshConnect) onSshConnect(result);
       },
       onDisconnect: async () => {
@@ -282,6 +328,11 @@ function createSettingsButton(callbacks: ToolbarCallbacks): HTMLElement {
           localStorage.removeItem('comfyui_datamanager_last_connection');
         } catch (err) {}
         updateConnectionStatus();
+        // 刷新远程设备选择下拉框
+        const select = document.getElementById("dm-remote-select") as HTMLSelectElement;
+        if (select) {
+          updateRemoteOptions(select, onSshConnect, onSshDisconnect);
+        }
         if (onSshDisconnect) onSshDisconnect();
       }
     });

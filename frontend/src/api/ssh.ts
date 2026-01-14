@@ -10,7 +10,12 @@ export interface SSHConnectOptions {
 }
 
 export interface SSHConnectResponse {
+  success?: boolean;
   connection_id: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  root_path?: string;
   message?: string;
   error?: string;
 }
