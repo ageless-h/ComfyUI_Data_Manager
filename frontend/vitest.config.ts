@@ -23,12 +23,12 @@ export default defineConfig({
         'src/comfy-shim.d.ts',
         'src/app.d.ts',
       ],
-      // Set 38% coverage threshold (based on actual coverage 38.23%)
+      // Set 80% coverage threshold (goal for the project)
       thresholds: {
-        lines: 38,
-        functions: 38,
-        branches: 38,
-        statements: 38,
+        lines: 80,
+        functions: 80,
+        branches: 75,
+        statements: 80,
       },
     },
 
