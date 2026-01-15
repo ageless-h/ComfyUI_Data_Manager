@@ -3,6 +3,8 @@
  */
 
 import { getComfyTheme, type ComfyTheme } from '../../utils/theme.js'
+import type { SSHCredential } from '../../api/ssh.js'
+import { sshConnect, sshSaveCredential, sshListCredentials } from '../../api/ssh.js'
 
 /**
  * SSH dialog options
@@ -63,6 +65,10 @@ export function createSshDialog(options: SshDialogOptions = {}): HTMLElement {
   const form = document.createElement('div')
   form.style.cssText = 'display: flex; flex-direction: column; gap: 12px;'
 
+  // 已保存凭证选择器
+  const savedCredsContainer = createSavedCredentialsSelector(theme)
+  form.appendChild(savedCredsContainer.container)
+
   form.appendChild(createInput('主机地址', 'dm-ssh-host', 'text', '192.168.1.100'))
   form.appendChild(createInput('端口', 'dm-ssh-port', 'number', '22'))
   form.appendChild(createInput('用户名', 'dm-ssh-username', 'text', ''))
@@ -105,6 +111,9 @@ export function createSshDialog(options: SshDialogOptions = {}): HTMLElement {
     if (e.target === dialog) dialog.remove()
   }
 
+  // 加载已保存的凭证
+  loadSavedCredentials(savedCredsContainer.select)
+
   connectBtn.onclick = async () => {
     const host = (document.getElementById('dm-ssh-host') as HTMLInputElement).value.trim()
     const port = (document.getElementById('dm-ssh-port') as HTMLInputElement).value.trim()
@@ -121,30 +130,23 @@ export function createSshDialog(options: SshDialogOptions = {}): HTMLElement {
     connectBtn.textContent = '连接中...'
 
     try {
-      const { sshConnect } = await import('../../api/ssh.js')
       const result = await sshConnect(host, parseInt(port) || 22, username, password)
 
-      // Save credentials
+      // Save credentials to server
       if (saveCreds) {
-        const connInfo = {
-          id: (result as { connection_id: string }).connection_id,
-          name: `${username}@${host}`,
-          host,
-          port: parseInt(port) || 22,
-          username,
-          password: btoa(password),
-          created: new Date().toISOString(),
-        }
-        const state = (window as unknown as { _remoteConnectionsState: { saved: unknown[] } })
-          ._remoteConnectionsState
-        state.saved.push(connInfo)
         try {
-          localStorage.setItem(
-            'comfyui_datamanager_remote_connections',
-            JSON.stringify(state.saved)
-          )
-        } catch (e) {
-          console.warn('[DataManager] Failed to save connections:', e)
+          await sshSaveCredential({
+            id: `${username}@${host}:${parseInt(port) || 22}`,
+            name: `${username}@${host}`,
+            host,
+            port: parseInt(port) || 22,
+            username,
+            password,
+            created: new Date().toISOString(),
+          })
+          console.log('[DataManager] SSH 凭证已保存到服务器')
+        } catch (error) {
+          console.warn('[DataManager] 保存 SSH 凭证失败:', error)
         }
       }
 
@@ -191,4 +193,81 @@ function createInput(label: string, id: string, type: string, placeholder: strin
   container.appendChild(input)
 
   return container
+}
+
+/**
+ * 创建已保存凭证选择器
+ */
+function createSavedCredentialsSelector(theme: ComfyTheme): {
+  container: HTMLElement
+  select: HTMLSelectElement
+} {
+  const container = document.createElement('div')
+  container.style.cssText = 'display: flex; flex-direction: column; gap: 4px;'
+
+  const labelEl = document.createElement('label')
+  labelEl.style.cssText = `font-size: 12px; color: ${theme.textSecondary};`
+  labelEl.textContent = '已保存的凭证'
+
+  const select = document.createElement('select')
+  select.id = 'dm-ssh-saved-creds'
+  select.className = 'dm-select'
+  select.style.cssText = `
+    padding: 8px 10px;
+    border: 1px solid ${theme.borderColor};
+    border-radius: 4px;
+    font-size: 14px;
+    background: ${theme.inputBg};
+    color: ${theme.inputText};
+    cursor: pointer;
+  `
+  select.innerHTML = '<option value="">-- 选择已保存的凭证 --</option>'
+
+  // 凭证选择时自动填充表单
+  select.onchange = () => {
+    const selectedValue = select.value
+    if (!selectedValue) return
+
+    try {
+      const cred = JSON.parse(selectedValue) as SSHCredential
+      ;(document.getElementById('dm-ssh-host') as HTMLInputElement).value = cred.host
+      ;(document.getElementById('dm-ssh-port') as HTMLInputElement).value = String(cred.port)
+      ;(document.getElementById('dm-ssh-username') as HTMLInputElement).value = cred.username
+      // 密码不自动填充，需要用户重新输入
+      ;(document.getElementById('dm-ssh-save-creds') as HTMLInputElement).checked = true
+    } catch (e) {
+      console.warn('[DataManager] 解析凭证失败:', e)
+    }
+  }
+
+  container.appendChild(labelEl)
+  container.appendChild(select)
+
+  return { container, select }
+}
+
+/**
+ * 从服务器加载已保存的凭证
+ */
+async function loadSavedCredentials(select: HTMLSelectElement): Promise<void> {
+  try {
+    const response = await sshListCredentials()
+    if (response.success && response.credentials.length > 0) {
+      // 保留默认选项
+      select.innerHTML = '<option value="">-- 选择已保存的凭证 --</option>'
+      // 添加凭证选项
+      response.credentials.forEach((cred) => {
+        const option = document.createElement('option')
+        option.value = JSON.stringify(cred)
+        option.textContent = `${cred.name} (${cred.host}:${cred.port})`
+        select.appendChild(option)
+      })
+      console.log(`[DataManager] 已加载 ${response.credentials.length} 个 SSH 凭证`)
+    } else {
+      select.innerHTML = '<option value="">-- 暂无已保存的凭证 --</option>'
+    }
+  } catch (error) {
+    console.warn('[DataManager] 加载 SSH 凭证列表失败:', error)
+    select.innerHTML = '<option value="">-- 加载凭证失败 --</option>'
+  }
 }

@@ -27,6 +27,46 @@ export interface SSHListResponse {
 }
 
 /**
+ * SSH 凭证接口
+ */
+export interface SSHCredential {
+  id: string
+  name: string
+  host: string
+  port: number
+  username: string
+  password?: string
+  created?: string | null
+}
+
+/**
+ * 保存凭证响应
+ */
+export interface SSHSaveCredentialResponse {
+  success: boolean
+  credential?: SSHCredential
+  error?: string
+}
+
+/**
+ * 列出凭证响应
+ */
+export interface SSHListCredentialsResponse {
+  success: boolean
+  credentials: SSHCredential[]
+  count: number
+  error?: string
+}
+
+/**
+ * 删除凭证响应
+ */
+export interface SSHDeleteCredentialResponse {
+  success: boolean
+  error?: string
+}
+
+/**
  * Connect to SSH host
  * @param host - Host address
  * @param port - Port number
@@ -109,4 +149,66 @@ export async function sshList(connectionId: string, path = '.'): Promise<SSHList
   }
 
   return (await response.json()) as SSHListResponse
+}
+
+/**
+ * 保存 SSH 连接凭证到服务器
+ * @param credential - 凭证信息
+ * @returns 保存结果
+ */
+export async function sshSaveCredential(
+  credential: SSHCredential
+): Promise<SSHSaveCredentialResponse> {
+  const response = await fetch('/dm/ssh/credentials/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credential),
+  })
+
+  if (!response.ok) {
+    const error = (await response.json().catch(() => ({ error: '保存凭证失败' }))) as SSHSaveCredentialResponse
+    throw new Error(error.error || '保存 SSH 凭证失败')
+  }
+
+  return (await response.json()) as SSHSaveCredentialResponse
+}
+
+/**
+ * 获取已保存的 SSH 凭证列表
+ * @returns 凭证列表
+ */
+export async function sshListCredentials(): Promise<SSHListCredentialsResponse> {
+  const response = await fetch('/dm/ssh/credentials/list', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  if (!response.ok) {
+    const error = (await response.json().catch(() => ({ error: '获取凭证列表失败' }))) as SSHListCredentialsResponse
+    throw new Error(error.error || '获取 SSH 凭证列表失败')
+  }
+
+  return (await response.json()) as SSHListCredentialsResponse
+}
+
+/**
+ * 删除已保存的 SSH 凭证
+ * @param credentialId - 凭证 ID
+ * @returns 删除结果
+ */
+export async function sshDeleteCredential(
+  credentialId: string
+): Promise<SSHDeleteCredentialResponse> {
+  const response = await fetch('/dm/ssh/credentials/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: credentialId }),
+  })
+
+  if (!response.ok) {
+    const error = (await response.json().catch(() => ({ error: '删除凭证失败' }))) as SSHDeleteCredentialResponse
+    throw new Error(error.error || '删除 SSH 凭证失败')
+  }
+
+  return (await response.json()) as SSHDeleteCredentialResponse
 }

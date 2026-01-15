@@ -3,6 +3,8 @@
  */
 
 import { getComfyTheme } from '../../utils/theme.js'
+import type { SSHCredential } from '../../api/ssh.js'
+import { sshConnect, sshSaveCredential, sshListCredentials, sshDeleteCredential } from '../../api/ssh.js'
 
 /**
  * Settings panel options
@@ -119,14 +121,15 @@ function showConnectionList(
     margin-bottom: 12px;
     color: ${theme.textPrimary};
   `
-  title.textContent = '已保存的连接'
+  title.textContent = '已保存的凭证'
   container.appendChild(title)
 
   const list = document.createElement('div')
   list.id = 'dm-saved-connections-list'
   list.style.cssText = 'display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;'
 
-  renderSavedConnectionsList(list, onConnect, onDisconnect, container, onConnect, onDisconnect)
+  // 从服务器加载凭证列表
+  renderSavedCredentialsList(list, onConnect, onDisconnect, container, onConnect, onDisconnect)
 
   container.appendChild(list)
 
@@ -220,31 +223,23 @@ function showConnectionForm(
     connectBtn.textContent = '连接中...'
 
     try {
-      const { sshConnect } = await import('../../api/ssh.js')
       const result = await sshConnect(host, parseInt(port) || 22, username, password)
 
-      // Save credentials
+      // Save credentials to server
       if (saveCreds) {
-        const connInfo = {
-          id: (result as { connection_id: string }).connection_id,
-          name: `${username}@${host}`,
-          host,
-          port: parseInt(port) || 22,
-          username,
-          password: btoa(password),
-          created: new Date().toISOString(),
-        }
-        const state = (
-          window as unknown as { _remoteConnectionsState: { saved: RemoteConnection[] } }
-        )._remoteConnectionsState
-        state.saved.push(connInfo)
         try {
-          localStorage.setItem(
-            'comfyui_datamanager_remote_connections',
-            JSON.stringify(state.saved)
-          )
-        } catch (e) {
-          console.warn('[DataManager] Failed to save connections:', e)
+          await sshSaveCredential({
+            id: `${username}@${host}:${parseInt(port) || 22}`,
+            name: `${username}@${host}`,
+            host,
+            port: parseInt(port) || 22,
+            username,
+            password,
+            created: new Date().toISOString(),
+          })
+          console.log('[DataManager] SSH 凭证已保存到服务器')
+        } catch (error) {
+          console.warn('[DataManager] 保存 SSH 凭证失败:', error)
         }
       }
 
@@ -259,89 +254,102 @@ function showConnectionForm(
 }
 
 /**
- * Render saved connections list
+ * 从服务器加载并渲染已保存的凭证列表
  */
-function renderSavedConnectionsList(
+async function renderSavedCredentialsList(
   list: HTMLElement,
   onConnect?: (result: unknown) => void,
   onDisconnect?: () => void,
   container?: HTMLElement,
   onConnect2?: (result: unknown) => void,
   onDisconnect2?: () => void
-): void {
+): Promise<void> {
   const theme = getComfyTheme()
-  const state = (
-    window as unknown as {
-      _remoteConnectionsState: { saved: RemoteConnection[]; active: RemoteConnection | null }
+
+  list.innerHTML = '<div style="text-align: center; padding: 20px; color: ' + theme.textSecondary + ';">加载中...</div>'
+
+  try {
+    const response = await sshListCredentials()
+    const credentials = response.credentials || []
+
+    list.innerHTML = ''
+
+    if (credentials.length === 0) {
+      list.innerHTML = `<div style="text-align: center; padding: 20px; color: ${theme.textSecondary};">暂无保存的凭证</div>`
+      return
     }
-  )._remoteConnectionsState
-  const saved = state.saved || []
-  const active = state.active
 
-  list.innerHTML = ''
+    credentials.forEach((cred) => {
+      const item = document.createElement('div')
+      item.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px;
+        background: ${theme.bgSecondary};
+        border: 1px solid ${theme.borderColor};
+        border-radius: 6px;
+        transition: all 0.2s;
+      `
 
-  if (saved.length === 0) {
-    list.innerHTML = `<div style="text-align: center; padding: 20px; color: ${theme.textSecondary};">暂无保存的连接</div>`
-    return
-  }
+      const info = document.createElement('div')
+      info.style.cssText = 'flex: 1; cursor: pointer;'
+      info.innerHTML = `
+        <div style="font-size: 13px; font-weight: 600; color: ${theme.textPrimary};">${cred.name}</div>
+        <div style="font-size: 11px; color: ${theme.textSecondary};">${cred.username}@${cred.host}:${cred.port}</div>
+        ${cred.created ? `<div style="font-size: 10px; color: ${theme.textSecondary};">保存于: ${new Date(cred.created).toLocaleString('zh-CN')}</div>` : ''}
+      `
 
-  saved.forEach((conn) => {
-    const item = document.createElement('div')
-    item.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px;
-      background: ${theme.bgSecondary};
-      border: 1px solid ${theme.borderColor};
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-    `
+      // 点击凭证时，打开连接对话框并预填信息
+      info.onclick = async () => {
+        const password = prompt(`请输入 ${cred.name} 的密码:`)
+        if (!password) return
 
-    const isActive = active && active.connection_id === conn.id
-
-    const info = document.createElement('div')
-    info.style.cssText = 'flex: 1;'
-    info.innerHTML = `
-      <div style="font-size: 13px; font-weight: 600; color: ${isActive ? theme.successColor : theme.textPrimary};">${conn.name || `${conn.username}@${conn.host}`}</div>
-      <div style="font-size: 11px; color: ${theme.textSecondary};">${conn.host}:${conn.port}</div>
-    `
-
-    const actions = document.createElement('div')
-    actions.style.cssText = 'display: flex; gap: 5px;'
-
-    const deleteBtn = document.createElement('button')
-    deleteBtn.className = 'comfy-btn'
-    deleteBtn.innerHTML = '<i class="pi pi-trash"></i>'
-    deleteBtn.style.cssText = 'padding: 6px 10px; font-size: 12px;'
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation()
-      if (confirm(`确定删除连接 "${conn.name}"?`)) {
-        const idx = state.saved.findIndex((c) => c.id === conn.id)
-        if (idx > -1) {
-          state.saved.splice(idx, 1)
-          try {
-            localStorage.setItem(
-              'comfyui_datamanager_remote_connections',
-              JSON.stringify(state.saved)
-            )
-          } catch (e) {}
-          // Re-render list
-          showConnectionList(container!, onConnect || onConnect2, onDisconnect || onDisconnect2)
+        try {
+          const result = await sshConnect(cred.host, cred.port, cred.username, password)
+          if (onConnect || onConnect2) {
+            ;(onConnect || onConnect2)!(result)
+          }
+          ;(document.getElementById('dm-settings-panel-overlay') as HTMLElement)?.remove()
+        } catch (error) {
+          alert('连接失败: ' + (error as Error).message)
         }
       }
-    }
 
-    actions.appendChild(deleteBtn)
-    item.appendChild(info)
-    item.appendChild(actions)
+      const actions = document.createElement('div')
+      actions.style.cssText = 'display: flex; gap: 5px;'
 
-    item.onmouseover = () => (item.style.borderColor = theme.accentColor)
-    item.onmouseout = () => (item.style.borderColor = theme.borderColor)
+      const deleteBtn = document.createElement('button')
+      deleteBtn.className = 'comfy-btn'
+      deleteBtn.innerHTML = '<i class="pi pi-trash"></i>'
+      deleteBtn.style.cssText = 'padding: 6px 10px; font-size: 12px;'
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation()
+        if (confirm(`确定删除凭证 "${cred.name}"?`)) {
+          sshDeleteCredential(cred.id)
+            .then(() => {
+              console.log('[DataManager] 已删除凭证:', cred.name)
+              // 重新加载列表
+              renderSavedCredentialsList(list, onConnect, onDisconnect, container, onConnect2, onDisconnect2)
+            })
+            .catch((error) => {
+              alert('删除失败: ' + (error as Error).message)
+            })
+        }
+      }
 
-    list.appendChild(item)
-  })
+      actions.appendChild(deleteBtn)
+      item.appendChild(info)
+      item.appendChild(actions)
+
+      item.onmouseover = () => (item.style.borderColor = theme.accentColor)
+      item.onmouseout = () => (item.style.borderColor = theme.borderColor)
+
+      list.appendChild(item)
+    })
+  } catch (error) {
+    list.innerHTML = `<div style="text-align: center; padding: 20px; color: ${theme.errorColor || '#ff6b6b'};">加载凭证列表失败: ${(error as Error).message}</div>`
+  }
 }
 
 /**
