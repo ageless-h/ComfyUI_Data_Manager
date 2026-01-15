@@ -8,8 +8,11 @@
 - 🔀 支持多路径配置（输入/输出路径）
 - 🎨 现代化 UI 界面（列表/网格视图）
 - 🔄 兼容 V1/V3 API（向后兼容）
-- 🔍 文件预览（图像、视频、音频、代码）
+- 🔍 文件预览（图像、视频、音频、代码、DOCX）
 - 📝 文件操作（新建、删除、重命名、复制路径）
+- 🚀 批量文件处理（Match 模式 + Batch 模式）
+- 🔐 SSH 远程文件系统访问
+- 🔑 本地加密存储 SSH 凭证
 
 ## 安装
 
@@ -56,6 +59,11 @@ git clone https://github.com/your-repo/ComfyUI_Data_Manager.git
 - `target_path`: 目标目录路径
 - `file_type`: 文件类型（string/image/audio/video/3d_model）
 - `file_input`: 可选的文件输入端口
+- `enable_batch`: 启用批量保存模式（Batch 模式）
+- `naming_rule`: 批量命名规则（如 `result_{index:04d}`）
+
+**Batch 模式**:
+当输入为批次张量 `[N, H, W, C]` 时，自动迭代保存 N 个文件，使用 `naming_rule` 中的 `{index}` 作为索引。
 
 ### Data Manager - Output Path
 配置输出路径节点
@@ -64,6 +72,45 @@ git clone https://github.com/your-repo/ComfyUI_Data_Manager.git
 - `source_path`: 源目录路径
 - `file_type`: 文件类型
 - `input`: 来自 Core 节点的文件路径
+- `enable_match`: 启用匹配模式（Match 模式）
+- `pattern`: 通配符模式（如 `*.png`, `image_*.jpg`）
+
+**Match 模式**:
+使用通配符匹配多个文件，返回批次张量 `[N, H, W, 3]`，供下游节点批量处理。
+
+## 批量处理工作流示例
+
+### 场景：批量调整图像尺寸
+
+以下工作流将批量加载 100 张图像，缩小到 51×51 像素，并保存到指定目录：
+
+```
+OutputPathConfig (Match) → ImageScale → InputPathConfig (Batch) → DataManagerCore
+```
+
+**节点配置**:
+
+1. **OutputPathConfig** (Match 模式)
+   - `enable_match`: ✅
+   - `pattern`: `test_image_*.png`
+   - `source_path`: `input/images/`
+   - **输出**: 批次张量 `[100, 512, 512, 3]`
+
+2. **ImageScale**
+   - `width`: 51
+   - `height`: 51
+   - `upscale_method`: `lanczos`
+   - **输出**: 批次张量 `[100, 51, 51, 3]`
+
+3. **InputPathConfig** (Batch 模式)
+   - `enable_batch`: ✅
+   - `file_input`: 连接 ImageScale 输出
+   - `target_path`: `output/resized/`
+   - `naming_rule`: `resized_{index:04d}`
+   - **结果**: 保存 `resized_0001.png` ~ `resized_0100.png`
+
+4. **DataManagerCore**
+   - 标记工作流结束
 
 ## API 文档
 
@@ -74,8 +121,18 @@ git clone https://github.com/your-repo/ComfyUI_Data_Manager.git
 ### 后端测试
 
 ```bash
-cd tests
-python test_data_manager.py
+# 运行所有后端测试
+cd backend/tests
+python -m pytest .
+
+# 运行批量处理测试
+python test_batch_workflow_api.py
+
+# 生成测试图像
+python generate_batch_test_images.py
+
+# 验证批量输出
+python verify_batch_output.py
 ```
 
 ### 前端测试
@@ -107,28 +164,41 @@ npm run test:ui
 
 ```
 ComfyUI_Data_Manager/
-├── core/              # 核心节点定义
-│   ├── nodes_v1.py    # V1 API 实现
-│   └── nodes_v3.py    # V3 API 实现
-├── utils/             # 工具函数
-│   ├── file_ops.py    # 文件操作
-│   ├── path_utils.py  # 路径工具
-│   └── formatters.py  # 格式化工具
-├── api/               # HTTP API 端点
-│   └── routes/        # API 路由
-├── frontend/          # 前端代码（TypeScript + Vite）
-│   ├── src/          # 源代码
-│   │   ├── api/      # API 客户端
-│   │   ├── core/     # 状态管理
-│   │   ├── ui/       # UI 组件
-│   │   └── utils/    # 工具函数
-│   ├── tests/        # 测试文件
-│   └── vitest.config.ts  # Vitest 配置
-├── web/               # 前端扩展构建产物
-│   └── extension.js   # 文件管理器 UI
-├── tests/             # 后端测试文件
-└── docs/              # 文档
-    └── testing.md     # 测试指南
+├── backend/                    # 后端 Python 代码
+│   ├── api/                    # HTTP API 端点
+│   │   └── routes/             # files.py, ssh.py, operations.py, metadata.py
+│   ├── core/                   # 节点定义
+│   │   ├── nodes_v3.py         # V3 API（Node 2.0/Vue.js）
+│   │   └── nodes_v1.py         # V1 API（向后兼容）
+│   ├── helpers/                # 辅助模块
+│   │   ├── file_ops.py         # 文件操作（CRUD）
+│   │   ├── path_utils.py       # 路径工具
+│   │   ├── info.py             # 文件信息获取
+│   │   ├── ssh_fs.py           # SSH 文件系统
+│   │   ├── ssh_credentials.py  # SSH 凭证存储
+│   │   ├── batch_namer.py      # 批量命名规则处理
+│   │   └── formatters.py       # 格式化工具
+│   └── tests/                  # 后端测试
+│       ├── test_batch_workflow_api.py    # 批量处理工作流测试
+│       ├── test_batch_processing.py      # 批量处理单元测试
+│       ├── generate_batch_test_images.py # 测试图像生成
+│       ├── verify_batch_output.py        # 输出验证脚本
+│       └── fixtures/                       # 测试数据
+│           └── batch_test_workflow.json   # ComfyUI 工作流 JSON
+├── frontend/                   # 前端 TypeScript + Vite
+│   ├── src/
+│   │   ├── api/                # API 客户端
+│   │   ├── core/               # 状态管理（Pinia）
+│   │   ├── ui/                 # UI 组件（Vue.js）
+│   │   └── utils/              # 工具函数
+│   └── tests/                  # Vitest 测试
+├── web/                        # 前端构建产物
+│   └── extension.js            # ComfyUI 扩展入口
+├── openspec/                   # OpenSpec 规范管理
+│   ├── specs/                  # 当前能力规范
+│   └── changes/                # 变更提案
+│       └── archive/            # 已归档变更
+└── __init__.py                 # 扩展入口
 ```
 
 ## 贡献
