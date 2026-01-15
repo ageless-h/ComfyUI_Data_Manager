@@ -18,6 +18,8 @@ from .path_utils import (
 )
 from .formatters import human_readable_size
 from .info import get_file_info, get_file_category
+from .batch_scanner import scan_files, scan_files_absolute, validate_glob_pattern, get_pattern_info
+from .batch_namer import generate_name, validate_naming_rule, get_naming_rule_info, create_naming_rule_presets
 
 # SSH 远程访问（可选依赖）
 try:
@@ -63,6 +65,15 @@ __all__ = [
     "PathType",
     # 格式化工具
     "human_readable_size",
+    # 批量处理
+    "scan_files",
+    "scan_files_absolute",
+    "validate_glob_pattern",
+    "get_pattern_info",
+    "generate_name",
+    "validate_naming_rule",
+    "get_naming_rule_info",
+    "create_naming_rule_presets",
     # SSH 远程访问
     "ssh_is_available",
     "ssh_connect",

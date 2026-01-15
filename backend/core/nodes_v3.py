@@ -19,7 +19,18 @@ from comfy_api.latest import ComfyExtension, io, InputImpl, Types
 from typing_extensions import override
 from fractions import Fraction
 
-from ..helpers import save_file, list_files, get_file_info, get_file_category
+from ..helpers import (
+    save_file,
+    list_files,
+    get_file_info,
+    get_file_category,
+    # 批量处理
+    scan_files,
+    scan_files_absolute,
+    validate_glob_pattern,
+    generate_name,
+    validate_naming_rule,
+)
 
 
 # ============================================================================
@@ -737,6 +748,101 @@ def detect_type_from_extension(file_path: str) -> str:
     return EXTENSION_TO_TYPE_MAP.get(ext, "STRING")
 
 
+def _detect_input_type(file_input: Any) -> str:
+    """检测输入数据的类型
+
+    Args:
+        file_input: 输入数据
+
+    Returns:
+        类型名称（如 "IMAGE", "VIDEO", "AUDIO", "STRING" 等）
+    """
+    if isinstance(file_input, dict):
+        if "waveform" in file_input:
+            return "AUDIO"
+        elif "samples" in file_input:
+            return "LATENT"
+        elif "pooled_output" in file_input or isinstance(file_input.get("model"), dict):
+            return "CONDITIONING"
+        elif "tensor" in file_input:
+            return "IMAGE"
+        return "DICT"
+    elif isinstance(file_input, str):
+        return "STRING"
+    elif hasattr(file_input, "shape"):
+        import torch
+        if isinstance(file_input, torch.Tensor) or isinstance(file_input, np.ndarray):
+            return "TENSOR"
+    elif hasattr(file_input, "get_components") or (
+        hasattr(file_input, "images") and hasattr(file_input, "frame_rate")
+    ):
+        return "VIDEO"
+    return type(file_input).__name__.upper()
+
+
+def _save_by_type(file_input: Any, full_path: str, format: str) -> str:
+    """根据类型保存数据到文件
+
+    Args:
+        file_input: 输入数据
+        full_path: 完整的目标文件路径
+        format: 文件格式
+
+    Returns:
+        保存后的文件路径
+
+    Raises:
+        Exception: 保存失败时抛出异常
+    """
+    detected_type = _detect_input_type(file_input)
+
+    if detected_type == "AUDIO":
+        return save_audio(file_input, full_path, format)
+    elif detected_type == "LATENT":
+        return save_latent(file_input, full_path)
+    elif detected_type == "CONDITIONING":
+        return save_conditioning(file_input, full_path)
+    elif detected_type == "IMAGE" or detected_type == "TENSOR":
+        # 处理张量类型
+        if hasattr(file_input, "shape"):
+            import torch
+            if isinstance(file_input, torch.Tensor):
+                tensor = file_input.cpu().numpy()
+            else:
+                tensor = file_input
+
+            # 处理不同形状
+            if len(tensor.shape) == 4:
+                if tensor.shape[1] == 3:  # [B, C, H, W]
+                    tensor = tensor[0].transpose(1, 2, 0)
+                elif tensor.shape[3] == 3:  # [B, H, W, C]
+                    tensor = tensor[0]
+            elif len(tensor.shape) == 3:
+                if tensor.shape[0] == 1:  # [1, H, W]
+                    tensor = tensor[0]
+
+            return save_image(tensor, full_path, format)
+    elif detected_type == "STRING":
+        if os.path.exists(file_input):
+            shutil.copy2(file_input, full_path)
+            return full_path
+        else:
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write(file_input)
+            return full_path
+    elif detected_type == "VIDEO":
+        if hasattr(file_input, "get_components"):
+            video_data = file_input.get_components()
+        else:
+            video_data = file_input
+        return save_video(video_data, full_path, format)
+    else:
+        # 其他类型转为字符串保存
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(str(file_input))
+        return full_path
+
+
 # ============================================================================
 # 定义所有支持的 ComfyUI 数据类型
 # ============================================================================
@@ -854,7 +960,12 @@ class DataManagerCore(io.ComfyNode):
 
 
 class InputPathConfig(io.ComfyNode):
-    """输入路径配置节点 - 配置文件保存的目标目录，支持所有 ComfyUI 数据类型（动态端口）"""
+    """输入路径配置节点 - 配置文件保存的目标目录，支持所有 ComfyUI 数据类型（动态端口）
+
+    支持两种模式：
+    1. 单文件模式（默认）：保存单个文件
+    2. Batch 模式（批量）：接收迭代数据，使用命名规则批量保存
+    """
 
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -870,7 +981,8 @@ class InputPathConfig(io.ComfyNode):
             node_id="InputPathConfig",
             display_name="Data Manager - Input Path",
             category="Data Manager/Config",
-            description="配置文件保存的目标目录，支持所有 ComfyUI 数据类型输入（动态端口，自动识别类型）",
+            description="配置文件保存的目标目录，支持所有 ComfyUI 数据类型输入（动态端口，自动识别类型）。"
+            "支持 Batch 模式使用命名规则批量保存文件。",
             inputs=[
                 io.String.Input(
                     "target_path",
@@ -889,6 +1001,24 @@ class InputPathConfig(io.ComfyNode):
                     ALL_SUPPORTED_TYPES,
                     optional=True,
                 ),
+                # Batch 模式选项
+                io.Boolean.Input(
+                    "enable_batch",
+                    default=False,
+                    display_name="启用 Batch 模式",
+                ),
+                io.String.Input(
+                    "naming_rule",
+                    default="result_{index:04d}",
+                    multiline=False,
+                    display_name="命名规则",
+                ),
+                io.String.Input(
+                    "original_path",
+                    default="",
+                    multiline=False,
+                    display_name="原始路径（可选）",
+                ),
             ],
             outputs=[
                 io.String.Output("output", display_name="Output"),
@@ -896,13 +1026,28 @@ class InputPathConfig(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, target_path: str, format: str, file_input=None) -> io.NodeOutput:
+    def execute(
+        cls,
+        target_path: str,
+        format: str,
+        file_input=None,
+        enable_batch: bool = False,
+        naming_rule: str = "result_{index:04d}",
+        original_path: str = "",
+    ) -> io.NodeOutput:
         """处理动态类型的输入并保存文件
+
+        支持两种模式：
+        1. 单文件模式（默认）：保存单个文件
+        2. Batch 模式（enable_batch=True）：接收迭代数据，使用命名规则批量保存
 
         Args:
             target_path: 目标保存路径（可以是目录或完整文件路径）
             format: 输出文件格式（如 "图像格式 - PNG" 或直接的 "png"）
             file_input: 动态类型输入（自动识别类型：IMAGE、STRING、LATENT、MASK、MODEL、VAE、VIDEO、AUDIO 等）
+            enable_batch: 是否启用 Batch 模式
+            naming_rule: 批量保存的命名规则（如 "result_{:04d}", "{original_name}"）
+            original_path: 原始文件路径（用于保留原文件名或目录结构）
 
         Returns:
             JSON 格式的保存结果信息
@@ -913,7 +1058,7 @@ class InputPathConfig(io.ComfyNode):
         else:
             format = format.lower()
 
-        print(f"[DataManager] Saving file: {target_path}, format: {format}")
+        print(f"[DataManager] Saving file: target_path={target_path}, format={format}, enable_batch={enable_batch}")
 
         detected_type = "unknown"
         saved_path = None
@@ -930,6 +1075,98 @@ class InputPathConfig(io.ComfyNode):
             }
             return io.NodeOutput(json.dumps(config, ensure_ascii=False))
 
+        # ========== Batch 模式：使用命名规则保存 ==========
+        if enable_batch:
+            print(f"[DataManager] Batch 模式: naming_rule={naming_rule}, original_path={original_path}")
+
+            # 验证命名规则
+            is_valid, error_msg_rule = validate_naming_rule(naming_rule)
+            if not is_valid:
+                config = {
+                    "type": "input",
+                    "target_path": target_path,
+                    "detected_type": detected_type,
+                    "format": format,
+                    "saved_path": None,
+                    "status": "error",
+                    "error": f"无效的命名规则: {error_msg_rule}",
+                }
+                return io.NodeOutput(json.dumps(config, ensure_ascii=False))
+
+            # 生成文件名（使用命名规则）
+            # 注意：Batch 模式下，索引由 ComfyUI 的自动迭代机制处理
+            # 这里我们使用原始路径信息来生成文件名
+            try:
+                # 使用命名规则生成文件名
+                generated_name = generate_name(
+                    naming_rule,
+                    index=0,  # 索引由 ComfyUI 自动迭代处理，这里使用默认值
+                    original_path=original_path or None,
+                    output_ext=format,
+                )
+
+                print(f"[DataManager] Batch 模式生成文件名: {generated_name}")
+
+                # 如果生成的文件名包含路径，需要分离目录和文件名
+                if "/" in generated_name or "\\" in generated_name:
+                    # 使用生成的路径结构
+                    generated_path = os.path.normpath(generated_name)
+                    if os.path.isabs(generated_path):
+                        # 绝对路径：直接使用
+                        full_path = generated_path
+                        directory = os.path.dirname(full_path)
+                        filename = os.path.basename(full_path)
+                    else:
+                        # 相对路径：基于 target_path
+                        directory = os.path.join(target_path, os.path.dirname(generated_name))
+                        filename = os.path.basename(generated_name)
+                        full_path = os.path.join(directory, filename)
+                else:
+                    # 只有文件名，使用 target_path 作为目录
+                    directory = target_path
+                    filename = generated_name
+                    full_path = os.path.join(directory, filename)
+
+                # 创建目录
+                os.makedirs(directory, exist_ok=True)
+
+                # 根据输入类型保存文件
+                saved_path = _save_by_type(file_input, full_path, format)
+                detected_type = _detect_input_type(file_input)
+
+                print(f"[DataManager] Batch 模式保存成功: {saved_path}")
+
+                config = {
+                    "type": "input",
+                    "mode": "batch",
+                    "target_path": target_path,
+                    "detected_type": detected_type,
+                    "format": format,
+                    "saved_path": saved_path,
+                    "generated_name": generated_name,
+                    "status": "success" if saved_path else "error",
+                    "error": error_msg,
+                }
+                return io.NodeOutput(json.dumps(config, ensure_ascii=False))
+
+            except Exception as e:
+                error_msg = str(e)
+                import traceback
+                traceback.print_exc()
+
+                config = {
+                    "type": "input",
+                    "mode": "batch",
+                    "target_path": target_path,
+                    "detected_type": detected_type,
+                    "format": format,
+                    "saved_path": None,
+                    "status": "error",
+                    "error": error_msg,
+                }
+                return io.NodeOutput(json.dumps(config, ensure_ascii=False))
+
+        # ========== 单文件模式：保存单个文件 ==========
         try:
             # 处理字典类型（ComfyUI 特殊格式）
             if isinstance(file_input, dict):
@@ -1137,6 +1374,7 @@ class InputPathConfig(io.ComfyNode):
         # 构建返回结果
         config = {
             "type": "input",
+            "mode": "single",
             "target_path": target_path,
             "detected_type": detected_type,
             "format": format,
@@ -1148,7 +1386,12 @@ class InputPathConfig(io.ComfyNode):
 
 
 class OutputPathConfig(io.ComfyNode):
-    """输出路径配置节点 - 配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口）"""
+    """输出路径配置节点 - 配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口）
+
+    支持两种模式：
+    1. 单文件模式（默认）：加载单个文件
+    2. Match 模式（批量）：使用通配符扫描多个文件，返回路径列表
+    """
 
     @classmethod
     def define_schema(cls) -> io.Schema:
@@ -1170,7 +1413,8 @@ class OutputPathConfig(io.ComfyNode):
             node_id="OutputPathConfig",
             display_name="Data Manager - Output Path",
             category="Data Manager/Config",
-            description="配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口，自动识别类型）",
+            description="配置文件读取的源目录，支持所有 ComfyUI 数据类型输出（动态端口，自动识别类型）。"
+            "支持 Match 模式使用通配符批量加载文件。",
             inputs=[
                 io.String.Input(
                     "source_path",
@@ -1182,6 +1426,18 @@ class OutputPathConfig(io.ComfyNode):
                     ALL_SUPPORTED_TYPES,
                     optional=True,
                 ),
+                # Match 模式选项
+                io.Boolean.Input(
+                    "enable_match",
+                    default=False,
+                    display_name="启用 Match 模式",
+                ),
+                io.String.Input(
+                    "pattern",
+                    default="*.*",
+                    multiline=False,
+                    display_name="通配符模式",
+                ),
             ],
             outputs=[
                 # 使用 MatchType.Output 实现动态输出端口
@@ -1190,16 +1446,53 @@ class OutputPathConfig(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, source_path: str, input=None) -> io.NodeOutput:
+    def execute(cls, source_path: str, input=None, enable_match: bool = False, pattern: str = "*.*") -> io.NodeOutput:
         """根据文件路径加载文件并转换为对应的 ComfyUI 数据类型
 
+        支持两种模式：
+        1. 单文件模式（默认）：加载单个文件
+        2. Match 模式（enable_match=True）：使用通配符扫描多个文件，返回路径列表
+
         Args:
-            source_path: 源目录路径（当 input 为空时使用）
-            input: 可选的文件路径输入（优先使用）
+            source_path: 源目录路径
+            input: 可选的文件路径输入（单文件模式下优先使用）
+            enable_match: 是否启用 Match 模式
+            pattern: glob 通配符模式（Match 模式下使用）
 
         Returns:
-            对应类型的 ComfyUI 数据（IMAGE/VIDEO/AUDIO/LATENT/CONDITIONING/STRING）
+            单文件模式：对应类型的 ComfyUI 数据（IMAGE/VIDEO/AUDIO/LATENT/CONDITIONING/STRING）
+            Match 模式：文件路径字符串列表（触发下游节点自动迭代）
         """
+        # ========== Match 模式：批量扫描文件 ==========
+        if enable_match:
+            print(f"[DataManager] Match 模式: source_path={source_path}, pattern={pattern}")
+
+            # 验证通配符模式
+            is_valid, error_msg = validate_glob_pattern(pattern)
+            if not is_valid:
+                print(f"[DataManager] 无效的通配符模式: {error_msg}")
+                return io.NodeOutput([])
+
+            # 扫描文件（返回相对路径）
+            try:
+                rel_paths = scan_files(source_path, pattern, recursive="**" in pattern)
+
+                # 转换为绝对路径
+                abs_paths = [os.path.normpath(os.path.join(source_path, p)) for p in rel_paths]
+
+                print(f"[DataManager] Match 模式扫描到 {len(abs_paths)} 个文件")
+
+                # 返回路径字符串列表
+                # ComfyUI 会自动对每个路径执行一次下游节点（不会内存堆积）
+                return io.NodeOutput(abs_paths)
+
+            except Exception as e:
+                print(f"[DataManager] Match 模式扫描失败: {e}")
+                import traceback
+                traceback.print_exc()
+                return io.NodeOutput([])
+
+        # ========== 单文件模式：加载单个文件 ==========
         # 1. 解析文件路径（优先使用 input 端口）
         file_path = None
 
