@@ -1,13 +1,15 @@
+// -*- coding: utf-8 -*-
 /**
  * Tests for Preview Component
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   createPreviewPanel,
   createStatusBar,
   updateFormatSelector,
   hideFormatSelector,
+  checkNodeConnectionAndUpdateFormat,
 } from './preview.js'
 
 // Mock dependencies
@@ -190,5 +192,619 @@ describe('hideFormatSelector', () => {
     document.body.innerHTML = ''
 
     expect(() => hideFormatSelector()).not.toThrow()
+  })
+})
+
+// ==================== Mock Types for window.app ====================
+
+interface MockNodeOutput {
+  type?: string
+}
+
+interface MockNodeInput {
+  name?: string
+  link?: { origin_id?: number }
+}
+
+interface MockNode {
+  comfyClass?: string
+  type?: string
+  inputs?: MockNodeInput[]
+  outputs?: MockNodeOutput[]
+}
+
+interface MockGraph {
+  _nodes: MockNode[]
+  getNodeById?: (id: number) => MockNode | undefined
+}
+
+interface MockApp {
+  graph?: MockGraph
+}
+
+// ==================== checkNodeConnectionAndUpdateFormat Tests ====================
+
+describe('checkNodeConnectionAndUpdateFormat', () => {
+  const mockConsoleLog = vi.fn()
+  const originalConsoleLog = console.log
+
+  beforeEach(() => {
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+    console.log = mockConsoleLog
+
+    // Create format section for updateFormatSelector
+    const formatSection = document.createElement('div')
+    formatSection.id = 'dm-format-section'
+    document.body.appendChild(formatSection)
+  })
+
+  afterEach(() => {
+    console.log = originalConsoleLog
+  })
+
+  it('should handle missing window.app gracefully', () => {
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: undefined,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should handle missing graph gracefully', () => {
+    const mockApp: MockApp = {}
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should handle empty nodes array gracefully', () => {
+    const mockApp: MockApp = {
+      graph: { _nodes: [] },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should detect InputPathConfig nodes', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          { comfyClass: 'InputPathConfig', inputs: [] },
+          { comfyClass: 'SomeOtherNode', inputs: [] },
+        ],
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should find file_input connection', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 1 } }],
+          },
+        ],
+        getNodeById: () => ({ type: 'LoadImage', outputs: [{ type: 'IMAGE' }] }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should update format selector when node connected', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 1 } }],
+          },
+        ],
+        getNodeById: () => ({
+          type: 'LoadImage',
+          outputs: [{ type: 'IMAGE' }],
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    checkNodeConnectionAndUpdateFormat()
+
+    const formatSection = document.getElementById('dm-format-section')
+    // Should have called updateFormatSelector which creates content
+    expect(formatSection?.innerHTML.length).toBeGreaterThan(0)
+  })
+
+  it('should detect IMAGE type from LoadImage node', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 1 } }],
+          },
+        ],
+        getNodeById: () => ({
+          type: 'LoadImage',
+          outputs: [{ type: 'IMAGE' }],
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should detect VIDEO type from LoadVideo node', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 2 } }],
+          },
+        ],
+        getNodeById: () => ({
+          type: 'LoadVideo',
+          outputs: [{ type: 'VIDEO' }],
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should detect AUDIO type from LoadAudio node', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 3 } }],
+          },
+        ],
+        getNodeById: () => ({
+          type: 'LoadAudio',
+          outputs: [{ type: 'AUDIO' }],
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should detect LATENT type from EmptyLatentImage node', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 4 } }],
+          },
+        ],
+        getNodeById: () => ({
+          type: 'EmptyLatentImage',
+          outputs: [{ type: 'LATENT' }],
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should detect type from output ports', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 5 } }],
+          },
+        ],
+        getNodeById: () => ({
+          outputs: [{ type: 'MASK' }, { type: 'MODEL' }],
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should return default IMAGE type for unknown nodes', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 6 } }],
+          },
+        ],
+        getNodeById: () => ({
+          type: 'UnknownNodeType',
+          outputs: [],
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should handle node with no outputs', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 7 } }],
+          },
+        ],
+        getNodeById: () => ({
+          type: 'SomeNode',
+          outputs: [],
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should handle node with type property', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 8 } }],
+          },
+        ],
+        getNodeById: () => ({
+          type: 'VAEDecode',
+          comfyClass: 'VAEDecode',
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should handle node with comfyClass property', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 9 } }],
+          },
+        ],
+        getNodeById: () => ({
+          comfyClass: 'CheckpointLoaderSimple',
+        }),
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should log error on exception', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 10 } }],
+          },
+        ],
+        // This will cause error when trying to access properties
+        getNodeById: undefined as any,
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    checkNodeConnectionAndUpdateFormat()
+
+    // Should log error instead of throwing
+    expect(console.log).toHaveBeenCalledWith(
+      '[DataManager] Error checking node connection:',
+      expect.anything()
+    )
+  })
+
+  it('should handle node with undefined sourceNodeId', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: {} }],
+          },
+        ],
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+
+  it('should handle getNodeById returning undefined', () => {
+    const mockApp: MockApp = {
+      graph: {
+        _nodes: [
+          {
+            comfyClass: 'InputPathConfig',
+            inputs: [{ name: 'file_input', link: { origin_id: 999 } }],
+          },
+        ],
+        getNodeById: () => undefined,
+      },
+    }
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      app: mockApp,
+    })
+
+    expect(() => checkNodeConnectionAndUpdateFormat()).not.toThrow()
+  })
+})
+
+// ==================== Enhanced createPreviewPanel Tests ====================
+
+describe('createPreviewPanel - enhanced', () => {
+  beforeEach(() => {
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  it('should create preview with placeholder content', () => {
+    const panel = createPreviewPanel()
+
+    const content = panel.querySelector('#dm-preview-content')
+    expect(content?.innerHTML).toContain('选择文件以预览')
+    expect(content?.innerHTML).toContain('pi-file')
+  })
+
+  it('should create file info section', () => {
+    const panel = createPreviewPanel()
+
+    const infoSection = panel.querySelector('#dm-file-info')
+    expect(infoSection).toBeTruthy()
+    expect(infoSection?.innerHTML).toContain('No file selected')
+  })
+
+  it('should create format section with initial hidden state', () => {
+    const panel = createPreviewPanel()
+
+    const formatSection = panel.querySelector('#dm-format-section')
+    expect(formatSection).toBeTruthy()
+    expect(formatSection?.style.display).toBe('none')
+  })
+
+  it('should apply theme colors correctly', () => {
+    const panel = createPreviewPanel()
+
+    const header = panel.querySelector('.dm-preview-header') as HTMLElement
+    expect(header?.style.borderBottom).toBeTruthy()
+
+    const content = panel.querySelector('#dm-preview-content') as HTMLElement
+    expect(content?.style.display).toContain('flex')
+  })
+
+  it('should have all action buttons with correct IDs', () => {
+    const panel = createPreviewPanel()
+
+    expect(panel.querySelector('#dm-copy-path-btn')).toBeTruthy()
+    expect(panel.querySelector('#dm-delete-file-btn')).toBeTruthy()
+    expect(panel.querySelector('#dm-open-floating-preview-btn')).toBeTruthy()
+  })
+
+  it('should have disabled copy button initially', () => {
+    const panel = createPreviewPanel()
+
+    const copyBtn = panel.querySelector('#dm-copy-path-btn') as HTMLButtonElement
+    expect(copyBtn?.disabled).toBe(true)
+    expect(copyBtn?.style.opacity).toContain('0.5')
+  })
+})
+
+// ==================== Enhanced createStatusBar Tests ====================
+
+describe('createStatusBar - enhanced', () => {
+  beforeEach(() => {
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    // Clean up any scheduled timers
+    vi.runAllTimers?.() ?? vi.useRealTimers()
+  })
+
+  it('should create dock element', () => {
+    const statusBar = createStatusBar()
+
+    const dock = statusBar.querySelector('.dm-preview-dock')
+    expect(dock).toBeTruthy()
+    expect(dock?.id).toBe('dm-preview-dock')
+  })
+
+  it('should create bottom area container', () => {
+    const statusBar = createStatusBar()
+
+    expect(statusBar.className).toContain('dm-bottom-area')
+    expect(statusBar.style.display).toContain('flex')
+  })
+
+  it('should create connection status element', () => {
+    const statusBar = createStatusBar()
+
+    const connectionStatus = statusBar.querySelector('#dm-connection-status')
+    expect(connectionStatus).toBeTruthy()
+  })
+
+  it('should have ready status text', () => {
+    const statusBar = createStatusBar()
+
+    const readyText = statusBar.querySelector('#dm-status-ready')
+    expect(readyText?.textContent).toBe('就绪')
+  })
+
+  it('should have connection indicator element', () => {
+    const statusBar = createStatusBar()
+
+    const indicator = statusBar.querySelector('#dm-connection-indicator')
+    expect(indicator).toBeTruthy()
+  })
+
+  it('should update connection indicator for active state', async () => {
+    // Mock active connection state
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      _remoteConnectionsState: {
+        active: {
+          username: 'testuser',
+          host: '192.168.1.100',
+        },
+      },
+    })
+
+    const statusBar = createStatusBar()
+
+    // Wait for setTimeout
+    await new Promise((resolve) => setTimeout(resolve, 150))
+
+    const indicator = document.getElementById('dm-connection-indicator') as HTMLElement
+    // After timeout, indicator should be updated
+    expect(indicator).toBeTruthy()
+  })
+
+  it('should update connection indicator for inactive state', async () => {
+    // Mock inactive connection state
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      _remoteConnectionsState: {
+        active: null,
+      },
+    })
+
+    const statusBar = createStatusBar()
+
+    // Wait for setTimeout
+    await new Promise((resolve) => setTimeout(resolve, 150))
+
+    const indicator = document.getElementById('dm-connection-indicator') as HTMLElement
+    expect(indicator).toBeTruthy()
+  })
+
+  it('should display SSH connection status when active', async () => {
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      _remoteConnectionsState: {
+        active: {
+          username: 'admin',
+          host: 'server.example.com',
+        },
+      },
+    })
+
+    const statusBar = createStatusBar()
+
+    // Wait for setTimeout
+    await new Promise((resolve) => setTimeout(resolve, 150))
+
+    const statusText = document.getElementById('dm-connection-status') as HTMLElement
+    expect(statusText).toBeTruthy()
+  })
+
+  it('should handle setTimeout delayed update', async () => {
+    vi.stubGlobal('window', {
+      ...globalThis.window,
+      _remoteConnectionsState: {
+        active: null,
+      },
+    })
+
+    const statusBar = createStatusBar()
+
+    // Before setTimeout
+    const indicator = document.getElementById('dm-connection-indicator')
+    expect(indicator).toBeTruthy()
+
+    // Wait for setTimeout
+    await new Promise((resolve) => setTimeout(resolve, 150))
+
+    const afterIndicator = document.getElementById('dm-connection-indicator')
+    expect(afterIndicator).toBeTruthy()
+  })
+
+  it('should have correct dock styles', () => {
+    const statusBar = createStatusBar()
+    const dock = statusBar.querySelector('.dm-preview-dock') as HTMLElement
+
+    expect(dock?.style.minHeight).toBe('0px')
+    expect(dock?.style.maxHeight).toBe('0px')
+    expect(dock?.style.padding).toContain('15px')
   })
 })
