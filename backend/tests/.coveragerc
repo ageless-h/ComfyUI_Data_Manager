@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-""" .coveragerc - Coverage 配置文件
-
-控制代码覆盖率分析的行为和报告
-"""
+# Coverage 配置文件
+# 控制代码覆盖率分析的行为和报告
 
 [run]
 # 源代码路径
