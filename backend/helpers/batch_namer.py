@@ -260,10 +260,23 @@ def validate_naming_rule(naming_rule: str) -> tuple[bool, Optional[str]]:
         return False, "命名规则包含不安全的路径遍历"
 
     # 检查是否包含非法字符（Windows）
-    invalid_chars = ['<', '>', ':', '"', '|']
+    # 注意：冒号用于 Python 格式字符串（如 {index:04d}），需要特殊处理
+    invalid_chars = ['<', '>', '"', '|']
     for char in invalid_chars:
         if char in naming_rule:
             return False, f"命名规则包含非法字符: '{char}'"
+
+    # 检查冒号是否在非法位置（不在格式字符串的花括号内）
+    # 允许：{index:04d}, {name:format}
+    # 不允许：file:name, C:\path
+    if ':' in naming_rule:
+        # 检查冒号是否在花括号内（格式字符串）
+        import re
+        # 找出所有不在花括号内的冒号
+        # 先移除所有 {xxx:yyy} 格式的内容
+        temp = re.sub(r'\{[^}]*:[^}]*\}', '', naming_rule)
+        if ':' in temp:
+            return False, f"命名规则包含非法字符: ':' (仅在格式字符串 {var:format} 中允许)"
 
     # 检查占位符语法
     try:

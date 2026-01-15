@@ -1006,18 +1006,21 @@ class InputPathConfig(io.ComfyNode):
                     "enable_batch",
                     default=False,
                     display_name="启用 Batch 模式",
+                    optional=True,
                 ),
                 io.String.Input(
                     "naming_rule",
                     default="result_{index:04d}",
                     multiline=False,
                     display_name="命名规则",
+                    optional=True,
                 ),
                 io.String.Input(
                     "original_path",
                     default="",
                     multiline=False,
                     display_name="原始路径（可选）",
+                    optional=True,
                 ),
             ],
             outputs=[
@@ -1093,14 +1096,88 @@ class InputPathConfig(io.ComfyNode):
                 }
                 return io.NodeOutput(json.dumps(config, ensure_ascii=False))
 
-            # 生成文件名（使用命名规则）
-            # 注意：Batch 模式下，索引由 ComfyUI 的自动迭代机制处理
-            # 这里我们使用原始路径信息来生成文件名
+            # 检测输入是否为批次张量 [N, H, W, C]
+            import torch
+            if isinstance(file_input, torch.Tensor) and file_input.dim() == 4:
+                # 批次张量：手动迭代保存
+                batch_size = file_input.shape[0]
+                print(f"[DataManager] 检测到批次张量，形状: {file_input.shape}，将保存 {batch_size} 个文件")
+
+                saved_paths = []
+                try:
+                    for i in range(batch_size):
+                        # 提取单个图像 [H, W, C]
+                        single_image = file_input[i]
+
+                        # 生成文件名
+                        generated_name = generate_name(
+                            naming_rule,
+                            index=i,
+                            original_path=original_path or None,
+                            output_ext=format,
+                        )
+
+                        # 确定保存路径
+                        if "/" in generated_name or "\\" in generated_name:
+                            generated_path = os.path.normpath(generated_name)
+                            if os.path.isabs(generated_path):
+                                full_path = generated_path
+                                directory = os.path.dirname(full_path)
+                                filename = os.path.basename(full_path)
+                            else:
+                                directory = os.path.join(target_path, os.path.dirname(generated_name))
+                                filename = os.path.basename(generated_name)
+                                full_path = os.path.join(directory, filename)
+                        else:
+                            directory = target_path
+                            filename = generated_name
+                            full_path = os.path.join(directory, filename)
+
+                        # 创建目录
+                        os.makedirs(directory, exist_ok=True)
+
+                        # 保存文件
+                        saved_path = _save_by_type(single_image, full_path, format)
+                        if saved_path:
+                            saved_paths.append(saved_path)
+                            print(f"[DataManager] 保存 [{i+1}/{batch_size}]: {os.path.basename(saved_path)}")
+
+                    config = {
+                        "type": "input",
+                        "mode": "batch",
+                        "target_path": target_path,
+                        "detected_type": "IMAGE",
+                        "format": format,
+                        "saved_path": json.dumps(saved_paths),
+                        "count": len(saved_paths),
+                        "status": "success" if saved_paths else "error",
+                        "error": None,
+                    }
+                    return io.NodeOutput(json.dumps(config, ensure_ascii=False))
+
+                except Exception as e:
+                    error_msg = str(e)
+                    import traceback
+                    traceback.print_exc()
+
+                    config = {
+                        "type": "input",
+                        "mode": "batch",
+                        "target_path": target_path,
+                        "detected_type": "IMAGE",
+                        "format": format,
+                        "saved_path": None,
+                        "status": "error",
+                        "error": error_msg,
+                    }
+                    return io.NodeOutput(json.dumps(config, ensure_ascii=False))
+
+            # 单个图像（非批次）：使用原有逻辑
             try:
                 # 使用命名规则生成文件名
                 generated_name = generate_name(
                     naming_rule,
-                    index=0,  # 索引由 ComfyUI 自动迭代处理，这里使用默认值
+                    index=0,
                     original_path=original_path or None,
                     output_ext=format,
                 )
@@ -1431,12 +1508,14 @@ class OutputPathConfig(io.ComfyNode):
                     "enable_match",
                     default=False,
                     display_name="启用 Match 模式",
+                    optional=True,
                 ),
                 io.String.Input(
                     "pattern",
                     default="*.*",
                     multiline=False,
                     display_name="通配符模式",
+                    optional=True,
                 ),
             ],
             outputs=[
@@ -1463,7 +1542,7 @@ class OutputPathConfig(io.ComfyNode):
             单文件模式：对应类型的 ComfyUI 数据（IMAGE/VIDEO/AUDIO/LATENT/CONDITIONING/STRING）
             Match 模式：文件路径字符串列表（触发下游节点自动迭代）
         """
-        # ========== Match 模式：批量扫描文件 ==========
+        # ========== Match 模式：批量扫描并加载文件 ==========
         if enable_match:
             print(f"[DataManager] Match 模式: source_path={source_path}, pattern={pattern}")
 
@@ -1471,7 +1550,7 @@ class OutputPathConfig(io.ComfyNode):
             is_valid, error_msg = validate_glob_pattern(pattern)
             if not is_valid:
                 print(f"[DataManager] 无效的通配符模式: {error_msg}")
-                return io.NodeOutput([])
+                return io.NodeOutput(None)
 
             # 扫描文件（返回相对路径）
             try:
@@ -1480,14 +1559,63 @@ class OutputPathConfig(io.ComfyNode):
                 # 转换为绝对路径
                 abs_paths = [os.path.normpath(os.path.join(source_path, p)) for p in rel_paths]
 
-                print(f"[DataManager] Match 模式扫描到 {len(abs_paths)} 个文件")
+                print(f"[DataManager] Match 模式扫描到 {len(abs_paths)} 个文件，开始加载...")
 
-                # 返回路径字符串列表
-                # ComfyUI 会自动对每个路径执行一次下游节点（不会内存堆积）
-                return io.NodeOutput(abs_paths)
+                if not abs_paths:
+                    print(f"[DataManager] 未找到匹配的文件")
+                    return io.NodeOutput(None)
+
+                # 内部迭代：加载所有文件并合并为批次张量
+                loaded_images = []
+                loaded_masks = []
+                loaded_data = []  # 用于非 IMAGE 类型的回退
+
+                for i, file_path in enumerate(abs_paths):
+                    # 检测文件类型
+                    detected_type = detect_type_from_extension(file_path)
+
+                    # 根据类型加载文件
+                    try:
+                        if detected_type == "IMAGE":
+                            image, mask = load_image(file_path)
+                            loaded_images.append(image)
+                            if mask is not None:
+                                loaded_masks.append(mask)
+                        elif detected_type == "VIDEO":
+                            video = load_video(file_path)
+                            loaded_data.append(video)
+                        elif detected_type == "AUDIO":
+                            audio = load_audio(file_path)
+                            loaded_data.append(audio)
+                        elif detected_type == "LATENT":
+                            latent = load_latent(file_path)
+                            loaded_data.append(latent)
+                        elif detected_type == "CONDITIONING":
+                            conditioning = load_conditioning(file_path)
+                            loaded_data.append(conditioning)
+                        else:
+                            # 默认返回路径字符串
+                            loaded_data.append(file_path)
+                    except Exception as e:
+                        print(f"[DataManager] 加载文件失败 {file_path}: {e}")
+                        loaded_data.append(file_path)  # 失败时返回路径
+
+                # 优先返回批次化的 IMAGE（让 InputPathConfig Batch 模式处理）
+                if loaded_images and not loaded_data:
+                    import torch
+                    # 沿 batch 维度拼接: [1, H, W, 3] + [1, H, W, 3] -> [N, H, W, 3]
+                    batched_image = torch.cat(loaded_images, dim=0)
+                    print(f"[DataManager] Match 模式加载完成: {len(loaded_images)} 个图像，批次形状: {batched_image.shape}")
+
+                    # 返回批次化图像，InputPathConfig Batch 模式会处理
+                    return io.NodeOutput(batched_image)
+
+                # 混合类型或非图像类型：返回路径列表
+                print(f"[DataManager] Match 模式加载完成: {len(loaded_data)} 个数据项（路径列表）")
+                return io.NodeOutput(loaded_data)
 
             except Exception as e:
-                print(f"[DataManager] Match 模式扫描失败: {e}")
+                print(f"[DataManager] Match 模式加载失败: {e}")
                 import traceback
                 traceback.print_exc()
                 return io.NodeOutput([])
@@ -1497,7 +1625,7 @@ class OutputPathConfig(io.ComfyNode):
         file_path = None
 
         if input is not None and input != "":
-            # 如果 input 是 JSON 字符串，尝试解析 path 字段
+            # 处理 input：可能是字符串、列表或其他类型
             if isinstance(input, str):
                 try:
                     parsed = json.loads(input)
@@ -1507,6 +1635,12 @@ class OutputPathConfig(io.ComfyNode):
                         file_path = input
                 except:
                     file_path = input
+            elif isinstance(input, list):
+                # ComfyUI 迭代时可能传递列表，取第一个元素
+                if len(input) > 0:
+                    file_path = str(input[0])
+                else:
+                    file_path = None
             else:
                 file_path = str(input)
 
