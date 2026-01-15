@@ -193,6 +193,12 @@ def create_file(directory: str, filename: str, content: str = "") -> str:
         FileExistsError: 文件已存在
         PermissionError: 无写入权限
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # 移除路径末尾的分隔符
+    directory = directory.rstrip(os.sep).rstrip('/')
+
     if not os.path.exists(directory):
         raise FileNotFoundError(f"目录不存在: {directory}")
 
@@ -202,11 +208,12 @@ def create_file(directory: str, filename: str, content: str = "") -> str:
     file_path = os.path.join(directory, filename)
 
     if os.path.exists(file_path):
-        raise FileExistsError(f"文件已存在: {file_path}")
+        raise FileExistsError(f"文件 '{filename}' 已存在于目录 {directory} 中")
 
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
 
+    logger.info(f"[DataManager] 文件已创建: {file_path}")
     return file_path
 
 
@@ -225,8 +232,14 @@ def create_directory(directory: str, dirname: str) -> str:
         FileExistsError: 文件夹已存在
         PermissionError: 无创建权限
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # 移除路径末尾的分隔符
+    directory = directory.rstrip(os.sep).rstrip('/')
+
     if not os.path.exists(directory):
-        raise FileNotFoundError(f"目录不存在: {directory}")
+        raise FileNotFoundError(f"父目录不存在: {directory}")
 
     if not os.path.isdir(directory):
         raise NotADirectoryError(f"路径不是目录: {directory}")
@@ -234,10 +247,10 @@ def create_directory(directory: str, dirname: str) -> str:
     dir_path = os.path.join(directory, dirname)
 
     if os.path.exists(dir_path):
-        raise FileExistsError(f"文件夹已存在: {dir_path}")
+        raise FileExistsError(f"文件夹 '{dirname}' 已存在于目录 {directory} 中")
 
     os.makedirs(dir_path)
-
+    logger.info(f"[DataManager] 文件夹已创建: {dir_path}")
     return dir_path
 
 

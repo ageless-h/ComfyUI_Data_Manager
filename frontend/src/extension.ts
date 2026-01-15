@@ -535,16 +535,6 @@ async function deleteSelectedFiles(): Promise<void> {
  * Show new file dialog
  */
 function showNewFileDialog(): void {
-  const { getComfyTheme } = require('../utils/theme.js') as {
-    getComfyTheme: () => {
-      bgSecondary: string
-      bgTertiary: string
-      borderColor: string
-      textPrimary: string
-      textSecondary: string
-    }
-  }
-
   const theme = getComfyTheme()
 
   const modal = document.createElement('div')
@@ -615,8 +605,15 @@ async function createNewFile(): Promise<void> {
       await loadDirectory(FileManagerState.currentPath)
       showToast('success', '成功', `文件已创建: ${name}`)
     } catch (error) {
-      console.error('创建文件失败:', error)
-      showToast('error', '错误', `创建文件失败: ${(error as Error).message}`)
+      const errorMsg = (error as Error).message
+      // 改进错误提示
+      if (errorMsg.includes('File already exists') || errorMsg.includes('已存在')) {
+        showToast('error', '创建失败', `文件 "${name}" 已存在，请使用其他文件名`)
+      } else if (errorMsg.includes('Directory not found') || errorMsg.includes('目录不存在')) {
+        showToast('error', '创建失败', `目录不存在`)
+      } else {
+        showToast('error', '创建失败', errorMsg)
+      }
     }
   }
 }
@@ -632,8 +629,15 @@ async function createNewFolder(): Promise<void> {
       await loadDirectory(FileManagerState.currentPath)
       showToast('success', '成功', `文件夹已创建: ${name}`)
     } catch (error) {
-      console.error('创建文件夹失败:', error)
-      showToast('error', '错误', `创建文件夹失败: ${(error as Error).message}`)
+      const errorMsg = (error as Error).message
+      // 改进错误提示
+      if (errorMsg.includes('File exists') || errorMsg.includes('已存在')) {
+        showToast('error', '创建失败', `文件夹 "${name}" 已存在，请使用其他名称`)
+      } else if (errorMsg.includes('Directory not found') || errorMsg.includes('目录不存在')) {
+        showToast('error', '创建失败', `父目录不存在`)
+      } else {
+        showToast('error', '创建失败', errorMsg)
+      }
     }
   }
 }

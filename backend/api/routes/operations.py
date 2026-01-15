@@ -70,6 +70,8 @@ async def create_file_handler(request):
         filename = data.get("filename", "")
         content = data.get("content", "")
 
+        logger.info(f"[DataManager] create_file request: directory={directory}, filename={filename}")
+
         if not filename:
             return web.json_response({"error": "Filename is required"}, status=400)
 
@@ -79,6 +81,8 @@ async def create_file_handler(request):
 
             comfy_root = os.path.dirname(folder_paths.__file__)
             directory = os.path.abspath(os.path.join(comfy_root, directory))
+
+        logger.info(f"[DataManager] create_file normalized directory: {directory}")
 
         # 创建文件
         file_path = create_file(directory, filename, content)
