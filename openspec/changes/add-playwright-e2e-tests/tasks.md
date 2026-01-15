@@ -16,14 +16,14 @@
 - [x] 2.4 创建 `frontend/tests/fixtures/` 测试数据目录
 - [ ] 2.5 迁移现有单元测试到新目录
 - [ ] 2.6 更新 vitest.config.ts 中的测试路径
-- [ ] 2.7 创建测试文档 README.md
+- [x] 2.7 创建测试文档 README.md
 
 ## 阶段 3：E2E 测试实现
 
 - [x] 3.1 创建 `file-manager.spec.ts`（文件管理器操作）
 - [x] 3.2 创建 `settings.spec.ts`（设置面板）
 - [x] 3.3 创建 `preview.spec.ts`（文件预览）
-- [ ] 3.4 添加测试数据和 fixtures
+- [x] 3.4 添加测试数据和 fixtures
 - [x] 3.5 配置测试超时和重试
 - [ ] 3.6 验证所有 E2E 测试通过（100% 成功率）
 
@@ -38,9 +38,9 @@
 ## 阶段 5：配置与文档
 
 - [x] 5.1 更新 vitest.config.ts 覆盖率阈值为 80%
-- [ ] 5.2 创建 `frontend/tests/README.md` 文档
+- [x] 5.2 创建 `frontend/tests/README.md` 文档
 - [x] 5.3 创建 `frontend/e2e/README.md` 文档
-- [ ] 5.4 更新项目 README.md 测试说明
+- [x] 5.4 更新项目 README.md 测试说明
 - [ ] 5.5 添加 CI/CD 工作流配置
 
 ## 阶段 6：验证与清理

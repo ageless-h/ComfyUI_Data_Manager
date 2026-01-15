@@ -137,28 +137,39 @@ python verify_batch_output.py
 
 ### 前端测试
 
-前端代码使用 Vitest 进行测试：
+前端使用 Vitest（单元测试）和 Playwright（E2E 测试）：
 
 ```bash
 cd frontend
 
+# 单元测试和组件测试
+npm test                 # 运行所有测试
+npm run test:ci         # CI 模式运行
+npm run test:coverage   # 生成覆盖率报告
+npm run test:ui         # 测试 UI 界面
+npm run test:watch      # 监视模式
+
+# E2E 测试（需要 ComfyUI 运行）
+npm run test:e2e        # 运行所有 E2E 测试
+npm run test:e2e:ui     # UI 模式
+npm run test:e2e:headed  # 有头模式（查看浏览器）
+
 # 运行所有测试
-npm test
-
-# 运行测试（CI模式）
-npm run test:ci
-
-# 监视模式
-npm run test:watch
-
-# 生成覆盖率报告
-npm run test:coverage
-
-# 打开测试 UI
-npm run test:ui
+npm run test:all
 ```
 
-测试详情请参阅 [docs/testing.md](docs/testing.md)
+### 覆盖率目标
+
+| 测试类型 | 框架 | 目标覆盖率 |
+|---------|------|-----------|
+| 单元测试 | Vitest | 80% |
+| 组件测试 | Vitest | 75% |
+| E2E 测试 | Playwright | 核心流程覆盖 |
+
+测试详情请参阅：
+- [backend/tests/README.md](backend/tests/README.md)
+- [frontend/tests/README.md](frontend/tests/README.md)
+- [frontend/e2e/README.md](frontend/e2e/README.md)
 
 ## 项目结构
 
