@@ -18,8 +18,16 @@ vi.mock('../../utils/theme.js', () => ({
 
 // Mock file-type utilities
 vi.mock('../../utils/file-type.js', () => ({
-  getFileType: () => 'image',
-  getTypeByExt: () => 'image',
+  getFileType: (file: { is_dir?: boolean; name?: string }) => {
+    // Return 'folder' for directories, 'image' for images, 'unknown' for others
+    if (file.is_dir) return 'folder'
+    if (file.name?.endsWith('.pdf')) return 'document'
+    return 'image'
+  },
+  getTypeByExt: (ext: string) => {
+    if (ext === '.pdf') return 'document'
+    return 'image'
+  },
 }))
 
 // Mock format utilities
@@ -32,10 +40,20 @@ vi.mock('../../utils/format.js', () => ({
 // Mock constants
 vi.mock('../../core/constants.js', () => ({
   FILE_TYPES: {
+    folder: {
+      icon: 'pi-folder',
+      color: '#f39c12',
+      exts: [],
+    },
     image: {
       icon: 'pi-image',
       color: '#3498db',
       exts: ['.png', '.jpg'],
+    },
+    document: {
+      icon: 'pi-file-pdf',
+      color: '#e74c3c',
+      exts: ['.pdf'],
     },
     unknown: {
       icon: 'pi-file',
