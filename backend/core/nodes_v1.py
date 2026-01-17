@@ -187,17 +187,94 @@ class OutputPathConfig:
             return (file_path,)
 
 
+class BatchPathLoader:
+    """批量路径加载节点 - V1 API
+
+    扫描目录中的文件并返回路径列表，触发 ComfyUI 自动迭代处理
+
+    功能：
+    - 使用通配符扫描目录
+    - 返回文件路径字符串列表
+    - 触发 ComfyUI 自动迭代机制
+    - 保持原图大小
+    """
+
+    CATEGORY = "Data Manager"
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("paths",)
+    FUNCTION = "load_batch"
+    OUTPUT_IS_LIST = (True,)  # 关键：触发 ComfyUI 自动迭代
+    INPUT_IS_LIST = False
+    COLOR = "#e74c3c"
+
+    @classmethod
+    def INPUT_TYPES(cls) -> Dict[str, Any]:
+        return {
+            "required": {
+                "source_path": ("STRING", {"default": "./input", "tooltip": "文件读取的源目录"}),
+                "pattern": ("STRING", {"default": "*.*", "tooltip": "glob 通配符模式"}),
+            },
+            "optional": {},
+        }
+
+    def load_batch(self, source_path: str, pattern: str = "*.*") -> Tuple[str]:
+        """批量加载文件路径
+
+        Args:
+            source_path: 源目录
+            pattern: glob 通配符模式
+
+        Returns:
+            文件路径字符串元组（ComfyUI 会自动迭代处理每个路径）
+        """
+        from ..helpers.batch_scanner import scan_files
+
+        print(f"[BatchPathLoader] 扫描目录: {source_path}, pattern: {pattern}")
+
+        # 检查目录是否存在
+        if not os.path.exists(source_path):
+            print(f"[BatchPathLoader] 目录不存在: {source_path}")
+            return ("",)
+
+        if not os.path.isdir(source_path):
+            print(f"[BatchPathLoader] 路径不是目录: {source_path}")
+            return ("",)
+
+        # 扫描文件
+        try:
+            rel_paths = scan_files(source_path, pattern, recursive="**" in pattern)
+            print(f"[BatchPathLoader] 扫描到 {len(rel_paths)} 个文件")
+
+            # 转换为绝对路径
+            abs_paths = [os.path.normpath(os.path.join(source_path, p)) for p in rel_paths]
+
+            if not abs_paths:
+                print(f"[BatchPathLoader] 未找到匹配的文件")
+                return ("",)
+
+            print(f"[BatchPathLoader] 返回 {len(abs_paths)} 个路径，ComfyUI 将自动迭代处理")
+            return tuple(abs_paths)  # 返回元组，OUTPUT_IS_LIST 会触发迭代
+
+        except Exception as e:
+            print(f"[BatchPathLoader] 扫描失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return ("",)
+
+
 # V1 API 节点映射
 NODE_CLASS_MAPPINGS = {
     "DataManagerCore": DataManagerCore,
     "InputPathConfig": InputPathConfig,
     "OutputPathConfig": OutputPathConfig,
+    "BatchPathLoader": BatchPathLoader,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "DataManagerCore": "Data Manager - Core",
     "InputPathConfig": "Data Manager - Input Path",
     "OutputPathConfig": "Data Manager - Output Path",
+    "BatchPathLoader": "Data Manager - Batch Path Loader",
 }
 
 # V1 API 前端目录
