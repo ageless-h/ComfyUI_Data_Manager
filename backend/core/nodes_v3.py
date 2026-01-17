@@ -1542,7 +1542,9 @@ class OutputPathConfig(io.ComfyNode):
             单文件模式：对应类型的 ComfyUI 数据（IMAGE/VIDEO/AUDIO/LATENT/CONDITIONING/STRING）
             Match 模式：文件路径字符串列表（触发下游节点自动迭代）
         """
-        # ========== Match 模式：批量扫描并加载文件 ==========
+        # ========== Match 模式：批量扫描并返回文件路径列表 ==========
+        # 策略：返回路径字符串列表，让 ComfyUI 自动迭代处理每个文件
+        # 这样可以保持原图大小，不会占用大量内存
         if enable_match:
             print(f"[DataManager] Match 模式: source_path={source_path}, pattern={pattern}")
 
@@ -1563,133 +1565,26 @@ class OutputPathConfig(io.ComfyNode):
 
             # 扫描文件（返回相对路径）
             try:
-                print(f"[DataManager] 开始扫描文件: source_path={source_path}, pattern={pattern}")
-
-                # 先测试 glob.glob 是否能找到文件
-                import glob as glob_module
-                test_pattern = os.path.join(source_path, pattern)
-                print(f"[DataManager] 测试 glob 模式: {test_pattern}")
-                test_matches = glob_module.glob(test_pattern, recursive=False)
-                print(f"[DataManager] glob.glob 直接返回 {len(test_matches)} 个匹配: {test_matches[:5] if test_matches else 'empty'}")
-
                 rel_paths = scan_files(source_path, pattern, recursive="**" in pattern)
-                print(f"[DataManager] scan_files 返回 {len(rel_paths)} 个相对路径: {rel_paths[:5] if rel_paths else 'empty'}")
+                print(f"[DataManager] Match 模式扫描到 {len(rel_paths)} 个文件")
 
                 # 转换为绝对路径
                 abs_paths = [os.path.normpath(os.path.join(source_path, p)) for p in rel_paths]
-                print(f"[DataManager] 转换为绝对路径: {len(abs_paths)} 个文件")
 
                 if not abs_paths:
-                    print(f"[DataManager] 未找到匹配的文件，目录内容:")
-                    try:
-                        if os.path.exists(source_path) and os.path.isdir(source_path):
-                            files = os.listdir(source_path)
-                            print(f"[DataManager]   目录中有 {len(files)} 个项: {files[:10]}")
-                    except Exception as e:
-                        print(f"[DataManager]   无法列出目录内容: {e}")
-                    return io.NodeOutput([])  # 返回空列表而不是 None
+                    print(f"[DataManager] 未找到匹配的文件")
+                    return io.NodeOutput(None)
 
-                # 内部迭代：加载所有文件并合并为批次张量
-                loaded_images = []
-                loaded_masks = []
-                loaded_data = []  # 用于非 IMAGE 类型的回退
-
-                for i, file_path in enumerate(abs_paths):
-                    # 检测文件类型
-                    detected_type = detect_type_from_extension(file_path)
-
-                    # 根据类型加载文件
-                    try:
-                        if detected_type == "IMAGE":
-                            image, mask = load_image(file_path)
-                            loaded_images.append(image)
-                            if mask is not None:
-                                loaded_masks.append(mask)
-                        elif detected_type == "VIDEO":
-                            video = load_video(file_path)
-                            loaded_data.append(video)
-                        elif detected_type == "AUDIO":
-                            audio = load_audio(file_path)
-                            loaded_data.append(audio)
-                        elif detected_type == "LATENT":
-                            latent = load_latent(file_path)
-                            loaded_data.append(latent)
-                        elif detected_type == "CONDITIONING":
-                            conditioning = load_conditioning(file_path)
-                            loaded_data.append(conditioning)
-                        else:
-                            # 默认返回路径字符串
-                            loaded_data.append(file_path)
-                    except Exception as e:
-                        print(f"[DataManager] 加载文件失败 {file_path}: {e}")
-                        loaded_data.append(file_path)  # 失败时返回路径
-
-                # 优先返回批次化的 IMAGE（让 InputPathConfig Batch 模式处理）
-                if loaded_images and not loaded_data:
-                    import torch
-                    # 检查所有图像尺寸是否一致
-                    first_shape = loaded_images[0].shape
-                    consistent = all(img.shape == first_shape for img in loaded_images)
-
-                    if consistent:
-                        # 尺寸一致，沿 batch 维度拼接: [1, H, W, 3] + [1, H, W, 3] -> [N, H, W, 3]
-                        batched_image = torch.cat(loaded_images, dim=0)
-                        print(f"[DataManager] Match 模式加载完成: {len(loaded_images)} 个图像（尺寸一致），批次形状: {batched_image.shape}")
-                        return io.NodeOutput(batched_image)
-                    else:
-                        # 尺寸不一致，自动调整到统一尺寸
-                        print(f"[DataManager] 检测到图像尺寸不一致，自动调整到统一尺寸")
-                        print(f"[DataManager]   使用最大宽高作为目标（保持宽高比）")
-
-                        # 计算最大宽高
-                        max_h = max(img.shape[1] for img in loaded_images)
-                        max_w = max(img.shape[2] for img in loaded_images)
-                        print(f"[DataManager]   目标尺寸: {max_h}x{max_w}")
-
-                        # 调整所有图像到目标尺寸
-                        resized_images = []
-                        try:
-                            import torchvision.transforms.functional as F
-                            use_torchvision = True
-                        except ImportError:
-                            use_torchvision = False
-                            from PIL import Image
-                            import numpy as np
-
-                        for i, img in enumerate(loaded_images):
-                            h, w = img.shape[1], img.shape[2]
-                            if h != max_h or w != max_w:
-                                if use_torchvision:
-                                    # 使用 torchvision（更快）
-                                    img_nchw = img.permute(0, 3, 1, 2)
-                                    img_resized = F.resize(img_nchw, [max_h, max_w], antialias=True)
-                                    img_resized = img_resized.permute(0, 2, 3, 1)
-                                else:
-                                    # 使用 PIL
-                                    img_pil = Image.fromarray((img[0].numpy() * 255).astype(np.uint8))
-                                    img_resized_pil = img_pil.resize((max_w, max_h), Image.Resampling.LANCZOS)
-                                    img_resized = np.array(img_resized_pil).astype(np.float32) / 255.0
-                                    img_resized = torch.from_numpy(img_resized)[None,]
-                                resized_images.append(img_resized)
-                                if i < 3:
-                                    print(f"[DataManager]   图像 {i+1}: {h}x{w} -> {max_h}x{max_w}")
-                            else:
-                                resized_images.append(img)
-
-                        # 批次化
-                        batched_image = torch.cat(resized_images, dim=0)
-                        print(f"[DataManager] Match 模式加载完成: {len(resized_images)} 个图像（已调整），批次形状: {batched_image.shape}")
-                        return io.NodeOutput(batched_image)
-
-                # 混合类型或非图像类型：返回路径列表
-                print(f"[DataManager] Match 模式加载完成: {len(loaded_data)} 个数据项（路径列表）")
-                return io.NodeOutput(loaded_data)
+                # ========== 关键：返回文件路径字符串列表，触发 ComfyUI 自动迭代 ==========
+                print(f"[DataManager] 返回文件路径列表，ComfyUI 将自动迭代处理每个文件")
+                print(f"[DataManager]   工作流: OutputPathConfig → LoadImage → 处理节点")
+                print(f"[DataManager]   保持原图大小，自动执行 {len(abs_paths)} 次")
+                return io.NodeOutput(abs_paths)  # 返回路径列表！
 
             except Exception as e:
-                print(f"[DataManager] Match 模式加载失败: {e}")
+                print(f"[DataManager] Match 模式扫描失败: {e}")
                 import traceback
                 traceback.print_exc()
-                # 返回空列表而不是 None
                 return io.NodeOutput([])
 
         # ========== 单文件模式：加载单个文件 ==========
