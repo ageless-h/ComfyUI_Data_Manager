@@ -1506,7 +1506,7 @@ class OutputPathConfig(io.ComfyNode):
                 # Match 模式选项
                 io.Boolean.Input(
                     "enable_match",
-                    default=False,
+                    default=True,
                     display_name="启用 Match 模式",
                     optional=True,
                 ),
@@ -1525,7 +1525,7 @@ class OutputPathConfig(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, source_path: str, input=None, enable_match: bool = False, pattern: str = "*.*") -> io.NodeOutput:
+    def execute(cls, source_path: str, input=None, enable_match: bool = True, pattern: str = "*.*") -> io.NodeOutput:
         """根据文件路径加载文件并转换为对应的 ComfyUI 数据类型
 
         支持两种模式：
@@ -1624,8 +1624,9 @@ class OutputPathConfig(io.ComfyNode):
         # 2. 检查文件是否存在
         if not file_path or not os.path.exists(file_path):
             print(f"[DataManager] 文件不存在: {file_path}")
-            # 返回文件路径字符串
-            return io.NodeOutput(file_path or "")
+            print(f"[DataManager] 提示：如果 source_path 是目录，请设置 enable_match=true")
+            # 返回空字符串而不是 None
+            return io.NodeOutput("")
 
         # 3. 根据扩展名检测文件类型
         detected_type = detect_type_from_extension(file_path)
