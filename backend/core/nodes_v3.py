@@ -1582,7 +1582,6 @@ class OutputPathConfig(io.ComfyNode):
                 if not abs_paths:
                     print(f"[DataManager] 未找到匹配的文件，目录内容:")
                     try:
-                        import os
                         if os.path.exists(source_path) and os.path.isdir(source_path):
                             files = os.listdir(source_path)
                             print(f"[DataManager]   目录中有 {len(files)} 个项: {files[:10]}")
