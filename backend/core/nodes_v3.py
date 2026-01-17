@@ -1573,7 +1573,10 @@ class OutputPathConfig(io.ComfyNode):
 
                 if not abs_paths:
                     print(f"[DataManager] 未找到匹配的文件")
-                    return io.NodeOutput(None)
+                    print(f"[DataManager] 提示：请检查 source_path 是否正确")
+                    print(f"[DataManager]   当前路径: {source_path}")
+                    print(f"[DataManager]   通配符: {pattern}")
+                    return io.NodeOutput([])  # 返回空列表而不是 None
 
                 # ========== 关键：返回文件路径字符串列表，触发 ComfyUI 自动迭代 ==========
                 print(f"[DataManager] 返回文件路径列表，ComfyUI 将自动迭代处理每个文件")
