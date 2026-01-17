@@ -1627,12 +1627,29 @@ class OutputPathConfig(io.ComfyNode):
                 # 优先返回批次化的 IMAGE（让 InputPathConfig Batch 模式处理）
                 if loaded_images and not loaded_data:
                     import torch
-                    # 沿 batch 维度拼接: [1, H, W, 3] + [1, H, W, 3] -> [N, H, W, 3]
-                    batched_image = torch.cat(loaded_images, dim=0)
-                    print(f"[DataManager] Match 模式加载完成: {len(loaded_images)} 个图像，批次形状: {batched_image.shape}")
+                    try:
+                        # 检查所有图像尺寸是否一致
+                        first_shape = loaded_images[0].shape
+                        consistent = all(img.shape == first_shape for img in loaded_images)
 
-                    # 返回批次化图像，InputPathConfig Batch 模式会处理
-                    return io.NodeOutput(batched_image)
+                        if consistent:
+                            # 沿 batch 维度拼接: [1, H, W, 3] + [1, H, W, 3] -> [N, H, W, 3]
+                            batched_image = torch.cat(loaded_images, dim=0)
+                            print(f"[DataManager] Match 模式加载完成: {len(loaded_images)} 个图像，批次形状: {batched_image.shape}")
+                            return io.NodeOutput(batched_image)
+                        else:
+                            # 尺寸不一致，只返回第一张图像作为降级处理
+                            print(f"[DataManager] 图像尺寸不一致，只返回第一张图像")
+                            print(f"[DataManager]   第一个图像尺寸: {first_shape}")
+                            print(f"[DataManager]   共扫描到 {len(loaded_images)} 个图像，但尺寸不同")
+                            print(f"[DataManager]   如需处理所有图像，请在工作流中使用循环或单独加载")
+                            return io.NodeOutput(loaded_images[0])
+                    except Exception as e:
+                        print(f"[DataManager] 批次化失败，只返回第一张图像: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        # 批次化失败，返回第一张图像
+                        return io.NodeOutput(loaded_images[0])
 
                 # 混合类型或非图像类型：返回路径列表
                 print(f"[DataManager] Match 模式加载完成: {len(loaded_data)} 个数据项（路径列表）")
@@ -1642,6 +1659,7 @@ class OutputPathConfig(io.ComfyNode):
                 print(f"[DataManager] Match 模式加载失败: {e}")
                 import traceback
                 traceback.print_exc()
+                # 返回空列表而不是 None
                 return io.NodeOutput([])
 
         # ========== 单文件模式：加载单个文件 ==========
