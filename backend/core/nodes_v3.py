@@ -1546,6 +1546,15 @@ class OutputPathConfig(io.ComfyNode):
         if enable_match:
             print(f"[DataManager] Match 模式: source_path={source_path}, pattern={pattern}")
 
+            # 检查目录是否存在
+            if not os.path.exists(source_path):
+                print(f"[DataManager] 目录不存在: {source_path}")
+                return io.NodeOutput(None)
+
+            if not os.path.isdir(source_path):
+                print(f"[DataManager] 路径不是目录: {source_path}")
+                return io.NodeOutput(None)
+
             # 验证通配符模式
             is_valid, error_msg = validate_glob_pattern(pattern)
             if not is_valid:
@@ -1647,6 +1656,12 @@ class OutputPathConfig(io.ComfyNode):
         # 如果没有 input，使用 source_path
         if not file_path:
             file_path = source_path
+
+        # ========== 自动检测：如果 file_path 是目录，自动启用 Match 模式 ==========
+        if os.path.isdir(file_path):
+            print(f"[DataManager] 检测到路径是目录，自动启用 Match 模式: {file_path}")
+            # 递归调用 Match 模式
+            return cls.execute(source_path=file_path, input=input, enable_match=True, pattern=pattern)
 
         # 2. 检查文件是否存在
         if not file_path or not os.path.exists(file_path):
