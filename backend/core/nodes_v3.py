@@ -1638,20 +1638,58 @@ class OutputPathConfig(io.ComfyNode):
                             print(f"[DataManager] Match 模式加载完成: {len(loaded_images)} 个图像（尺寸一致），批次形状: {batched_image.shape}")
                             return io.NodeOutput(batched_image)
                         else:
-                            # 尺寸不一致，返回每张图像作为独立张量列表（触发 ComfyUI 自动迭代）
-                            print(f"[DataManager] 检测到图像尺寸不一致，触发自动迭代模式")
-                            print(f"[DataManager]   将返回 {len(loaded_images)} 个独立图像张量")
+                            # 尺寸不一致，自动调整到统一尺寸（保持宽高比）
+                            print(f"[DataManager] 检测到图像尺寸不一致，自动调整到统一尺寸")
+                            print(f"[DataManager]   使用中位数尺寸作为目标，保持宽高比")
+
+                            # 计算中位数宽高
+                            heights = sorted([img.shape[1] for img in loaded_images])
+                            widths = sorted([img.shape[2] for img in loaded_images])
+                            median_h = heights[len(heights) // 2]
+                            median_w = widths[len(widths) // 2]
+                            print(f"[DataManager]   目标尺寸（中位数）: {median_h}x{median_w}")
+
+                            # 调整所有图像到目标尺寸（使用双线性插值）
+                            try:
+                                import torchvision.transforms.functional as F
+                            except ImportError:
+                                print(f"[DataManager]   torchvision 不可用，使用 PIL 调整尺寸")
+                                from PIL import Image
+                                import numpy as np
+
+                            resized_images = []
                             for i, img in enumerate(loaded_images):
-                                print(f"[DataManager]   图像 {i+1}: {img.shape}")
-                            print(f"[DataManager]   ComfyUI 将自动为每张图像执行下游节点")
-                            # 返回独立图像列表，ComfyUI 会自动迭代下游节点
-                            return io.NodeOutput(loaded_images)
+                                h, w = img.shape[1], img.shape[2]
+                                if h != median_h or w != median_w:
+                                    try:
+                                        # 方法 1: 使用 torchvision（推荐）
+                                        img_nchw = img.permute(0, 3, 1, 2)  # [1, 3, H, W]
+                                        img_resized = F.resize(img_nchw, [median_h, median_w], antialias=True)
+                                        img_resized = img_resized.permute(0, 2, 3, 1)  # [1, H, W, 3]
+                                        resized_images.append(img_resized)
+                                    except:
+                                        # 方法 2: 使用 PIL
+                                        img_pil = Image.fromarray((img[0].numpy() * 255).astype(np.uint8))
+                                        img_resized_pil = img_pil.resize((median_w, median_h), Image.Resampling.LANCZOS)
+                                        img_resized = np.array(img_resized_pil).astype(np.float32) / 255.0
+                                        img_resized = torch.from_numpy(img_resized)[None,]
+                                        resized_images.append(img_resized)
+                                    if i < 5:  # 只打印前 5 个
+                                        print(f"[DataManager]   图像 {i+1}: {h}x{w} -> {median_h}x{median_w}")
+                                else:
+                                    resized_images.append(img)
+
+                            # 批次化调整后的图像
+                            batched_image = torch.cat(resized_images, dim=0)
+                            print(f"[DataManager] Match 模式加载完成: {len(resized_images)} 个图像（已自动调整尺寸），批次形状: {batched_image.shape}")
+                            return io.NodeOutput(batched_image)
                     except Exception as e:
-                        print(f"[DataManager] 批次化失败，返回独立图像列表: {e}")
+                        print(f"[DataManager] 批次化失败: {e}")
                         import traceback
                         traceback.print_exc()
-                        # 批次化失败，返回独立图像列表
-                        return io.NodeOutput(loaded_images)
+                        # 降级：只返回第一张图像
+                        print(f"[DataManager]   降级：只返回第一张图像")
+                        return io.NodeOutput(loaded_images[0])
 
                 # 混合类型或非图像类型：返回路径列表
                 print(f"[DataManager] Match 模式加载完成: {len(loaded_data)} 个数据项（路径列表）")
