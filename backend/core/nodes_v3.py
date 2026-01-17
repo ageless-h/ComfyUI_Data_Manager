@@ -1627,6 +1627,7 @@ class OutputPathConfig(io.ComfyNode):
                 # 优先返回批次化的 IMAGE（让 InputPathConfig Batch 模式处理）
                 if loaded_images and not loaded_data:
                     import torch
+                    import torchvision.transforms.functional as F
                     try:
                         # 检查所有图像尺寸是否一致
                         first_shape = loaded_images[0].shape
@@ -1638,12 +1639,33 @@ class OutputPathConfig(io.ComfyNode):
                             print(f"[DataManager] Match 模式加载完成: {len(loaded_images)} 个图像，批次形状: {batched_image.shape}")
                             return io.NodeOutput(batched_image)
                         else:
-                            # 尺寸不一致，只返回第一张图像作为降级处理
-                            print(f"[DataManager] 图像尺寸不一致，只返回第一张图像")
-                            print(f"[DataManager]   第一个图像尺寸: {first_shape}")
-                            print(f"[DataManager]   共扫描到 {len(loaded_images)} 个图像，但尺寸不同")
-                            print(f"[DataManager]   如需处理所有图像，请在工作流中使用循环或单独加载")
-                            return io.NodeOutput(loaded_images[0])
+                            # 尺寸不一致，自动调整所有图像到统一尺寸
+                            print(f"[DataManager] 检测到图像尺寸不一致，自动调整到统一尺寸")
+
+                            # 策略：使用最大宽度和最大高度（保留宽高比会有黑边，这里直接拉伸）
+                            max_h = max(img.shape[1] for img in loaded_images)
+                            max_w = max(img.shape[2] for img in loaded_images)
+                            print(f"[DataManager]   目标尺寸: {max_h}x{max_w}")
+
+                            # 调整所有图像到目标尺寸
+                            resized_images = []
+                            for i, img in enumerate(loaded_images):
+                                h, w = img.shape[1], img.shape[2]
+                                if h != max_h or w != max_w:
+                                    # 使用双线性插值调整大小
+                                    # 转换为 [N, C, H, W] 格式
+                                    img_nchw = img.permute(0, 3, 1, 2)  # [1, 3, H, W]
+                                    img_resized = F.resize(img_nchw, [max_h, max_w], antialias=True)
+                                    img_resized = img_resized.permute(0, 2, 3, 1)  # [1, H, W, 3]
+                                    resized_images.append(img_resized)
+                                    print(f"[DataManager]   图像 {i+1}: {h}x{w} -> {max_h}x{max_w}")
+                                else:
+                                    resized_images.append(img)
+
+                            # 批次化调整后的图像
+                            batched_image = torch.cat(resized_images, dim=0)
+                            print(f"[DataManager] Match 模式加载完成: {len(resized_images)} 个图像（已自动调整尺寸），批次形状: {batched_image.shape}")
+                            return io.NodeOutput(batched_image)
                     except Exception as e:
                         print(f"[DataManager] 批次化失败，只返回第一张图像: {e}")
                         import traceback
