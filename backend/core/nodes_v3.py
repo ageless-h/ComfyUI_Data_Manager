@@ -1563,16 +1563,32 @@ class OutputPathConfig(io.ComfyNode):
 
             # 扫描文件（返回相对路径）
             try:
+                print(f"[DataManager] 开始扫描文件: source_path={source_path}, pattern={pattern}")
+
+                # 先测试 glob.glob 是否能找到文件
+                import glob as glob_module
+                test_pattern = os.path.join(source_path, pattern)
+                print(f"[DataManager] 测试 glob 模式: {test_pattern}")
+                test_matches = glob_module.glob(test_pattern, recursive=False)
+                print(f"[DataManager] glob.glob 直接返回 {len(test_matches)} 个匹配: {test_matches[:5] if test_matches else 'empty'}")
+
                 rel_paths = scan_files(source_path, pattern, recursive="**" in pattern)
+                print(f"[DataManager] scan_files 返回 {len(rel_paths)} 个相对路径: {rel_paths[:5] if rel_paths else 'empty'}")
 
                 # 转换为绝对路径
                 abs_paths = [os.path.normpath(os.path.join(source_path, p)) for p in rel_paths]
-
-                print(f"[DataManager] Match 模式扫描到 {len(abs_paths)} 个文件，开始加载...")
+                print(f"[DataManager] 转换为绝对路径: {len(abs_paths)} 个文件")
 
                 if not abs_paths:
-                    print(f"[DataManager] 未找到匹配的文件")
-                    return io.NodeOutput(None)
+                    print(f"[DataManager] 未找到匹配的文件，目录内容:")
+                    try:
+                        import os
+                        if os.path.exists(source_path) and os.path.isdir(source_path):
+                            files = os.listdir(source_path)
+                            print(f"[DataManager]   目录中有 {len(files)} 个项: {files[:10]}")
+                    except Exception as e:
+                        print(f"[DataManager]   无法列出目录内容: {e}")
+                    return io.NodeOutput([])  # 返回空列表而不是 None
 
                 # 内部迭代：加载所有文件并合并为批次张量
                 loaded_images = []
