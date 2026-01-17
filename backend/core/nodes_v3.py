@@ -1637,20 +1637,49 @@ class OutputPathConfig(io.ComfyNode):
                         print(f"[DataManager] Match 模式加载完成: {len(loaded_images)} 个图像（尺寸一致），批次形状: {batched_image.shape}")
                         return io.NodeOutput(batched_image)
                     else:
-                        # 尺寸不一致，返回图像列表（需要使用 ComfyUI 原生节点处理）
-                        print(f"[DataManager] 检测到图像尺寸不一致，返回图像列表")
-                        print(f"[DataManager]   请在工作流中添加 ComfyUI 原生的图像列表处理节点")
-                        print(f"[DataManager]   可用节点: JoinImageList, ImageBatch, 等")
-                        print(f"[DataManager]   共 {len(loaded_images)} 个图像，尺寸如下:")
-                        for i, img in enumerate(loaded_images[:10]):  # 只显示前 10 个
-                            print(f"[DataManager]     图像 {i+1}: {img.shape}")
-                        if len(loaded_images) > 10:
-                            print(f"[DataManager]     ... 还有 {len(loaded_images) - 10} 个图像")
+                        # 尺寸不一致，自动调整到统一尺寸
+                        print(f"[DataManager] 检测到图像尺寸不一致，自动调整到统一尺寸")
+                        print(f"[DataManager]   使用最大宽高作为目标（保持宽高比）")
 
-                        # 返回图像列表（保持原图大小）
-                        # 注意：这需要连接到支持列表的节点，如 JoinImageList
-                        # 直接连接到不支持的节点会报错
-                        return io.NodeOutput(loaded_images)
+                        # 计算最大宽高
+                        max_h = max(img.shape[1] for img in loaded_images)
+                        max_w = max(img.shape[2] for img in loaded_images)
+                        print(f"[DataManager]   目标尺寸: {max_h}x{max_w}")
+
+                        # 调整所有图像到目标尺寸
+                        resized_images = []
+                        try:
+                            import torchvision.transforms.functional as F
+                            use_torchvision = True
+                        except ImportError:
+                            use_torchvision = False
+                            from PIL import Image
+                            import numpy as np
+
+                        for i, img in enumerate(loaded_images):
+                            h, w = img.shape[1], img.shape[2]
+                            if h != max_h or w != max_w:
+                                if use_torchvision:
+                                    # 使用 torchvision（更快）
+                                    img_nchw = img.permute(0, 3, 1, 2)
+                                    img_resized = F.resize(img_nchw, [max_h, max_w], antialias=True)
+                                    img_resized = img_resized.permute(0, 2, 3, 1)
+                                else:
+                                    # 使用 PIL
+                                    img_pil = Image.fromarray((img[0].numpy() * 255).astype(np.uint8))
+                                    img_resized_pil = img_pil.resize((max_w, max_h), Image.Resampling.LANCZOS)
+                                    img_resized = np.array(img_resized_pil).astype(np.float32) / 255.0
+                                    img_resized = torch.from_numpy(img_resized)[None,]
+                                resized_images.append(img_resized)
+                                if i < 3:
+                                    print(f"[DataManager]   图像 {i+1}: {h}x{w} -> {max_h}x{max_w}")
+                            else:
+                                resized_images.append(img)
+
+                        # 批次化
+                        batched_image = torch.cat(resized_images, dim=0)
+                        print(f"[DataManager] Match 模式加载完成: {len(resized_images)} 个图像（已调整），批次形状: {batched_image.shape}")
+                        return io.NodeOutput(batched_image)
 
                 # 混合类型或非图像类型：返回路径列表
                 print(f"[DataManager] Match 模式加载完成: {len(loaded_data)} 个数据项（路径列表）")
