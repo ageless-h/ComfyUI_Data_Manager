@@ -3,9 +3,8 @@
  */
 
 import { updateStatus } from '../../utils/helpers.js'
-import { previewFloatingWindows } from '../../core/state.js'
+import { previewFloatingWindows, type FloatingWindowData } from '../../core/state.js'
 import { getComfyTheme } from '../../utils/theme.js'
-import type { FloatingWindowData } from '../../core/types.js'
 
 /**
  * Update Dock panel

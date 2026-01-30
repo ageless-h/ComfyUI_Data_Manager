@@ -8,14 +8,13 @@ import { setupWindowDrag } from '../../utils/drag.js'
 import { updateStatus, getExt } from '../../utils/helpers.js'
 import { loadPreviewContent } from './preview-content.js'
 import { updateDock } from './dock.js'
-import { previewFloatingWindows } from '../../core/state.js'
+import { previewFloatingWindows, type FloatingWindowData } from '../../core/state.js'
 import {
   applyComfyTheme,
   getComfyTheme,
   addThemeListener,
   type ComfyTheme,
 } from '../../utils/theme.js'
-import type { FloatingWindowData } from './dock.js'
 
 // ==================== Local Constants ====================
 const DEFAULT_IMAGE_SCALE = 1
