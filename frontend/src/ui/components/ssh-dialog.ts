@@ -4,7 +4,8 @@
 
 import { getComfyTheme, type ComfyTheme } from '../../utils/theme.js'
 import type { SSHCredential } from '../../api/ssh.js'
-import { sshConnect, sshSaveCredential, sshListCredentials, requireElementById } from '../../utils/helpers.js'
+import { sshConnect, sshSaveCredential, sshListCredentials } from '../../api/ssh.js'
+import { requireElementById } from '../../utils/helpers.js'
 
 /**
  * SSH dialog options
