@@ -8,7 +8,6 @@
  * - Sort and view toggle
  */
 
-// @ts-ignore - ComfyUI provides this module at runtime
 import { app } from '../../scripts/app.js'
 
 // Import core modules

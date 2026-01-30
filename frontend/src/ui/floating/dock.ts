@@ -5,17 +5,7 @@
 import { updateStatus } from '../../utils/helpers.js'
 import { previewFloatingWindows } from '../../core/state.js'
 import { getComfyTheme } from '../../utils/theme.js'
-
-/**
- * Floating window data interface
- */
-export interface FloatingWindowData {
-  path: string
-  fileName: string
-  fileConfig: { icon: string; color: string }
-  window: HTMLElement
-  minimized: boolean
-}
+import type { FloatingWindowData } from '../../core/types.js'
 
 /**
  * Update Dock panel

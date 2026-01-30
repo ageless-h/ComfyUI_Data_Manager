@@ -8,6 +8,11 @@ declare module '*/scripts/app.js' {
   export { app as default }
 }
 
+declare module '../../scripts/app.js' {
+  export const app: ComfyApp
+  export { app as default }
+}
+
 declare module '*/scripts/*.js' {
   const content: unknown
   export default content

@@ -4,7 +4,7 @@
 
 import { getComfyTheme, type ComfyTheme } from '../../utils/theme.js'
 import type { SSHCredential } from '../../api/ssh.js'
-import { sshConnect, sshSaveCredential, sshListCredentials } from '../../api/ssh.js'
+import { sshConnect, sshSaveCredential, sshListCredentials, requireElementById } from '../../utils/helpers.js'
 
 /**
  * SSH dialog options
@@ -115,11 +115,11 @@ export function createSshDialog(options: SshDialogOptions = {}): HTMLElement {
   loadSavedCredentials(savedCredsContainer.select)
 
   connectBtn.onclick = async () => {
-    const host = (document.getElementById('dm-ssh-host') as HTMLInputElement).value.trim()
-    const port = (document.getElementById('dm-ssh-port') as HTMLInputElement).value.trim()
-    const username = (document.getElementById('dm-ssh-username') as HTMLInputElement).value.trim()
-    const password = (document.getElementById('dm-ssh-password') as HTMLInputElement).value
-    const saveCreds = (document.getElementById('dm-ssh-save-creds') as HTMLInputElement).checked
+    const host = requireElementById<HTMLInputElement>('dm-ssh-host').value.trim()
+    const port = requireElementById<HTMLInputElement>('dm-ssh-port').value.trim()
+    const username = requireElementById<HTMLInputElement>('dm-ssh-username').value.trim()
+    const password = requireElementById<HTMLInputElement>('dm-ssh-password').value
+    const saveCreds = requireElementById<HTMLInputElement>('dm-ssh-save-creds').checked
 
     if (!host || !username) {
       alert('请填写主机地址和用户名')
@@ -230,11 +230,11 @@ function createSavedCredentialsSelector(theme: ComfyTheme): {
 
     try {
       const cred = JSON.parse(selectedValue) as SSHCredential
-      ;(document.getElementById('dm-ssh-host') as HTMLInputElement).value = cred.host
-      ;(document.getElementById('dm-ssh-port') as HTMLInputElement).value = String(cred.port)
-      ;(document.getElementById('dm-ssh-username') as HTMLInputElement).value = cred.username
+      requireElementById<HTMLInputElement>('dm-ssh-host').value = cred.host
+      requireElementById<HTMLInputElement>('dm-ssh-port').value = String(cred.port)
+      requireElementById<HTMLInputElement>('dm-ssh-username').value = cred.username
       // 密码不自动填充，需要用户重新输入
-      ;(document.getElementById('dm-ssh-save-creds') as HTMLInputElement).checked = true
+      requireElementById<HTMLInputElement>('dm-ssh-save-creds').checked = true
     } catch (e) {
       console.warn('[DataManager] 解析凭证失败:', e)
     }

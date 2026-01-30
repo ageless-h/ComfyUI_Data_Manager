@@ -109,7 +109,7 @@ export function getViewMode(): ViewMode {
 
 export let fileManagerWindow: Window | null = null
 export let previewModal: HTMLElement | null = null
-export let previewFloatingWindows: unknown[] = [] // Will contain FloatingWindowData objects
+export let previewFloatingWindows: FloatingWindowData[] = []
 
 // ==================== SSH Remote Connection State ====================
 

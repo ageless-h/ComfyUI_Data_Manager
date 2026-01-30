@@ -2,6 +2,8 @@
  * ComfyUI Data Manager - SSH API
  */
 
+import type { FileItem } from '../core/types.js'
+
 export interface SSHConnectOptions {
   host: string
   port: number
@@ -21,7 +23,7 @@ export interface SSHConnectResponse {
 }
 
 export interface SSHListResponse {
-  files: unknown[]
+  files: FileItem[]
   path: string
   connection_id: string
 }

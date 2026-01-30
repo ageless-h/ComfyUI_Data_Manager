@@ -10,6 +10,7 @@ import json
 import os
 import pickle
 import shutil
+import sys
 from pathlib import Path
 from typing import Dict, Any, Union, Tuple
 from datetime import datetime
@@ -19,7 +20,10 @@ from comfy_api.latest import ComfyExtension, io, InputImpl, Types
 from typing_extensions import override
 from fractions import Fraction
 
-from ..helpers import (
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from backend.helpers import (
     save_file,
     list_files,
     get_file_info,

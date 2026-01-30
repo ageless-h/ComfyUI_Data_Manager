@@ -3,12 +3,13 @@
  */
 
 import { API_ENDPOINTS } from '../../core/constants.js'
+import type { FileItem } from '../../core/types.js'
 
 /**
  * Directory listing response
  */
 export interface DirectoryListResponse {
-  files: unknown[]
+  files: FileItem[]
   path: string
 }
 

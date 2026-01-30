@@ -14,6 +14,33 @@ declare const app: {
 }
 
 /**
+ * Safely get DOM element by ID with proper typing
+ * @param id - Element ID
+ * @returns Element or null
+ */
+export function getElementById<T extends HTMLElement = HTMLElement>(
+  id: string
+): T | null {
+  return document.getElementById(id) as T | null
+}
+
+/**
+ * Safely get DOM element by ID, throwing if not found
+ * @param id - Element ID
+ * @returns Element
+ * @throws Error if element not found
+ */
+export function requireElementById<T extends HTMLElement = HTMLElement>(
+  id: string
+): T {
+  const element = document.getElementById(id) as T | null
+  if (!element) {
+    throw new Error(`Required element not found: ${id}`)
+  }
+  return element
+}
+
+/**
  * Update status bar text
  * @param text - Status text
  */
