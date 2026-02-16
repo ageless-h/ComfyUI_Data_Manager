@@ -121,7 +121,13 @@ OutputPathConfig (Match) → ImageScale → InputPathConfig (Batch) → DataMana
 ### 后端测试
 
 ```bash
-# 运行所有后端测试
+# 在仓库根目录运行（推荐）
+python -m pytest backend/tests
+
+# 仅运行批量处理工作流测试
+python -m pytest backend/tests/test_batch_workflow_api.py
+
+# 兼容旧方式：进入测试目录运行
 cd backend/tests
 python -m pytest .
 
