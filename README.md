@@ -24,6 +24,7 @@ git clone https://github.com/ageless-h/ComfyUI_Data_Manager.git
 ```
 
 Windows 用户可在 Git Bash 或 PowerShell 中执行上述命令。
+安装后若未立即显示节点，请在浏览器中刷新 ComfyUI 页面。
 
 若更新后节点未显示，请重启 ComfyUI 并刷新前端页面。
 
