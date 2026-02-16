@@ -34,6 +34,13 @@ cd ComfyUI/custom_nodes/ComfyUI_Data_Manager
 git pull
 ```
 
+### 卸载
+
+```bash
+cd ComfyUI/custom_nodes
+rm -rf ComfyUI_Data_Manager
+```
+
 ## 依赖
 
 - Python >= 3.8
