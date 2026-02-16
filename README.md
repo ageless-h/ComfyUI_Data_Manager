@@ -20,7 +20,7 @@
 
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/your-repo/ComfyUI_Data_Manager.git
+git clone https://github.com/ageless-h/ComfyUI_Data_Manager.git
 ```
 
 ### 方式 2: ComfyUI Manager
