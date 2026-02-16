@@ -27,6 +27,13 @@ git clone https://github.com/ageless-h/ComfyUI_Data_Manager.git
 
 在 ComfyUI Manager 中搜索 "ComfyUI Data Manager" 并安装
 
+### 更新到最新版本
+
+```bash
+cd ComfyUI/custom_nodes/ComfyUI_Data_Manager
+git pull
+```
+
 ## 依赖
 
 - Python >= 3.8
