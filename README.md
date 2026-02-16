@@ -23,6 +23,8 @@ cd ComfyUI/custom_nodes
 git clone https://github.com/ageless-h/ComfyUI_Data_Manager.git
 ```
 
+Windows 用户可在 Git Bash 或 PowerShell 中执行上述命令。
+
 ### 方式 2: ComfyUI Manager
 
 在 ComfyUI Manager 中搜索 "ComfyUI Data Manager" 并安装
