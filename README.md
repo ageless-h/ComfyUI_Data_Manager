@@ -27,6 +27,7 @@ Windows 用户可在 Git Bash 或 PowerShell 中执行上述命令。
 安装后若未立即显示节点，请在浏览器中刷新 ComfyUI 页面。
 
 若更新后节点未显示，请重启 ComfyUI 并刷新前端页面。
+若重启后仍未显示，请清理浏览器缓存后再访问 ComfyUI。
 
 ### 方式 2: ComfyUI Manager
 
