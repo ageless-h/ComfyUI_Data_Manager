@@ -25,6 +25,8 @@ git clone https://github.com/ageless-h/ComfyUI_Data_Manager.git
 
 Windows 用户可在 Git Bash 或 PowerShell 中执行上述命令。
 
+若更新后节点未显示，请重启 ComfyUI 并刷新前端页面。
+
 ### 方式 2: ComfyUI Manager
 
 在 ComfyUI Manager 中搜索 "ComfyUI Data Manager" 并安装
