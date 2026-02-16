@@ -41,6 +41,11 @@ cd ComfyUI/custom_nodes
 rm -rf ComfyUI_Data_Manager
 ```
 
+### 验证安装
+
+- 重启 ComfyUI 后，在节点搜索器中输入 `Data Manager`
+- 能看到并添加 `Data Manager - Core` 即表示安装成功
+
 ## 依赖
 
 - Python >= 3.8
