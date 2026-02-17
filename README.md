@@ -30,6 +30,7 @@ Windows 用户可在 Git Bash 或 PowerShell 中执行上述命令。
 若重启后仍未显示，请清理浏览器缓存后再访问 ComfyUI。
 如仍异常，请打开浏览器开发者工具查看 Console 报错信息。
 提交问题时建议附上浏览器 Console 报错截图和插件版本号。
+建议同时附上最小复现工作流（JSON）以便快速复现问题。
 
 ### 方式 2: ComfyUI Manager
 
