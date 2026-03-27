@@ -8,6 +8,14 @@ export type ViewMode = 'list' | 'grid'
 export type SortBy = 'name' | 'size' | 'modified'
 export type SortOrder = 'asc' | 'desc'
 
+export interface FloatingWindowData {
+  path: string
+  fileName: string
+  fileConfig: { icon: string; color: string }
+  window: HTMLElement
+  minimized: boolean
+}
+
 export interface FileItem {
   name: string
   path?: string

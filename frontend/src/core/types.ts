@@ -42,14 +42,6 @@ export interface FloatingWindowState {
   dockItem?: HTMLElement
 }
 
-export interface FloatingWindowData {
-  path: string
-  fileName: string
-  fileConfig: { icon: string; color: string }
-  window: HTMLElement
-  minimized: boolean
-}
-
 export interface ToastOptions {
   text: string
   type?: 'info' | 'success' | 'warning' | 'error'
